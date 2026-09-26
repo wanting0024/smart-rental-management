@@ -66,15 +66,19 @@ class ProviderStatsScreen extends StatelessWidget {
     final accepted = allForProvider
         .where(
           (b) =>
-              b.status != DemoBookingStatus.requested &&
-              b.status != DemoBookingStatus.cancelled,
+              b.status == BookingStatus.accepted ||
+              b.status == BookingStatus.inProgress ||
+              b.status == BookingStatus.completed,
         )
         .length;
-    final completed = allForProvider
-        .where((b) => b.status == DemoBookingStatus.completed)
-        .length;
+    final completed =
+        allForProvider.where((b) => b.status == BookingStatus.completed).length;
     final cancelled = allForProvider
-        .where((b) => b.status == DemoBookingStatus.cancelled)
+        .where(
+          (b) =>
+              b.status == BookingStatus.cancelled ||
+              b.status == BookingStatus.declined,
+        )
         .length;
     final acceptanceRate = total == 0 ? 0.0 : accepted / total;
     final completionRate = accepted == 0 ? 0.0 : completed / accepted;
@@ -89,7 +93,8 @@ class ProviderStatsScreen extends StatelessWidget {
       final weekStart = now.subtract(Duration(days: (7 - w) * 7 + 6));
       final weekEnd = weekStart.add(const Duration(days: 7));
       final weekJobs = allForProvider.where((b) {
-        return b.scheduledStart.isAfter(weekStart.subtract(const Duration(days: 1))) &&
+        return b.scheduledStart
+                .isAfter(weekStart.subtract(const Duration(days: 1))) &&
             b.scheduledStart.isBefore(weekEnd);
       }).length;
       return _WeekPoint(
@@ -98,12 +103,15 @@ class ProviderStatsScreen extends StatelessWidget {
         isCurrentPeriod: w >= 4, // last 4 weeks = current period
       );
     });
-    final currentPeriodJobs =
-        weeklyData.where((w) => w.isCurrentPeriod).fold<int>(0, (a, w) => a + w.jobs);
-    final previousPeriodJobs =
-        weeklyData.where((w) => !w.isCurrentPeriod).fold<int>(0, (a, w) => a + w.jobs);
+    final currentPeriodJobs = weeklyData
+        .where((w) => w.isCurrentPeriod)
+        .fold<int>(0, (a, w) => a + w.jobs);
+    final previousPeriodJobs = weeklyData
+        .where((w) => !w.isCurrentPeriod)
+        .fold<int>(0, (a, w) => a + w.jobs);
     final trendDelta = _computeDelta(currentPeriodJobs, previousPeriodJobs);
-    final visibleWeeks = weeklyData.skip(4).toList(); // show only current 4 weeks
+    final visibleWeeks =
+        weeklyData.skip(4).toList(); // show only current 4 weeks
     final maxWeekJobs =
         visibleWeeks.map((w) => w.jobs).fold<int>(0, (m, v) => v > m ? v : m);
 
@@ -185,10 +193,13 @@ class ProviderStatsScreen extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: visibleWeeks.map((w) {
-                          final h = maxWeekJobs == 0 ? 0.0 : (w.jobs / maxWeekJobs) * 100;
+                          final h = maxWeekJobs == 0
+                              ? 0.0
+                              : (w.jobs / maxWeekJobs) * 100;
                           return Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 6),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -233,7 +244,8 @@ class ProviderStatsScreen extends StatelessWidget {
             // P4: SectionHeader
             SectionHeader(
               title: 'Rating breakdown',
-              subtitle: 'From $totalReviews review${totalReviews == 1 ? '' : 's'}',
+              subtitle:
+                  'From $totalReviews review${totalReviews == 1 ? '' : 's'}',
             ),
             const SizedBox(height: 8),
             Card(
@@ -269,7 +281,8 @@ class ProviderStatsScreen extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           '$totalReviews review${totalReviews == 1 ? '' : 's'}',
-                          style: TextStyle(fontSize: 11, color: sem.textTertiary),
+                          style:
+                              TextStyle(fontSize: 11, color: sem.textTertiary),
                         ),
                       ],
                     ),
@@ -279,7 +292,8 @@ class ProviderStatsScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [5, 4, 3, 2, 1].map((star) {
                           final count = ratingDist[star] ?? 0;
-                          final pct = totalReviews == 0 ? 0.0 : count / totalReviews;
+                          final pct =
+                              totalReviews == 0 ? 0.0 : count / totalReviews;
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 1),
                             child: Row(
@@ -294,7 +308,8 @@ class ProviderStatsScreen extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                const Icon(Icons.star, size: 9, color: AppColors.warning),
+                                const Icon(Icons.star,
+                                    size: 9, color: AppColors.warning),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: ClipRRect(
@@ -409,7 +424,8 @@ class ProviderStatsScreen extends StatelessWidget {
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.insights, color: Colors.white, size: 22),
+                child:
+                    const Icon(Icons.insights, color: Colors.white, size: 22),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -443,13 +459,19 @@ class ProviderStatsScreen extends StatelessWidget {
           // P1: 4 metrics
           Row(
             children: [
-              Expanded(child: _heroStat('Acceptance', '${(acc * 100).toStringAsFixed(0)}%', 'rate')),
+              Expanded(
+                  child: _heroStat('Acceptance',
+                      '${(acc * 100).toStringAsFixed(0)}%', 'rate')),
               const SizedBox(width: 6),
-              Expanded(child: _heroStat('Completion', '${(comp * 100).toStringAsFixed(0)}%', 'rate')),
+              Expanded(
+                  child: _heroStat('Completion',
+                      '${(comp * 100).toStringAsFixed(0)}%', 'rate')),
               const SizedBox(width: 6),
               Expanded(child: _heroStat('Response', '${respMin}m', 'avg')),
               const SizedBox(width: 6),
-              Expanded(child: _heroStat('Repeat', '${(rep * 100).toStringAsFixed(0)}%', 'rate')),
+              Expanded(
+                  child: _heroStat(
+                      'Repeat', '${(rep * 100).toStringAsFixed(0)}%', 'rate')),
             ],
           ),
         ],

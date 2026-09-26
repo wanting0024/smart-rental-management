@@ -2,7 +2,7 @@
 // 1-5 star rating picker with optional comment field.
 //
 // F2 helper widget. Used on the owner-side booking detail when status is
-// [DemoBookingStatus.completed] and the owner has not yet submitted a rating.
+// [BookingStatus.completed] and the owner has not yet submitted a rating.
 //
 // Submit returns the chosen star count and optional comment via [onSubmit].
 // Tap a star to set the rating. Stars from index 0..rating-1 are filled.
@@ -95,9 +95,7 @@ class _RatingInputState extends State<RatingInput> {
         ),
         const SizedBox(height: 4),
         Text(
-          _rating == 0
-              ? 'Tap a star to rate'
-              : '$_rating / 5 stars',
+          _rating == 0 ? 'Tap a star to rate' : '$_rating / 5 stars',
           style: const TextStyle(
               fontSize: 13,
               color: Color(0xFF6B7280),
@@ -172,9 +170,7 @@ class RatingDisplay extends StatelessWidget {
             final filled = i < rating;
             return Icon(
               filled ? Icons.star_rounded : Icons.star_outline_rounded,
-              color: filled
-                  ? const Color(0xFFF59E0B)
-                  : const Color(0xFFD1D5DB),
+              color: filled ? const Color(0xFFF59E0B) : const Color(0xFFD1D5DB),
               size: starSize,
             );
           }),

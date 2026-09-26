@@ -14,7 +14,8 @@ void main() {
       final list = DemoProvider.ranked();
       for (int i = 0; i < list.length - 1; i++) {
         expect(list[i].score, greaterThanOrEqualTo(list[i + 1].score),
-            reason: 'Provider ${list[i].name} (${list[i].score}) should rank above '
+            reason:
+                'Provider ${list[i].name} (${list[i].score}) should rank above '
                 '${list[i + 1].name} (${list[i + 1].score})');
       }
     });
@@ -54,7 +55,8 @@ void main() {
     test('every booking has a valid scheduled window', () {
       for (final b in DemoBooking.all()) {
         expect(b.scheduledEnd.isAfter(b.scheduledStart), isTrue,
-            reason: '${b.id} end (${b.scheduledEnd}) must be after start (${b.scheduledStart})');
+            reason:
+                '${b.id} end (${b.scheduledEnd}) must be after start (${b.scheduledStart})');
         expect(b.id, isNotEmpty);
         expect(b.property, isNotEmpty);
         expect(b.serviceType, isNotEmpty);
@@ -63,16 +65,20 @@ void main() {
 
     test('bookings cover all major lifecycle stages', () {
       final statuses = DemoBooking.all().map((b) => b.status).toSet();
-      expect(statuses.contains(DemoBookingStatus.requested), isTrue);
-      expect(statuses.contains(DemoBookingStatus.scheduled), isTrue);
-      expect(statuses.contains(DemoBookingStatus.inProgress), isTrue);
-      expect(statuses.contains(DemoBookingStatus.completed), isTrue);
+      expect(statuses.contains(BookingStatus.pending), isTrue);
+      expect(statuses.contains(BookingStatus.accepted), isTrue);
+      expect(statuses.contains(BookingStatus.inProgress), isTrue);
+      expect(statuses.contains(BookingStatus.completed), isTrue);
     });
 
-    test('requested bookings have no provider assigned', () {
+    test('Pending provider-directed requests have an assigned provider', () {
       for (final b in DemoBooking.all()) {
-        if (b.status == DemoBookingStatus.requested) {
-          expect(b.providerName, isNull, reason: '${b.id} is requested but has provider');
+        if (b.status == BookingStatus.pending) {
+          expect(
+            b.providerName,
+            isNotNull,
+            reason: '${b.id} must identify the selected provider',
+          );
         }
       }
     });

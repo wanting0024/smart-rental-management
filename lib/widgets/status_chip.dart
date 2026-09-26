@@ -4,7 +4,7 @@ import '../models/demo_data.dart';
 
 class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.status});
-  final DemoBookingStatus status;
+  final BookingStatus status;
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +21,14 @@ class StatusChip extends StatelessWidget {
           Container(
             width: 6,
             height: 6,
-            decoration: BoxDecoration(color: status.color, shape: BoxShape.circle),
+            decoration:
+                BoxDecoration(color: status.color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
           Text(
             status.label,
-            style: TextStyle(color: status.color, fontSize: 12, fontWeight: FontWeight.w600),
+            style: TextStyle(
+                color: status.color, fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ],
       ),

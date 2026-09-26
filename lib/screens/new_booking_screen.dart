@@ -1,6 +1,6 @@
-﻿// lib/screens/new_booking_screen.dart
+// lib/screens/new_booking_screen.dart
 // Owner creates a new cleaning request. Multi-field form with validation.
-// On submit, creates a DemoBooking with status=requested and pops with it.
+// On submit, creates a DemoBooking with status Pending and returns it.
 //
 // Round 9 polish (NB1-NB8):
 //   NB1 Theme colors (AppColors.primary + sem.*) instead of hardcoded hex
@@ -161,8 +161,11 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
     }
 
     final start = DateTime(
-      _selectedDate!.year, _selectedDate!.month, _selectedDate!.day,
-      _selectedTime!.hour, _selectedTime!.minute,
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      _selectedTime!.hour,
+      _selectedTime!.minute,
     );
     final end = start.add(Duration(hours: _selectedService!.durationHours));
 
@@ -173,7 +176,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
       providerName: null, // auto-match
       scheduledStart: start,
       scheduledEnd: end,
-      status: DemoBookingStatus.requested,
+      status: BookingStatus.pending,
       specialInstructions: _instructionsCtrl.text.trim().isEmpty
           ? null
           : _instructionsCtrl.text.trim(),
@@ -259,7 +262,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
               const SizedBox(height: 12),
               AppTextField(
                 label: 'Notes',
-                hint: 'e.g. "Focus on kitchen and both bathrooms. Tenant move-in tomorrow 9 AM."',
+                hint:
+                    'e.g. "Focus on kitchen and both bathrooms. Tenant move-in tomorrow 9 AM."',
                 controller: _instructionsCtrl,
                 maxLines: 4,
                 minLines: 3,
@@ -307,7 +311,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.apartment, color: Colors.white, size: 20),
+                child:
+                    const Icon(Icons.apartment, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -328,7 +333,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
             decoration: InputDecoration(
               filled: true,
               fillColor: sem.surface,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(color: sem.border),
@@ -338,11 +344,13 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                 borderSide: BorderSide(color: sem.border),
               ),
             ),
-            hint: Text('Select a property', style: TextStyle(color: sem.textTertiary)),
+            hint: Text('Select a property',
+                style: TextStyle(color: sem.textTertiary)),
             items: DemoProperty.all.map((p) {
               return DropdownMenuItem(
                 value: p,
-                child: Text(p.display, style: TextStyle(fontSize: 14, color: sem.textPrimary)),
+                child: Text(p.display,
+                    style: TextStyle(fontSize: 14, color: sem.textPrimary)),
               );
             }).toList(),
             onChanged: (v) {
@@ -394,7 +402,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: selected ? AppColors.primary : sem.textTertiary,
+                          color:
+                              selected ? AppColors.primary : sem.textTertiary,
                           width: 2,
                         ),
                       ),
@@ -427,7 +436,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                           const SizedBox(height: 2),
                           Text(
                             '${s.durationHours} hours  ·  from RM ${s.priceFrom.toStringAsFixed(0)}',
-                            style: TextStyle(fontSize: 12, color: sem.textSecondary),
+                            style: TextStyle(
+                                fontSize: 12, color: sem.textSecondary),
                           ),
                         ],
                       ),
@@ -443,7 +453,9 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
   }
 
   Widget _buildDateField(SemanticColors sem) {
-    final dateText = _selectedDate == null ? null : DateFormat('d MMM y').format(_selectedDate!);
+    final dateText = _selectedDate == null
+        ? null
+        : DateFormat('d MMM y').format(_selectedDate!);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -475,7 +487,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                     dateText ?? 'Pick a date',
                     style: TextStyle(
                       fontSize: 14,
-                      color: dateText == null ? sem.textTertiary : sem.textPrimary,
+                      color:
+                          dateText == null ? sem.textTertiary : sem.textPrimary,
                     ),
                   ),
                 ),
@@ -488,7 +501,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
   }
 
   Widget _buildTimeField(SemanticColors sem) {
-    final timeText = _selectedTime == null ? null : _selectedTime!.format(context);
+    final timeText =
+        _selectedTime == null ? null : _selectedTime!.format(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -520,7 +534,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                     timeText ?? 'Pick a time',
                     style: TextStyle(
                       fontSize: 14,
-                      color: timeText == null ? sem.textTertiary : sem.textPrimary,
+                      color:
+                          timeText == null ? sem.textTertiary : sem.textPrimary,
                     ),
                   ),
                 ),
@@ -555,7 +570,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                 color: AppColors.success,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              child:
+                  const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -616,10 +632,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
           _summaryRow(sem, 'Service', _selectedService?.label ?? '-'),
           _summaryRow(sem, 'When', _formatWhen()),
           _summaryRow(sem, 'Auto-match', _autoMatch ? 'Yes' : 'No'),
-          if (_isRecurring)
-            _summaryRow(sem, 'Repeats', _recurrence.label),
-          if (_totalDays > 1)
-            _summaryRow(sem, 'Duration', '$_totalDays days'),
+          if (_isRecurring) _summaryRow(sem, 'Repeats', _recurrence.label),
+          if (_totalDays > 1) _summaryRow(sem, 'Duration', '$_totalDays days'),
           if (_selectedService != null) ...[
             const Divider(height: 24),
             Row(
@@ -759,10 +773,14 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
     if (daysUntilSat == 0) daysUntilSat = 7;
     final nextSaturday = today.add(Duration(days: daysUntilSat));
     return [
-      _QuickPick('Tomorrow 10am', Icons.wb_sunny_outlined, tomorrow, const TimeOfDay(hour: 10, minute: 0)),
-      _QuickPick('Tomorrow 2pm', Icons.wb_sunny_outlined, tomorrow, const TimeOfDay(hour: 14, minute: 0)),
-      _QuickPick('Mon 10am', Icons.calendar_today, nextMonday, const TimeOfDay(hour: 10, minute: 0)),
-      _QuickPick('Sat 9am', Icons.weekend_outlined, nextSaturday, const TimeOfDay(hour: 9, minute: 0)),
+      _QuickPick('Tomorrow 10am', Icons.wb_sunny_outlined, tomorrow,
+          const TimeOfDay(hour: 10, minute: 0)),
+      _QuickPick('Tomorrow 2pm', Icons.wb_sunny_outlined, tomorrow,
+          const TimeOfDay(hour: 14, minute: 0)),
+      _QuickPick('Mon 10am', Icons.calendar_today, nextMonday,
+          const TimeOfDay(hour: 10, minute: 0)),
+      _QuickPick('Sat 9am', Icons.weekend_outlined, nextSaturday,
+          const TimeOfDay(hour: 9, minute: 0)),
     ];
   }
 
@@ -839,12 +857,17 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                   onTap: () => setState(() => _recurrence = p),
                   borderRadius: BorderRadius.circular(999),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: selected ? AppColors.primary : AppColors.primarySurface,
+                      color: selected
+                          ? AppColors.primary
+                          : AppColors.primarySurface,
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(
-                        color: selected ? AppColors.primary : AppColors.primaryBorder,
+                        color: selected
+                            ? AppColors.primary
+                            : AppColors.primaryBorder,
                       ),
                     ),
                     child: Text(
@@ -919,7 +942,9 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: _totalDays > 1 ? AppColors.secondaryDark : sem.textSecondary,
+                  color: _totalDays > 1
+                      ? AppColors.secondaryDark
+                      : sem.textSecondary,
                 ),
               ),
             ],
@@ -935,7 +960,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.event_available, size: 16, color: AppColors.secondaryDark),
+                  const Icon(Icons.event_available,
+                      size: 16, color: AppColors.secondaryDark),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

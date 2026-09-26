@@ -1,46 +1,22 @@
-﻿// lib/models/demo_data.dart
+// lib/models/demo_data.dart
 // Hardcoded demo data so the Sprint 0 app can run without Supabase.
 // All numbers and provider names mirror the values from
 // supabase/seed/0001_demo_data.sql and the tutor example table.
 
 import 'package:flutter/material.dart';
+import '../features/bookings/domain/booking_status.dart';
 
-enum DemoBookingStatus { requested, accepted, scheduled, rescheduled, inProgress, completed, delayed, rejected, cancelled }
+export '../features/bookings/domain/booking_status.dart';
 
-extension DemoBookingStatusX on DemoBookingStatus {
-  String get label {
-    switch (this) {
-      case DemoBookingStatus.requested: return 'Requested';
-      case DemoBookingStatus.accepted: return 'Accepted';
-      case DemoBookingStatus.scheduled: return 'Scheduled';
-      case DemoBookingStatus.rescheduled: return 'Rescheduled';
-      case DemoBookingStatus.inProgress: return 'In Progress';
-      case DemoBookingStatus.completed: return 'Completed';
-      case DemoBookingStatus.delayed: return 'Delayed';
-      case DemoBookingStatus.rejected: return 'Rejected';
-      case DemoBookingStatus.cancelled: return 'Cancelled';
-    }
-  }
-
-  Color get color {
-    switch (this) {
-      case DemoBookingStatus.requested: return const Color(0xFF6B7280);     // grey
-      case DemoBookingStatus.accepted: return const Color(0xFF26A69A);      // teal
-      case DemoBookingStatus.scheduled: return const Color(0xFF6366F1);     // indigo
-      case DemoBookingStatus.rescheduled: return const Color(0xFF8E24AA);  // purple 600
-      case DemoBookingStatus.inProgress: return const Color(0xFFFB8C00);    // orange
-      case DemoBookingStatus.completed: return const Color(0xFF2E7D32);     // emerald
-      case DemoBookingStatus.delayed: return const Color(0xFFEF4444);       // red
-      case DemoBookingStatus.rejected: return const Color(0xFFC62828);      // red 800
-      case DemoBookingStatus.cancelled: return const Color(0xFF991B1B);    // dark red
-    }
-  }
-
-  /// True for states with no further transitions.
-  bool get isTerminal =>
-      this == DemoBookingStatus.completed ||
-      this == DemoBookingStatus.rejected ||
-      this == DemoBookingStatus.cancelled;
+extension BookingStatusColor on BookingStatus {
+  Color get color => switch (this) {
+        BookingStatus.pending => const Color(0xFF6B7280),
+        BookingStatus.accepted => const Color(0xFF26A69A),
+        BookingStatus.inProgress => const Color(0xFFFB8C00),
+        BookingStatus.completed => const Color(0xFF2E7D32),
+        BookingStatus.declined => const Color(0xFFC62828),
+        BookingStatus.cancelled => const Color(0xFF991B1B),
+      };
 }
 
 class DemoProvider {
@@ -55,7 +31,8 @@ class DemoProvider {
     required this.availability,
     this.phone = '+60 12-345 6789',
     this.email = 'provider.a@smartrental.my',
-    this.bio = 'Professional cleaning service. Trusted by 50+ property owners in KL.',
+    this.bio =
+        'Professional cleaning service. Trusted by 50+ property owners in KL.',
     this.workingHoursStart = const TimeOfDay(hour: 8, minute: 0),
     this.workingHoursEnd = const TimeOfDay(hour: 18, minute: 0),
     this.hourlyRate = 80.0,
@@ -138,8 +115,15 @@ class DemoProvider {
             : 0.0;
     final distScore = (1.0 - (distanceKm / 10.0).clamp(0.0, 1.0));
     final ratingScore = rating / 5.0;
-    final workScore = workload == 'Low' ? 1.0 : workload == 'Medium' ? 0.5 : 0.2;
-    return (availScore * 0.35 + distScore * 0.20 + ratingScore * 0.25 + workScore * 0.20);
+    final workScore = workload == 'Low'
+        ? 1.0
+        : workload == 'Medium'
+            ? 0.5
+            : 0.2;
+    return (availScore * 0.35 +
+        distScore * 0.20 +
+        ratingScore * 0.25 +
+        workScore * 0.20);
   }
 
   static List<DemoProvider> ranked() => [
@@ -190,20 +174,15 @@ class DemoBooking {
     this.recurrencePattern,
     this.totalDays = 1,
     this.acceptedAt,
-    this.scheduledAt,
     this.startedAt,
     this.completedAt,
     this.cancelledAt,
-    this.rejectedAt,
-    this.rescheduledAt,
-    this.delayedAt,
-    this.rejectionReason,
-    this.rescheduleReason,
+    this.declinedAt,
+    this.declineReason,
     this.cancellationReason,
-    this.delayReason,
-    this.rescheduleCount = 0,
     this.beforeImagePath,
     this.afterImagePath,
+    this.completionRemarks,
     this.ownerRating,
     this.ownerRatingComment,
   });
@@ -213,7 +192,7 @@ class DemoBooking {
   final String? providerName;
   final DateTime scheduledStart;
   final DateTime scheduledEnd;
-  final DemoBookingStatus status;
+  final BookingStatus status;
   final String? specialInstructions;
   final bool isRecurring;
   final RecurrencePattern? recurrencePattern;
@@ -221,26 +200,20 @@ class DemoBooking {
 
   // Lifecycle timestamps (Chapter 2.6.3: continuity of information).
   final DateTime? acceptedAt;
-  final DateTime? scheduledAt;
   final DateTime? startedAt;
   final DateTime? completedAt;
   final DateTime? cancelledAt;
-  final DateTime? rejectedAt;
-  final DateTime? rescheduledAt;
-  final DateTime? delayedAt;
+  final DateTime? declinedAt;
 
   // Reason text fields.
-  final String? rejectionReason;
-  final String? rescheduleReason;
+  final String? declineReason;
   final String? cancellationReason;
-  final String? delayReason;
 
-  // Reschedule counter (capped at kMaxRescheduleCount).
-  final int rescheduleCount;
-
-  // Proof of completion (F2). Paths to locally-saved photos.
+  // Completion evidence. Paths are local in the demo and move to Supabase
+  // Storage in the formal implementation.
   final String? beforeImagePath;
   final String? afterImagePath;
+  final String? completionRemarks;
 
   // Owner rating (F2). 1-5 stars (Section 2.4.8).
   final int? ownerRating;
@@ -255,6 +228,9 @@ class DemoBooking {
   /// True when both proof photos have been captured (F2 helper).
   bool get hasProof => beforeImagePath != null && afterImagePath != null;
 
+  bool get hasCompletionEvidence =>
+      hasProof && (completionRemarks?.trim().isNotEmpty ?? false);
+
   /// True when owner has submitted a rating (F2 helper).
   bool get isRated => ownerRating != null;
 
@@ -264,26 +240,24 @@ class DemoBooking {
     String? providerName,
     DateTime? scheduledStart,
     DateTime? scheduledEnd,
-    DemoBookingStatus? status,
+    BookingStatus? status,
     String? specialInstructions,
     bool? isRecurring,
     RecurrencePattern? recurrencePattern,
     int? totalDays,
     DateTime? acceptedAt,
-    DateTime? scheduledAt,
     DateTime? startedAt,
     DateTime? completedAt,
     DateTime? cancelledAt,
-    DateTime? rejectedAt,
-    DateTime? rescheduledAt,
-    DateTime? delayedAt,
-    String? rejectionReason,
-    String? rescheduleReason,
+    DateTime? declinedAt,
+    String? declineReason,
     String? cancellationReason,
-    String? delayReason,
-    int? rescheduleCount,
     String? beforeImagePath,
     String? afterImagePath,
+    String? completionRemarks,
+    bool clearBeforeImagePath = false,
+    bool clearAfterImagePath = false,
+    bool clearCompletionRemarks = false,
     int? ownerRating,
     String? ownerRatingComment,
   }) {
@@ -300,20 +274,19 @@ class DemoBooking {
       recurrencePattern: recurrencePattern ?? this.recurrencePattern,
       totalDays: totalDays ?? this.totalDays,
       acceptedAt: acceptedAt ?? this.acceptedAt,
-      scheduledAt: scheduledAt ?? this.scheduledAt,
       startedAt: startedAt ?? this.startedAt,
       completedAt: completedAt ?? this.completedAt,
       cancelledAt: cancelledAt ?? this.cancelledAt,
-      rejectedAt: rejectedAt ?? this.rejectedAt,
-      rescheduledAt: rescheduledAt ?? this.rescheduledAt,
-      delayedAt: delayedAt ?? this.delayedAt,
-      rejectionReason: rejectionReason ?? this.rejectionReason,
-      rescheduleReason: rescheduleReason ?? this.rescheduleReason,
+      declinedAt: declinedAt ?? this.declinedAt,
+      declineReason: declineReason ?? this.declineReason,
       cancellationReason: cancellationReason ?? this.cancellationReason,
-      delayReason: delayReason ?? this.delayReason,
-      rescheduleCount: rescheduleCount ?? this.rescheduleCount,
-      beforeImagePath: beforeImagePath ?? this.beforeImagePath,
-      afterImagePath: afterImagePath ?? this.afterImagePath,
+      beforeImagePath:
+          clearBeforeImagePath ? null : beforeImagePath ?? this.beforeImagePath,
+      afterImagePath:
+          clearAfterImagePath ? null : afterImagePath ?? this.afterImagePath,
+      completionRemarks: clearCompletionRemarks
+          ? null
+          : completionRemarks ?? this.completionRemarks,
       ownerRating: ownerRating ?? this.ownerRating,
       ownerRatingComment: ownerRatingComment ?? this.ownerRatingComment,
     );
@@ -327,8 +300,9 @@ class DemoBooking {
           providerName: 'Provider A',
           scheduledStart: DateTime(2026, 7, 14, 10, 0),
           scheduledEnd: DateTime(2026, 7, 14, 12, 0),
-          status: DemoBookingStatus.inProgress,
-          specialInstructions: 'Focus on kitchen and both bathrooms. Tenant move-in tomorrow 9 AM.',
+          status: BookingStatus.inProgress,
+          specialInstructions:
+              'Focus on kitchen and both bathrooms. Tenant move-in tomorrow 9 AM.',
         ),
         DemoBooking(
           id: 'b-002',
@@ -337,17 +311,17 @@ class DemoBooking {
           providerName: 'Provider B',
           scheduledStart: DateTime(2026, 7, 16, 14, 0),
           scheduledEnd: DateTime(2026, 7, 16, 17, 0),
-          status: DemoBookingStatus.scheduled,
+          status: BookingStatus.accepted,
           specialInstructions: 'Window cleaning included.',
         ),
         DemoBooking(
           id: 'b-003',
           property: 'Unit C-21, Menara Suria',
           serviceType: 'Routine cleaning',
-          providerName: null,
+          providerName: 'Provider A',
           scheduledStart: DateTime(2026, 7, 18, 9, 0),
           scheduledEnd: DateTime(2026, 7, 18, 11, 0),
-          status: DemoBookingStatus.requested,
+          status: BookingStatus.pending,
           specialInstructions: null,
         ),
         DemoBooking(
@@ -357,7 +331,7 @@ class DemoBooking {
           providerName: 'Provider C',
           scheduledStart: DateTime(2026, 7, 11, 13, 0),
           scheduledEnd: DateTime(2026, 7, 11, 15, 0),
-          status: DemoBookingStatus.completed,
+          status: BookingStatus.completed,
           specialInstructions: 'Already confirmed by owner.',
         ),
         // Sample recurring booking (weekly deep clean on Unit A-12)
@@ -368,8 +342,9 @@ class DemoBooking {
           providerName: 'Provider A',
           scheduledStart: DateTime(2026, 7, 21, 10, 0),
           scheduledEnd: DateTime(2026, 7, 21, 12, 0),
-          status: DemoBookingStatus.scheduled,
-          specialInstructions: 'Recurring weekly clean. Same scope every visit.',
+          status: BookingStatus.accepted,
+          specialInstructions:
+              'Recurring weekly clean. Same scope every visit.',
           isRecurring: true,
           recurrencePattern: RecurrencePattern.weekly,
         ),
@@ -378,7 +353,11 @@ class DemoBooking {
 
 /// Properties the owner manages. Used by New Booking form.
 class DemoProperty {
-  const DemoProperty({required this.unit, required this.tower, required this.bedrooms, required this.sizeSqft});
+  const DemoProperty(
+      {required this.unit,
+      required this.tower,
+      required this.bedrooms,
+      required this.sizeSqft});
   final String unit;
   final String tower;
   final int bedrooms;
@@ -386,28 +365,54 @@ class DemoProperty {
   String get display => 'Unit $unit, $tower';
 
   static const List<DemoProperty> all = [
-    DemoProperty(unit: 'A-12', tower: 'Menara Suria', bedrooms: 3, sizeSqft: 980),
-    DemoProperty(unit: 'B-08', tower: 'Menara Suria', bedrooms: 2, sizeSqft: 760),
-    DemoProperty(unit: 'C-21', tower: 'Menara Suria', bedrooms: 4, sizeSqft: 1200),
-    DemoProperty(unit: 'D-03', tower: 'Menara Suria', bedrooms: 2, sizeSqft: 720),
-    DemoProperty(unit: 'E-15', tower: 'Vista Bayu', bedrooms: 3, sizeSqft: 1050),
+    DemoProperty(
+        unit: 'A-12', tower: 'Menara Suria', bedrooms: 3, sizeSqft: 980),
+    DemoProperty(
+        unit: 'B-08', tower: 'Menara Suria', bedrooms: 2, sizeSqft: 760),
+    DemoProperty(
+        unit: 'C-21', tower: 'Menara Suria', bedrooms: 4, sizeSqft: 1200),
+    DemoProperty(
+        unit: 'D-03', tower: 'Menara Suria', bedrooms: 2, sizeSqft: 720),
+    DemoProperty(
+        unit: 'E-15', tower: 'Vista Bayu', bedrooms: 3, sizeSqft: 1050),
   ];
 }
 
 /// Service types offered. Used by New Booking form.
 class ServiceTypeOption {
-  const ServiceTypeOption({required this.id, required this.label, required this.durationHours, required this.priceFrom});
+  const ServiceTypeOption(
+      {required this.id,
+      required this.label,
+      required this.durationHours,
+      required this.priceFrom});
   final String id;
   final String label;
   final int durationHours;
   final double priceFrom;
 
   static const List<ServiceTypeOption> all = [
-    ServiceTypeOption(id: 'standard', label: 'Standard cleaning', durationHours: 2, priceFrom: 80),
-    ServiceTypeOption(id: 'deep', label: 'Deep cleaning', durationHours: 3, priceFrom: 150),
-    ServiceTypeOption(id: 'move-in', label: 'Move-in cleaning', durationHours: 3, priceFrom: 160),
-    ServiceTypeOption(id: 'move-out', label: 'Move-out cleaning', durationHours: 3, priceFrom: 170),
-    ServiceTypeOption(id: 'window', label: 'Window cleaning', durationHours: 2, priceFrom: 90),
+    ServiceTypeOption(
+        id: 'standard',
+        label: 'Standard cleaning',
+        durationHours: 2,
+        priceFrom: 80),
+    ServiceTypeOption(
+        id: 'deep', label: 'Deep cleaning', durationHours: 3, priceFrom: 150),
+    ServiceTypeOption(
+        id: 'move-in',
+        label: 'Move-in cleaning',
+        durationHours: 3,
+        priceFrom: 160),
+    ServiceTypeOption(
+        id: 'move-out',
+        label: 'Move-out cleaning',
+        durationHours: 3,
+        priceFrom: 170),
+    ServiceTypeOption(
+        id: 'window',
+        label: 'Window cleaning',
+        durationHours: 2,
+        priceFrom: 90),
   ];
 }
 
@@ -426,9 +431,12 @@ enum RecurrencePattern {
 
   String get shortLabel {
     switch (this) {
-      case RecurrencePattern.weekly: return 'Weekly';
-      case RecurrencePattern.biweekly: return 'Bi-weekly';
-      case RecurrencePattern.monthly: return 'Monthly';
+      case RecurrencePattern.weekly:
+        return 'Weekly';
+      case RecurrencePattern.biweekly:
+        return 'Bi-weekly';
+      case RecurrencePattern.monthly:
+        return 'Monthly';
     }
   }
 
@@ -440,7 +448,8 @@ enum RecurrencePattern {
       case RecurrencePattern.biweekly:
         return from.add(const Duration(days: 14));
       case RecurrencePattern.monthly:
-        return DateTime(from.year, from.month + 1, from.day, from.hour, from.minute);
+        return DateTime(
+            from.year, from.month + 1, from.day, from.hour, from.minute);
     }
   }
 }
@@ -534,8 +543,10 @@ class SpendSummary {
 
 /// Compute earnings for a specific provider from a list of bookings.
 EarningsSummary earningsFor(String providerName, List<DemoBooking> bookings) {
-  final completed = bookings.where((b) =>
-      b.providerName == providerName && b.status == DemoBookingStatus.completed).toList()
+  final completed = bookings
+      .where((b) =>
+          b.providerName == providerName && b.status == BookingStatus.completed)
+      .toList()
     ..sort((a, b) => b.scheduledStart.compareTo(a.scheduledStart));
 
   final records = completed.map((b) {
@@ -582,7 +593,9 @@ EarningsSummary earningsFor(String providerName, List<DemoBooking> bookings) {
 
 /// Compute owner's spend aggregation from a list of bookings.
 SpendSummary spendFor(List<DemoBooking> bookings) {
-  final completed = bookings.where((b) => b.status == DemoBookingStatus.completed).toList()
+  final completed = bookings
+      .where((b) => b.status == BookingStatus.completed)
+      .toList()
     ..sort((a, b) => b.scheduledStart.compareTo(a.scheduledStart));
 
   final records = completed.map((b) {

@@ -36,7 +36,8 @@ class _RentalAppDemoState extends State<RentalAppDemo> {
 
   void _toggleTheme() {
     setState(() {
-      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+      _themeMode =
+          _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     });
   }
 
@@ -52,7 +53,7 @@ class _RentalAppDemoState extends State<RentalAppDemo> {
       child: UserSessionAccess(
         session: _userSession,
         child: MaterialApp(
-          title: 'Smart Rental Manager - Sprint 0 demo',
+          title: 'Smart Rental Manager',
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: _themeMode,

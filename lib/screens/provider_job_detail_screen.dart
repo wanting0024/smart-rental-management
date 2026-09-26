@@ -1,4 +1,4 @@
-﻿// lib/screens/provider_job_detail_screen.dart
+// lib/screens/provider_job_detail_screen.dart
 // Provider-side active job screen. Mirror of BookingDetail but with
 // provider-centric actions: check-in, start, finish, upload before/after.
 //
@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../main.dart';
 import '../models/demo_data.dart';
 import '../theme/app_theme.dart';
 import '../utils/haptics.dart';
@@ -32,7 +33,8 @@ class ProviderJobDetailScreen extends StatefulWidget {
   final void Function(DemoBooking updated)? onUpdate;
 
   @override
-  State<ProviderJobDetailScreen> createState() => _ProviderJobDetailScreenState();
+  State<ProviderJobDetailScreen> createState() =>
+      _ProviderJobDetailScreenState();
 }
 
 class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
@@ -41,29 +43,57 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
   bool _hasAfter = false;
   XFile? _beforeImage;
   XFile? _afterImage;
+  late final TextEditingController _completionRemarksController;
 
   @override
   void initState() {
     super.initState();
     _booking = widget.booking;
+    _hasBefore = _booking.beforeImagePath != null;
+    _hasAfter = _booking.afterImagePath != null;
+    _completionRemarksController = TextEditingController(
+      text: _booking.completionRemarks,
+    );
   }
 
-  void _transition(DemoBookingStatus next, {String? reason}) {
-    final now = DateTime.now();
-    final updated = _booking.copyWith(
-      status: next,
-      // Lifecycle timestamp per status.
-      acceptedAt: next == DemoBookingStatus.accepted ? now : _booking.acceptedAt,
-      scheduledAt: next == DemoBookingStatus.scheduled ? now : _booking.scheduledAt,
-      startedAt: next == DemoBookingStatus.inProgress ? now : _booking.startedAt,
-      completedAt: next == DemoBookingStatus.completed ? now : _booking.completedAt,
-      rejectedAt: next == DemoBookingStatus.rejected ? now : _booking.rejectedAt,
-      cancelledAt: next == DemoBookingStatus.cancelled ? now : _booking.cancelledAt,
-      delayedAt: next == DemoBookingStatus.delayed ? now : _booking.delayedAt,
-      rejectionReason: next == DemoBookingStatus.rejected ? reason : _booking.rejectionReason,
-    );
-    setState(() => _booking = updated);
-    widget.onUpdate?.call(updated);
+  @override
+  void dispose() {
+    _completionRemarksController.dispose();
+    super.dispose();
+  }
+
+  _TransitionOutcome _transition(BookingStatus next, {String? reason}) {
+    final store = AppProviders.of(context).bookingStore;
+    bool succeeded;
+    String failureMessage = 'This status change is not permitted.';
+
+    if (next == BookingStatus.accepted) {
+      final result = store.acceptPending(_booking.id);
+      succeeded = result.accepted;
+      failureMessage = result.message;
+    } else if (next == BookingStatus.declined) {
+      succeeded = store.declineBooking(_booking.id, reason: reason);
+    } else {
+      if (next == BookingStatus.completed) {
+        store.update(
+          _booking.copyWith(
+            completionRemarks: _completionRemarksController.text.trim(),
+          ),
+        );
+      }
+      succeeded = store.updateStatus(_booking.id, next);
+    }
+
+    final latest = store.byId(_booking.id);
+    if (succeeded && latest != null) {
+      setState(() => _booking = latest);
+      widget.onUpdate?.call(latest);
+      return _TransitionOutcome(
+        succeeded: true,
+        message: 'Status updated to ${latest.status.label}',
+      );
+    }
+    return _TransitionOutcome(succeeded: false, message: failureMessage);
   }
 
   void _showActionSheet() {
@@ -71,7 +101,8 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
     if (actions.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('This job is in a terminal state - no further actions.'),
+          content:
+              Text('This job is in a terminal state - no further actions.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -93,14 +124,20 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
             children: [
               Center(
                 child: Container(
-                  width: 36, height: 4,
-                  decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2)),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFE5E7EB),
+                      borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               const SizedBox(height: 16),
               const Text(
                 'Update job status',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF111827)),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -123,18 +160,23 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
     return InkWell(
       onTap: () {
         Navigator.of(ctx).pop();
-        // Reject requires a reason sheet (F1a: optional reason).
-        if (a.next == DemoBookingStatus.rejected) {
+        // Declining a Pending request may include an optional reason.
+        if (a.next == BookingStatus.declined) {
           RejectReasonSheet.show(
             context,
             onSubmit: (reason) {
-              _transition(a.next, reason: reason);
+              final outcome = _transition(a.next, reason: reason);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(reason == null
-                      ? 'Booking rejected (no reason given)'
-                      : 'Booking rejected: "$reason"'),
-                  backgroundColor: a.next.color,
+                  content: Text(
+                    outcome.succeeded
+                        ? reason == null
+                            ? 'Booking declined (no reason given)'
+                            : 'Booking declined: "$reason"'
+                        : outcome.message,
+                  ),
+                  backgroundColor:
+                      outcome.succeeded ? a.next.color : AppColors.error,
                   behavior: SnackBarBehavior.floating,
                 ),
               );
@@ -142,11 +184,25 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
           );
           return;
         }
-        _transition(a.next);
+        if (a.next == BookingStatus.completed &&
+            (!_hasBefore ||
+                !_hasAfter ||
+                _completionRemarksController.text.trim().isEmpty)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Add before-and-after photos and completion remarks first.',
+              ),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+        final outcome = _transition(a.next);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Status updated to ${a.next.label}'),
-            backgroundColor: a.next.color,
+            content: Text(outcome.message),
+            backgroundColor: outcome.succeeded ? a.next.color : AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -162,8 +218,10 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
         child: Row(
           children: [
             Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(color: a.color, borderRadius: BorderRadius.circular(8)),
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                  color: a.color, borderRadius: BorderRadius.circular(8)),
               child: Icon(a.icon, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 12),
@@ -173,12 +231,16 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                 children: [
                   Text(
                     a.label,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF111827)),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     a.subtitle,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                   ),
                 ],
               ),
@@ -190,43 +252,37 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
     );
   }
 
-  /// Available next states per the booking FSM (ADR-0004).
+  /// Available next states from the authoritative six-state lifecycle.
   List<_StatusAction> _availableActions() {
     switch (_booking.status) {
-      case DemoBookingStatus.requested:
+      case BookingStatus.pending:
         return [
-          _StatusAction('Accept job', 'Owner will be notified', DemoBookingStatus.accepted, Icons.check, const Color(0xFF10B981)),
-          _StatusAction('Reject job', 'Owner will be asked to rematch', DemoBookingStatus.rejected, Icons.close, const Color(0xFFEF4444)),
+          _StatusAction('Accept job', 'Owner will be notified',
+              BookingStatus.accepted, Icons.check, const Color(0xFF10B981)),
+          _StatusAction('Decline request', 'Owner can choose another provider',
+              BookingStatus.declined, Icons.close, const Color(0xFFEF4444)),
         ];
-      case DemoBookingStatus.accepted:
+      case BookingStatus.accepted:
         return [
-          _StatusAction('Confirm schedule', 'Lock the time slot with the owner', DemoBookingStatus.scheduled, Icons.event_available, const Color(0xFF6366F1)),
-          _StatusAction('Cancel', 'Notify the owner', DemoBookingStatus.cancelled, Icons.close, const Color(0xFFEF4444)),
+          _StatusAction(
+              'Start job',
+              'Changes status to In Progress',
+              BookingStatus.inProgress,
+              Icons.play_arrow,
+              const Color(0xFFF59E0B)),
         ];
-      case DemoBookingStatus.scheduled:
+      case BookingStatus.inProgress:
         return [
-          _StatusAction('Check in - start job', 'Begins the work timer', DemoBookingStatus.inProgress, Icons.play_arrow, const Color(0xFFF59E0B)),
-          _StatusAction('Mark delayed', 'Tell the owner you are running behind', DemoBookingStatus.delayed, Icons.access_time, const Color(0xFFEF4444)),
-          _StatusAction('Cancel', 'Notify the owner', DemoBookingStatus.cancelled, Icons.close, const Color(0xFF991B1B)),
+          _StatusAction(
+              'Mark complete',
+              'Requires photos and completion remarks',
+              BookingStatus.completed,
+              Icons.task_alt,
+              const Color(0xFF10B981)),
         ];
-      case DemoBookingStatus.rescheduled:
-        return [
-          _StatusAction('Confirm new time', 'Lock the new time slot with the owner', DemoBookingStatus.scheduled, Icons.event_repeat, const Color(0xFF8E24AA)),
-          _StatusAction('Cancel', 'Notify the owner', DemoBookingStatus.cancelled, Icons.close, const Color(0xFFEF4444)),
-        ];
-      case DemoBookingStatus.delayed:
-        return [
-          _StatusAction('Resume work', 'Back on the clock', DemoBookingStatus.inProgress, Icons.play_arrow, const Color(0xFFF59E0B)),
-          _StatusAction('Cancel', 'Notify the owner', DemoBookingStatus.cancelled, Icons.close, const Color(0xFFEF4444)),
-        ];
-      case DemoBookingStatus.inProgress:
-        return [
-          _StatusAction('Mark complete', 'Submit before/after photos and finish', DemoBookingStatus.completed, Icons.task_alt, const Color(0xFF10B981)),
-          _StatusAction('Mark delayed', 'Tell the owner you are running behind', DemoBookingStatus.delayed, Icons.access_time, const Color(0xFFEF4444)),
-        ];
-      case DemoBookingStatus.completed:
-      case DemoBookingStatus.rejected:
-      case DemoBookingStatus.cancelled:
+      case BookingStatus.completed:
+      case BookingStatus.declined:
+      case BookingStatus.cancelled:
         return [];
     }
   }
@@ -242,14 +298,20 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
             backgroundColor: _booking.status.color,
             foregroundColor: Colors.white,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(_booking.property.split(',').first, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-              titlePadding: const EdgeInsets.only(left: 56, bottom: 16, right: 16),
+              title: Text(_booking.property.split(',').first,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600)),
+              titlePadding:
+                  const EdgeInsets.only(left: 56, bottom: 16, right: 16),
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [_booking.status.color, _booking.status.color.withOpacity(0.7)],
+                    colors: [
+                      _booking.status.color,
+                      _booking.status.color.withOpacity(0.7)
+                    ],
                   ),
                 ),
                 child: SafeArea(
@@ -261,14 +323,19 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 _booking.id.toUpperCase(),
-                                style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600, letterSpacing: 0.4),
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.4),
                               ),
                             ),
                             const Spacer(),
@@ -278,12 +345,19 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                         const Spacer(),
                         const Text(
                           'JOB TIMELINE',
-                          style: TextStyle(fontSize: 10, color: Colors.white70, fontWeight: FontWeight.w600, letterSpacing: 0.8),
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           _formatRange(),
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white),
+                          style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white),
                         ),
                       ],
                     ),
@@ -320,7 +394,9 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
               onPressed: _showActionSheet,
               backgroundColor: _booking.status.color,
               icon: const Icon(Icons.swap_horiz, color: Colors.white),
-              label: const Text('Update status', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              label: const Text('Update status',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w600)),
             ),
     );
   }
@@ -336,9 +412,11 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
             const SizedBox(height: 12),
             _infoRow(Icons.cleaning_services, 'Type', _booking.serviceType),
             const Divider(height: 24),
-            _infoRow(Icons.timer_outlined, 'Duration', '${_booking.scheduledEnd.difference(_booking.scheduledStart).inMinutes} min'),
+            _infoRow(Icons.timer_outlined, 'Duration',
+                '${_booking.scheduledEnd.difference(_booking.scheduledStart).inMinutes} min'),
             const Divider(height: 24),
-            _infoRow(Icons.payments_outlined, 'Estimated payout', 'RM ${(_estimatePayout()).toStringAsFixed(0)}'),
+            _infoRow(Icons.payments_outlined, 'Estimated payout',
+                'RM ${(_estimatePayout()).toStringAsFixed(0)}'),
           ],
         ),
       ),
@@ -358,13 +436,16 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 80, height: 80,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
                     color: const Color(0xFFF1F8F4),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFFC8E6C9)),
                   ),
-                  child: const Center(child: Icon(Icons.map, size: 32, color: Color(0xFF2E7D32))),
+                  child: const Center(
+                      child:
+                          Icon(Icons.map, size: 32, color: Color(0xFF2E7D32))),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -373,12 +454,16 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                     children: [
                       Text(
                         _booking.property,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF111827)),
                       ),
                       const SizedBox(height: 4),
                       const Text(
                         '2.0 km from your location  -  ~8 min drive',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        style:
+                            TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -388,7 +473,8 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Opening maps - Sprint 1 will integrate Google Maps'),
+                                  content: Text(
+                                      'Opening maps - Sprint 1 will integrate Google Maps'),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
@@ -396,15 +482,18 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                             icon: const Icon(Icons.directions, size: 14),
                             label: const Text('Directions'),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              textStyle: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w600),
                             ),
                           ),
                           OutlinedButton.icon(
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Calling owner - Sprint 1 will integrate phone dialer'),
+                                  content: Text(
+                                      'Calling owner - Sprint 1 will integrate phone dialer'),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
@@ -412,8 +501,10 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                             icon: const Icon(Icons.phone, size: 14),
                             label: const Text('Call owner'),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              textStyle: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
@@ -437,8 +528,8 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SectionHeader(
-              title: 'Before & After',
-              subtitle: 'Required for job completion',
+              title: 'Completion evidence',
+              subtitle: 'Both photos and remarks are required',
             ),
             const SizedBox(height: 12),
             Row(
@@ -448,14 +539,33 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                 Expanded(child: _photoSlot('After', _hasAfter)),
               ],
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _completionRemarksController,
+              minLines: 2,
+              maxLines: 4,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                labelText: 'Completion remarks',
+                hintText: 'Summarise the completed cleaning work',
+                prefixIcon: Icon(Icons.notes),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
             const SizedBox(height: 8),
             Text(
-              _hasBefore && _hasAfter
-                  ? 'Both photos uploaded. Ready to mark complete.'
-                  : 'Capture both photos before finishing.',
+              _hasBefore &&
+                      _hasAfter &&
+                      _completionRemarksController.text.trim().isNotEmpty
+                  ? 'Completion evidence is ready to submit.'
+                  : 'Add both photos and completion remarks before finishing.',
               style: TextStyle(
                 fontSize: 12,
-                color: (_hasBefore && _hasAfter) ? const Color(0xFF065F46) : const Color(0xFF92400E),
+                color: (_hasBefore &&
+                        _hasAfter &&
+                        _completionRemarksController.text.trim().isNotEmpty)
+                    ? const Color(0xFF065F46)
+                    : const Color(0xFF92400E),
               ),
             ),
           ],
@@ -485,7 +595,8 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.add_a_photo, size: 28, color: Color(0xFF6B7280)),
+                  const Icon(Icons.add_a_photo,
+                      size: 28, color: Color(0xFF6B7280)),
                   const SizedBox(height: 6),
                   Text(
                     'Add $label',
@@ -537,12 +648,16 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.check_circle, size: 10, color: Color(0xFF10B981)),
+                const Icon(Icons.check_circle,
+                    size: 10, color: Color(0xFF10B981)),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     isBefore ? 'Before photo' : 'After photo',
-                    style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                        fontSize: 9,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -569,7 +684,10 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
           const SizedBox(height: 4),
           Text(
             isBefore ? 'Before photo' : 'After photo',
-            style: const TextStyle(fontSize: 11, color: Color(0xFF065F46), fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF065F46),
+                fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -580,7 +698,13 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
     Haptics.light();
     final hasImage = isBefore ? _hasBefore : _hasAfter;
     if (hasImage) {
+      final updated = _booking.copyWith(
+        clearBeforeImagePath: isBefore,
+        clearAfterImagePath: !isBefore,
+      );
+      AppProviders.of(context).bookingStore.update(updated);
       setState(() {
+        _booking = updated;
         if (isBefore) {
           _hasBefore = false;
           _beforeImage = null;
@@ -589,6 +713,7 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
           _afterImage = null;
         }
       });
+      widget.onUpdate?.call(updated);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -614,7 +739,13 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
       // image_picker gives us a temp file path; on web, it gives us a
       // blob URL. Both work with Image.file / Image.network downstream.
       final storedPath = image.path;
+      final updated = _booking.copyWith(
+        beforeImagePath: isBefore ? storedPath : _booking.beforeImagePath,
+        afterImagePath: !isBefore ? storedPath : _booking.afterImagePath,
+      );
+      AppProviders.of(context).bookingStore.update(updated);
       setState(() {
+        _booking = updated;
         if (isBefore) {
           _beforeImage = image;
           _hasBefore = true;
@@ -624,10 +755,7 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
         }
       });
       // Persist the path on the booking so the Owner side can show it later.
-      widget.onUpdate?.call(_booking.copyWith(
-        beforeImagePath: isBefore ? storedPath : _booking.beforeImagePath,
-        afterImagePath: !isBefore ? storedPath : _booking.afterImagePath,
-      ));
+      widget.onUpdate?.call(updated);
       Haptics.medium();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -672,8 +800,11 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
           children: [
             const SizedBox(height: 8),
             Container(
-              width: 36, height: 4,
-              decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2)),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(2)),
             ),
             const SizedBox(height: 16),
             ListTile(
@@ -682,7 +813,8 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
               onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: Color(0xFF2E7D32)),
+              leading:
+                  const Icon(Icons.photo_library, color: Color(0xFF2E7D32)),
               title: const Text('Choose from gallery'),
               onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
             ),
@@ -713,12 +845,14 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.format_quote, size: 16, color: Color(0xFF9A3412)),
+                  const Icon(Icons.format_quote,
+                      size: 16, color: Color(0xFF9A3412)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _booking.specialInstructions!,
-                      style: const TextStyle(fontSize: 13, color: Color(0xFF7C2D12), height: 1.4),
+                      style: const TextStyle(
+                          fontSize: 13, color: Color(0xFF7C2D12), height: 1.4),
                     ),
                   ),
                 ],
@@ -731,12 +865,19 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
   }
 
   Widget _buildChecklistCard() {
+    final confirmed = _booking.status == BookingStatus.accepted ||
+        _booking.status == BookingStatus.inProgress ||
+        _booking.status == BookingStatus.completed;
     final checks = [
-      ('Arrive on time', _booking.status.index >= DemoBookingStatus.accepted.index),
-      ('Confirm scope with owner', _booking.status.index >= DemoBookingStatus.scheduled.index),
+      ('Arrive on time', confirmed),
+      ('Confirm scope with owner', confirmed),
       ('Before photo captured', _hasBefore),
       ('After photo captured', _hasAfter),
-      ('Job complete', _booking.status == DemoBookingStatus.completed),
+      (
+        'Completion remarks added',
+        _completionRemarksController.text.trim().isNotEmpty,
+      ),
+      ('Job complete', _booking.status == BookingStatus.completed),
     ];
     return Card(
       child: Padding(
@@ -751,9 +892,13 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                   child: Row(
                     children: [
                       Icon(
-                        c.$2 ? Icons.check_circle : Icons.radio_button_unchecked,
+                        c.$2
+                            ? Icons.check_circle
+                            : Icons.radio_button_unchecked,
                         size: 18,
-                        color: c.$2 ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+                        color: c.$2
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF9CA3AF),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -761,8 +906,11 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                           c.$1,
                           style: TextStyle(
                             fontSize: 13,
-                            color: c.$2 ? const Color(0xFF111827) : const Color(0xFF6B7280),
-                            fontWeight: c.$2 ? FontWeight.w500 : FontWeight.w400,
+                            color: c.$2
+                                ? const Color(0xFF111827)
+                                : const Color(0xFF6B7280),
+                            fontWeight:
+                                c.$2 ? FontWeight.w500 : FontWeight.w400,
                           ),
                         ),
                       ),
@@ -780,36 +928,66 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
       children: [
         Icon(icon, size: 16, color: const Color(0xFF6B7280)),
         const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+        Text(label,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
         const Spacer(),
         Text(
           value,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+          style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF111827)),
         ),
       ],
     );
   }
 
   String _formatRange() {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     final s = _booking.scheduledStart;
     final e = _booking.scheduledEnd;
-    final fmt = (DateTime d) => '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    final fmt = (DateTime d) =>
+        '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
     return '${s.day} ${months[s.month - 1]}  ${fmt(s)} - ${fmt(e)}';
   }
 
   double _estimatePayout() {
-    final minutes = _booking.scheduledEnd.difference(_booking.scheduledStart).inMinutes;
+    final minutes =
+        _booking.scheduledEnd.difference(_booking.scheduledStart).inMinutes;
     final hours = minutes / 60.0;
     return 80 * hours; // base rate RM 80/h
   }
 }
 
 class _StatusAction {
-  const _StatusAction(this.label, this.subtitle, this.next, this.icon, this.color);
+  const _StatusAction(
+      this.label, this.subtitle, this.next, this.icon, this.color);
   final String label;
   final String subtitle;
-  final DemoBookingStatus next;
+  final BookingStatus next;
   final IconData icon;
   final Color color;
+}
+
+class _TransitionOutcome {
+  const _TransitionOutcome({
+    required this.succeeded,
+    required this.message,
+  });
+
+  final bool succeeded;
+  final String message;
 }

@@ -1,4 +1,4 @@
-﻿// lib/screens/property_list_screen.dart
+// lib/screens/property_list_screen.dart
 // Owner's property portfolio. Each card shows the unit, size, recent
 // booking count, and a quick "schedule" CTA. Tapping a card opens detail.
 //
@@ -16,7 +16,8 @@ import '../theme/app_theme.dart';
 import 'property_detail_screen.dart';
 
 class PropertyListScreen extends StatelessWidget {
-  const PropertyListScreen({super.key, required this.bookings, this.embedded = false});
+  const PropertyListScreen(
+      {super.key, required this.bookings, this.embedded = false});
   final List<DemoBooking> bookings;
 
   /// When true, skip the inner Scaffold/AppBar so the parent (e.g. owner shell)
@@ -138,7 +139,8 @@ class PropertyListScreen extends StatelessWidget {
 }
 
 class _PropertyCard extends StatelessWidget {
-  const _PropertyCard({required this.property, required this.bookings, required this.onTap});
+  const _PropertyCard(
+      {required this.property, required this.bookings, required this.onTap});
   final DemoProperty property;
   final List<DemoBooking> bookings;
   final VoidCallback onTap;
@@ -146,12 +148,14 @@ class _PropertyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sem = SemanticColors.of(context);
-    final upcoming = bookings.where((b) =>
-        b.status == DemoBookingStatus.scheduled ||
-        b.status == DemoBookingStatus.accepted ||
-        b.status == DemoBookingStatus.requested ||
-        b.status == DemoBookingStatus.inProgress).length;
-    final done = bookings.where((b) => b.status == DemoBookingStatus.completed).length;
+    final upcoming = bookings
+        .where((b) =>
+            b.status == BookingStatus.accepted ||
+            b.status == BookingStatus.pending ||
+            b.status == BookingStatus.inProgress)
+        .length;
+    final done =
+        bookings.where((b) => b.status == BookingStatus.completed).length;
     return Card(
       child: InkWell(
         onTap: onTap,
@@ -215,7 +219,8 @@ class _PropertyCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   _miniStat('Done', '$done', AppColors.statusCompleted, sem),
                   const SizedBox(width: 8),
-                  _miniStat('Total', '${bookings.length}', AppColors.secondary, sem),
+                  _miniStat(
+                      'Total', '${bookings.length}', AppColors.secondary, sem),
                 ],
               ),
               if (bookings.isEmpty) ...[
@@ -233,12 +238,13 @@ class _PropertyCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'No bookings yet. Schedule a cleaning to get started.',
-                        style: TextStyle(fontSize: 12, color: sem.textSecondary),
+                        style:
+                            TextStyle(fontSize: 12, color: sem.textSecondary),
                       ),
                     ),
                   ],
                 ),
-              ] else if (bookings.first.status == DemoBookingStatus.inProgress) ...[
+              ] else if (bookings.first.status == BookingStatus.inProgress) ...[
                 const SizedBox(height: 8),
                 const Divider(height: 1),
                 const SizedBox(height: 8),

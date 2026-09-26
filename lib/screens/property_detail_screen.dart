@@ -1,4 +1,4 @@
-﻿// lib/screens/property_detail_screen.dart
+// lib/screens/property_detail_screen.dart
 // Single property's page: unit info, upcoming + past bookings,
 // quick actions (schedule cleaning, view history).
 //
@@ -21,23 +21,27 @@ import 'booking_detail_screen.dart';
 import 'new_booking_screen.dart';
 
 class PropertyDetailScreen extends StatelessWidget {
-  const PropertyDetailScreen({super.key, required this.property, required this.bookings});
+  const PropertyDetailScreen(
+      {super.key, required this.property, required this.bookings});
   final DemoProperty property;
   final List<DemoBooking> bookings;
 
   @override
   Widget build(BuildContext context) {
     final sem = SemanticColors.of(context);
-    final upcoming = bookings.where((b) =>
-        b.status == DemoBookingStatus.requested ||
-        b.status == DemoBookingStatus.accepted ||
-        b.status == DemoBookingStatus.scheduled ||
-        b.status == DemoBookingStatus.inProgress ||
-        b.status == DemoBookingStatus.delayed).toList()
+    final upcoming = bookings
+        .where((b) =>
+            b.status == BookingStatus.pending ||
+            b.status == BookingStatus.accepted ||
+            b.status == BookingStatus.inProgress)
+        .toList()
       ..sort((a, b) => a.scheduledStart.compareTo(b.scheduledStart));
-    final past = bookings.where((b) =>
-        b.status == DemoBookingStatus.completed ||
-        b.status == DemoBookingStatus.cancelled).toList()
+    final past = bookings
+        .where((b) =>
+            b.status == BookingStatus.completed ||
+            b.status == BookingStatus.declined ||
+            b.status == BookingStatus.cancelled)
+        .toList()
       ..sort((a, b) => b.scheduledStart.compareTo(a.scheduledStart));
 
     return Scaffold(
@@ -66,7 +70,7 @@ class PropertyDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
           const SectionHeader(
             title: 'Upcoming bookings',
-            subtitle: 'Scheduled, requested, or in progress',
+            subtitle: 'Pending, accepted, or in progress',
           ),
           const SizedBox(height: 8),
           if (upcoming.isEmpty)
@@ -94,7 +98,7 @@ class PropertyDetailScreen extends StatelessWidget {
             const EmptyState(
               icon: Icons.history,
               title: 'No past bookings',
-              subtitle: 'Completed or cancelled jobs will appear here.',
+              subtitle: 'Completed, declined, or cancelled jobs appear here.',
             )
           else
             ...past.map((b) => Padding(
@@ -202,7 +206,8 @@ class PropertyDetailScreen extends StatelessWidget {
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.apartment, color: Colors.white, size: 24),
+                child:
+                    const Icon(Icons.apartment, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -220,7 +225,8 @@ class PropertyDetailScreen extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${property.tower}  ·  ${property.bedrooms} bedrooms  ·  ${property.sizeSqft} sqft',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),
@@ -236,7 +242,8 @@ class PropertyDetailScreen extends StatelessWidget {
                 'Last cleaned',
                 bookings.isEmpty
                     ? '-'
-                    : DateFormat('d MMM y').format(bookings.first.scheduledStart),
+                    : DateFormat('d MMM y')
+                        .format(bookings.first.scheduledStart),
               ),
             ],
           ),

@@ -1,4 +1,4 @@
-﻿// lib/screens/notifications_screen.dart
+// lib/screens/notifications_screen.dart
 // Activity feed: shows recent events (booking state changes, new requests,
 // payment confirmations, etc). Shared between Owner and Provider roles.
 //
@@ -60,7 +60,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         NotificationItem(
           id: 'n1',
           icon: Icons.notifications_active,
-          title: 'New request awaiting your review',
+          title: 'Provider response pending',
           subtitle: 'Unit C-21 · Routine cleaning · 18 Jul 09:00',
           timestamp: now.subtract(const Duration(minutes: 12)),
           color: AppColors.statusRequested,
@@ -88,10 +88,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         NotificationItem(
           id: 'n4',
           icon: Icons.event_available,
-          title: 'Provider confirmed schedule',
-          subtitle: 'Provider B confirmed Unit B-08 for 16 Jul 14:00',
+          title: 'Booking accepted',
+          subtitle: 'Provider B accepted Unit B-08 for 16 Jul 14:00',
           timestamp: now.subtract(const Duration(hours: 5)),
-          color: AppColors.statusScheduled,
+          color: AppColors.statusAccepted,
           read: true,
         ),
         NotificationItem(
@@ -114,11 +114,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         NotificationItem(
           id: 'n7',
-          icon: Icons.warning,
-          title: 'Provider running late',
-          subtitle: 'Provider C delayed on Unit D-03 by 15 min',
+          icon: Icons.event,
+          title: 'Upcoming cleaning reminder',
+          subtitle: 'Provider C is assigned to Unit D-03 at 13:00',
           timestamp: now.subtract(const Duration(days: 2)),
-          color: AppColors.statusDelayed,
+          color: AppColors.statusAccepted,
           read: true,
         ),
       ];
@@ -315,9 +315,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               decoration: BoxDecoration(
-                color: active
-                    ? Colors.white.withOpacity(0.2)
-                    : sem.borderStrong,
+                color:
+                    active ? Colors.white.withOpacity(0.2) : sem.borderStrong,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -382,9 +381,8 @@ class _NotificationTile extends StatelessWidget {
                           item.title,
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: item.read
-                                ? FontWeight.w500
-                                : FontWeight.w700,
+                            fontWeight:
+                                item.read ? FontWeight.w500 : FontWeight.w700,
                             color: sem.textPrimary,
                           ),
                         ),

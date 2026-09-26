@@ -13,7 +13,7 @@ class FilterResult {
     required this.sortMode,
     required this.propertyFilter,
   });
-  final DemoBookingStatus? statusFilter;
+  final BookingStatus? statusFilter;
   final SortMode sortMode;
   final String? propertyFilter;
 
@@ -25,7 +25,8 @@ class FilterResult {
 }
 
 class FilterSheet extends StatefulWidget {
-  const FilterSheet({super.key, required this.initial, required this.properties});
+  const FilterSheet(
+      {super.key, required this.initial, required this.properties});
   final FilterResult initial;
   final List<String> properties; // distinct property names
 
@@ -34,7 +35,7 @@ class FilterSheet extends StatefulWidget {
 }
 
 class _FilterSheetState extends State<FilterSheet> {
-  late DemoBookingStatus? _status;
+  late BookingStatus? _status;
   late SortMode _sort;
   late String? _property;
 
@@ -62,26 +63,41 @@ class _FilterSheetState extends State<FilterSheet> {
                 children: [
                   const Icon(Icons.tune, size: 18, color: AppColors.primary),
                   const SizedBox(width: 8),
-                  Text('Filter & sort', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: sem.textPrimary)),
+                  Text('Filter & sort',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: sem.textPrimary)),
                 ],
               ),
               const SizedBox(height: 20),
-              Text('STATUS', style: TextStyle(fontSize: 11, color: sem.textSecondary, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+              Text('STATUS',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: sem.textSecondary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8)),
               const SizedBox(height: 8),
               Wrap(
-                spacing: 6, runSpacing: 6,
+                spacing: 6,
+                runSpacing: 6,
                 children: [
                   _chip(label: 'All', value: null, isSelected: _status == null),
-                  ...DemoBookingStatus.values.map((s) => _chip(
-                    label: s.label,
-                    value: s,
-                    isSelected: _status == s,
-                    color: s.color,
-                  )),
+                  ...BookingStatus.values.map((s) => _chip(
+                        label: s.label,
+                        value: s,
+                        isSelected: _status == s,
+                        color: s.color,
+                      )),
                 ],
               ),
               const SizedBox(height: 20),
-              Text('SORT BY', style: TextStyle(fontSize: 11, color: sem.textSecondary, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+              Text('SORT BY',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: sem.textSecondary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8)),
               const SizedBox(height: 8),
               Column(
                 children: SortMode.values.map((m) {
@@ -92,17 +108,34 @@ class _FilterSheetState extends State<FilterSheet> {
                       margin: const EdgeInsets.only(bottom: 4),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _sort == m ? AppColors.primarySurface : Colors.transparent,
+                        color: _sort == m
+                            ? AppColors.primarySurface
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: _sort == m ? AppColors.primaryBorder : Colors.transparent),
+                        border: Border.all(
+                            color: _sort == m
+                                ? AppColors.primaryBorder
+                                : Colors.transparent),
                       ),
                       child: Row(
                         children: [
-                          Icon(_iconFor(m), size: 16, color: _sort == m ? AppColors.primary : sem.textSecondary),
+                          Icon(_iconFor(m),
+                              size: 16,
+                              color: _sort == m
+                                  ? AppColors.primary
+                                  : sem.textSecondary),
                           const SizedBox(width: 10),
-                          Text(_labelFor(m), style: TextStyle(fontSize: 14, color: sem.textPrimary, fontWeight: _sort == m ? FontWeight.w600 : FontWeight.w500)),
+                          Text(_labelFor(m),
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  color: sem.textPrimary,
+                                  fontWeight: _sort == m
+                                      ? FontWeight.w600
+                                      : FontWeight.w500)),
                           const Spacer(),
-                          if (_sort == m) const Icon(Icons.check, size: 16, color: AppColors.primary),
+                          if (_sort == m)
+                            const Icon(Icons.check,
+                                size: 16, color: AppColors.primary),
                         ],
                       ),
                     ),
@@ -110,7 +143,12 @@ class _FilterSheetState extends State<FilterSheet> {
                 }).toList(),
               ),
               const SizedBox(height: 20),
-              Text('PROPERTY', style: TextStyle(fontSize: 11, color: sem.textSecondary, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+              Text('PROPERTY',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: sem.textSecondary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String?>(
                 value: _property,
@@ -118,7 +156,8 @@ class _FilterSheetState extends State<FilterSheet> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: sem.surfaceAlt,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(color: sem.border),
@@ -129,8 +168,11 @@ class _FilterSheetState extends State<FilterSheet> {
                   ),
                 ),
                 items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text('All properties')),
-                  ...widget.properties.map((p) => DropdownMenuItem<String?>(value: p, child: Text(p, overflow: TextOverflow.ellipsis))),
+                  const DropdownMenuItem<String?>(
+                      value: null, child: Text('All properties')),
+                  ...widget.properties.map((p) => DropdownMenuItem<String?>(
+                      value: p,
+                      child: Text(p, overflow: TextOverflow.ellipsis))),
                 ],
                 onChanged: (v) => setState(() => _property = v),
               ),
@@ -171,7 +213,11 @@ class _FilterSheetState extends State<FilterSheet> {
     );
   }
 
-  Widget _chip({required String label, required DemoBookingStatus? value, required bool isSelected, Color? color}) {
+  Widget _chip(
+      {required String label,
+      required BookingStatus? value,
+      required bool isSelected,
+      Color? color}) {
     final c = color ?? AppColors.primary;
     return InkWell(
       onTap: () => setState(() => _status = value),
@@ -186,7 +232,8 @@ class _FilterSheetState extends State<FilterSheet> {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12, fontWeight: FontWeight.w600,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
             color: isSelected ? Colors.white : (color ?? AppColors.primary),
           ),
         ),
@@ -196,19 +243,27 @@ class _FilterSheetState extends State<FilterSheet> {
 
   IconData _iconFor(SortMode m) {
     switch (m) {
-      case SortMode.newest: return Icons.access_time;
-      case SortMode.oldest: return Icons.history;
-      case SortMode.byStatus: return Icons.label;
-      case SortMode.byProperty: return Icons.apartment;
+      case SortMode.newest:
+        return Icons.access_time;
+      case SortMode.oldest:
+        return Icons.history;
+      case SortMode.byStatus:
+        return Icons.label;
+      case SortMode.byProperty:
+        return Icons.apartment;
     }
   }
 
   String _labelFor(SortMode m) {
     switch (m) {
-      case SortMode.newest: return 'Newest first';
-      case SortMode.oldest: return 'Oldest first';
-      case SortMode.byStatus: return 'By status';
-      case SortMode.byProperty: return 'By property';
+      case SortMode.newest:
+        return 'Newest first';
+      case SortMode.oldest:
+        return 'Oldest first';
+      case SortMode.byStatus:
+        return 'By status';
+      case SortMode.byProperty:
+        return 'By property';
     }
   }
 }

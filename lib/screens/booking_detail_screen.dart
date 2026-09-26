@@ -1,4 +1,4 @@
-﻿// lib/screens/booking_detail_screen.dart
+// lib/screens/booking_detail_screen.dart
 // Booking detail with FSM-driven status, vertical lifecycle stepper, before/after
 // image placeholders, and primary/secondary action groups that follow the same
 // transition rules as the FYP BookingStatusX.canTransitionTo.
@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../main.dart';
 import '../models/demo_data.dart';
-import '../services/booking_store.dart';
 import '../services/user_session.dart';
 import '../theme/app_theme.dart';
 import '../utils/haptics.dart';
@@ -39,7 +38,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
   void _openMessage() {
     final session = UserSessionAccess.of(context);
-    final me = session.displayName.isEmpty ? 'Oh Wan Ting' : session.displayName;
+    final me =
+        session.displayName.isEmpty ? 'Oh Wan Ting' : session.displayName;
     final other = _booking.providerName ?? 'Provider A';
     final store = AppProviders.of(context).messageStore;
     final convoId = store.findOrCreate(
@@ -66,7 +66,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
     if (result != null && mounted) {
       final store = AppProviders.of(context).bookingStore;
-      store.updateStatus(_booking.id, DemoBookingStatus.cancelled);
+      store.updateStatus(_booking.id, BookingStatus.cancelled);
       Haptics.heavy();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -81,17 +81,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             action: SnackBarAction(
-              label: 'Undo',
+              label: 'Dismiss',
               textColor: Colors.white,
-              onPressed: () {
-                // Round 14 fix: use copyWith to preserve all fields
-                // (reason text, proof paths, lifecycle timestamps, etc.)
-                final prev = _booking.copyWith(
-                  status: DemoBookingStatus.scheduled,
-                  cancelledAt: null,
-                );
-                store.update(prev);
-              },
+              onPressed: () {},
             ),
           ),
         );
@@ -107,7 +99,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       '${_fmtDate(s)}   ${_fmtTime(s)} – ${_fmtTime(e)}';
 
   String _durationLabel() {
-    final mins = _booking.scheduledEnd.difference(_booking.scheduledStart).inMinutes;
+    final mins =
+        _booking.scheduledEnd.difference(_booking.scheduledStart).inMinutes;
     if (mins < 60) return '$mins min';
     final h = mins ~/ 60;
     final m = mins % 60;
@@ -135,9 +128,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 icon: const Icon(Icons.more_vert),
                 onSelected: (value) async {
                   switch (value) {
-                    case 'reschedule':
-                      final updated = await Navigator.of(context).push<DemoBooking>(
-                        MaterialPageRoute(builder: (_) => RescheduleScreen(booking: _booking)),
+                    case 'edit_pending':
+                      final updated =
+                          await Navigator.of(context).push<DemoBooking>(
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                RescheduleScreen(booking: _booking)),
                       );
                       if (updated != null && mounted) {
                         setState(() => _booking = updated);
@@ -149,7 +145,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       break;
                     case 'share':
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Share link copied (demo)'), behavior: SnackBarBehavior.floating),
+                        const SnackBar(
+                            content: Text('Share link copied (demo)'),
+                            behavior: SnackBarBehavior.floating),
                       );
                       break;
                     case 'message':
@@ -157,17 +155,58 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       break;
                     case 'report':
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Report submitted - Sprint 1 will email the team'), behavior: SnackBarBehavior.floating),
+                        const SnackBar(
+                            content: Text(
+                                'Report submitted - Sprint 1 will email the team'),
+                            behavior: SnackBarBehavior.floating),
                       );
                       break;
                   }
                 },
                 itemBuilder: (ctx) => [
-                  PopupMenuItem(value: 'reschedule', child: Row(children: [Icon(Icons.schedule, size: 16), SizedBox(width: 8), Text('Reschedule')])),
-                  PopupMenuItem(value: 'message', child: Row(children: [Icon(Icons.chat_bubble_outline, size: 16, color: AppColors.primary), SizedBox(width: 8), Text('Message', style: TextStyle(color: AppColors.primary))])),
-                  PopupMenuItem(value: 'share', child: Row(children: [Icon(Icons.share, size: 16), SizedBox(width: 8), Text('Share with tenant')])),
-                  PopupMenuItem(value: 'cancel', child: Row(children: [Icon(Icons.cancel_outlined, size: 16, color: AppColors.error), SizedBox(width: 8), Text('Cancel booking', style: TextStyle(color: AppColors.error))])),
-                  PopupMenuItem(value: 'report', child: Row(children: [Icon(Icons.report_outlined, size: 16, color: AppColors.error), SizedBox(width: 8), Text('Report issue', style: TextStyle(color: AppColors.error))])),
+                  if (_booking.status == BookingStatus.pending)
+                    PopupMenuItem(
+                        value: 'edit_pending',
+                        child: Row(children: [
+                          Icon(Icons.edit_calendar_outlined, size: 16),
+                          SizedBox(width: 8),
+                          Text('Edit pending request')
+                        ])),
+                  PopupMenuItem(
+                      value: 'message',
+                      child: Row(children: [
+                        Icon(Icons.chat_bubble_outline,
+                            size: 16, color: AppColors.primary),
+                        SizedBox(width: 8),
+                        Text('Message',
+                            style: TextStyle(color: AppColors.primary))
+                      ])),
+                  PopupMenuItem(
+                      value: 'share',
+                      child: Row(children: [
+                        Icon(Icons.share, size: 16),
+                        SizedBox(width: 8),
+                        Text('Share with tenant')
+                      ])),
+                  if (_booking.status == BookingStatus.pending)
+                    PopupMenuItem(
+                        value: 'cancel',
+                        child: Row(children: [
+                          Icon(Icons.cancel_outlined,
+                              size: 16, color: AppColors.error),
+                          SizedBox(width: 8),
+                          Text('Cancel request',
+                              style: TextStyle(color: AppColors.error))
+                        ])),
+                  PopupMenuItem(
+                      value: 'report',
+                      child: Row(children: [
+                        Icon(Icons.report_outlined,
+                            size: 16, color: AppColors.error),
+                        SizedBox(width: 8),
+                        Text('Report issue',
+                            style: TextStyle(color: AppColors.error))
+                      ])),
                 ],
               ),
               const SizedBox(width: 8),
@@ -188,33 +227,35 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               const _SectionHeader(title: 'Proof of completion'),
               const SizedBox(height: 8),
               _ProofOfCompletionRow(status: _booking.status),
-              if (_booking.status == DemoBookingStatus.completed) ...[
+              if (_booking.status == BookingStatus.completed) ...[
                 const SizedBox(height: 16),
                 const _SectionHeader(title: 'Your rating'),
                 const SizedBox(height: 8),
-                _OwnerRatingCard(booking: _booking, onChanged: (r, c) {
-                  AppProviders.of(context).bookingStore.rateCompleted(
-                    _booking.id,
-                    rating: r,
-                    comment: c,
-                  );
-                  setState(() {
-                    _booking = _booking.copyWith(
-                      ownerRating: r,
-                      ownerRatingComment: c,
-                    );
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Rating submitted'),
-                      backgroundColor: AppColors.success,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }),
+                _OwnerRatingCard(
+                    booking: _booking,
+                    onChanged: (r, c) {
+                      AppProviders.of(context).bookingStore.rateCompleted(
+                            _booking.id,
+                            rating: r,
+                            comment: c,
+                          );
+                      setState(() {
+                        _booking = _booking.copyWith(
+                          ownerRating: r,
+                          ownerRatingComment: c,
+                        );
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Rating submitted'),
+                          backgroundColor: AppColors.success,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }),
               ],
               const SizedBox(height: 16),
-              const _SectionHeader(title: 'Available actions'),
+              const _SectionHeader(title: 'Next step'),
               const SizedBox(height: 8),
               _AvailableActions(booking: _booking),
               const SizedBox(height: 32),
@@ -266,17 +307,28 @@ class _HeroSection extends StatelessWidget {
                     children: [
                       Text(
                         booking.id.toUpperCase(),
-                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.8),
+                        style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.8),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         booking.property,
-                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         booking.serviceType,
-                        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
@@ -287,7 +339,10 @@ class _HeroSection extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               fmtRange(booking.scheduledStart, booking.scheduledEnd),
-              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -331,7 +386,8 @@ class _InfoChipRow extends StatelessWidget {
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.icon, required this.label, required this.value});
+  const _InfoChip(
+      {required this.icon, required this.label, required this.value});
   final IconData icon;
   final String label;
   final String value;
@@ -356,11 +412,17 @@ class _InfoChip extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(fontSize: 10, color: sem.textTertiary, letterSpacing: 0.5),
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: sem.textTertiary,
+                      letterSpacing: 0.5),
                 ),
                 Text(
                   value,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: sem.textPrimary),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: sem.textPrimary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -454,7 +516,8 @@ class _DetailRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 11, color: sem.textTertiary, letterSpacing: 0.5),
+                style: TextStyle(
+                    fontSize: 11, color: sem.textTertiary, letterSpacing: 0.5),
               ),
               const SizedBox(height: 2),
               Text(
@@ -507,7 +570,9 @@ class _SpecialInstructionsBlock extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text(text, style: const TextStyle(fontSize: 13, color: Color(0xFF78350F), height: 1.4)),
+          Text(text,
+              style: const TextStyle(
+                  fontSize: 13, color: Color(0xFF78350F), height: 1.4)),
         ],
       ),
     );
@@ -544,36 +609,31 @@ class _LifecycleStepper extends StatelessWidget {
   const _LifecycleStepper({required this.booking});
   final DemoBooking booking;
 
-  static const _steps = <(String, DemoBookingStatus, IconData)>[
-    ('Requested', DemoBookingStatus.requested, Icons.assignment_outlined),
-    ('Accepted', DemoBookingStatus.accepted, Icons.thumb_up_alt_outlined),
-    ('Scheduled', DemoBookingStatus.scheduled, Icons.event_outlined),
-    ('In Progress', DemoBookingStatus.inProgress, Icons.play_circle_outline),
-    ('Completed', DemoBookingStatus.completed, Icons.check_circle_outline),
+  static const _steps = <(String, BookingStatus, IconData)>[
+    ('Pending', BookingStatus.pending, Icons.assignment_outlined),
+    ('Accepted', BookingStatus.accepted, Icons.thumb_up_alt_outlined),
+    ('In Progress', BookingStatus.inProgress, Icons.play_circle_outline),
+    ('Completed', BookingStatus.completed, Icons.check_circle_outline),
   ];
 
-  int _indexOf(DemoBookingStatus s) {
+  int _indexOf(BookingStatus s) {
     for (var i = 0; i < _steps.length; i++) {
       if (_steps[i].$2 == s) return i;
     }
-    return 3;
+    return 0;
   }
 
-  _StepState _stepState(int i, int currentIdx, bool isDelayed) {
+  _StepState _stepState(int i, int currentIdx) {
     if (i < currentIdx) return _StepState.completed;
-    if (i == currentIdx) {
-      if (isDelayed) return _StepState.delayed;
-      return _StepState.active;
-    }
+    if (i == currentIdx) return _StepState.active;
     return _StepState.pending;
   }
 
   @override
   Widget build(BuildContext context) {
     final currentIdx = _indexOf(booking.status);
-    final isTerminal = booking.status == DemoBookingStatus.cancelled ||
-        booking.status == DemoBookingStatus.completed;
-    final isDelayed = booking.status == DemoBookingStatus.delayed;
+    final isAlternativeTerminal = booking.status == BookingStatus.cancelled ||
+        booking.status == BookingStatus.declined;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -586,15 +646,16 @@ class _LifecycleStepper extends StatelessWidget {
                 _StepRow(
                   icon: _steps[i].$3,
                   label: _steps[i].$1,
-                  state: _stepState(i, currentIdx, isDelayed),
+                  state: _stepState(i, currentIdx),
                 ),
                 if (i < _steps.length - 1)
                   _StepConnector(
                     reached: i < currentIdx,
-                    interrupted: isDelayed && i == currentIdx,
+                    interrupted: false,
                   ),
               ],
-              if (isTerminal || isDelayed) _TerminalBanner(status: booking.status),
+              if (isAlternativeTerminal)
+                _TerminalBanner(status: booking.status),
             ],
           ),
         ),
@@ -603,29 +664,34 @@ class _LifecycleStepper extends StatelessWidget {
   }
 }
 
-enum _StepState { pending, active, completed, delayed }
+enum _StepState { pending, active, completed }
 
 class _StepRow extends StatelessWidget {
-  const _StepRow({required this.icon, required this.label, required this.state});
+  const _StepRow(
+      {required this.icon, required this.label, required this.state});
   final IconData icon;
   final String label;
   final _StepState state;
 
   Color get _color {
     switch (state) {
-      case _StepState.completed: return const Color(0xFF10B981);
-      case _StepState.active: return const Color(0xFF2E7D32);
-      case _StepState.delayed: return const Color(0xFFEF4444);
-      case _StepState.pending: return const Color(0xFFD1D5DB);
+      case _StepState.completed:
+        return const Color(0xFF10B981);
+      case _StepState.active:
+        return const Color(0xFF2E7D32);
+      case _StepState.pending:
+        return const Color(0xFFD1D5DB);
     }
   }
 
   String get _subtitle {
     switch (state) {
-      case _StepState.completed: return 'Completed';
-      case _StepState.active: return 'Current';
-      case _StepState.delayed: return 'Delayed';
-      case _StepState.pending: return 'Pending';
+      case _StepState.completed:
+        return 'Completed';
+      case _StepState.active:
+        return 'Current';
+      case _StepState.pending:
+        return 'Not reached';
     }
   }
 
@@ -637,7 +703,8 @@ class _StepRow extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: _color.withOpacity(state == _StepState.pending ? 0.15 : 0.12),
+            color:
+                _color.withOpacity(state == _StepState.pending ? 0.15 : 0.12),
             shape: BoxShape.circle,
             border: Border.all(color: _color, width: 2),
           ),
@@ -654,8 +721,12 @@ class _StepRow extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: state == _StepState.active ? FontWeight.w700 : FontWeight.w600,
-                  color: state == _StepState.pending ? const Color(0xFF9CA3AF) : const Color(0xFF111827),
+                  fontWeight: state == _StepState.active
+                      ? FontWeight.w700
+                      : FontWeight.w600,
+                  color: state == _StepState.pending
+                      ? const Color(0xFF9CA3AF)
+                      : const Color(0xFF111827),
                 ),
               ),
               const SizedBox(height: 2),
@@ -707,17 +778,19 @@ class _StepConnector extends StatelessWidget {
 
 class _TerminalBanner extends StatelessWidget {
   const _TerminalBanner({required this.status});
-  final DemoBookingStatus status;
+  final BookingStatus status;
 
   @override
   Widget build(BuildContext context) {
-    final isCancelled = status == DemoBookingStatus.cancelled;
-    final color = isCancelled ? const Color(0xFF991B1B) : const Color(0xFF047857);
-    final bg = isCancelled ? const Color(0xFFFEE2E2) : const Color(0xFFD1FAE5);
-    final icon = isCancelled ? Icons.cancel_outlined : Icons.check_circle_outline;
+    final isCancelled = status == BookingStatus.cancelled;
+    final color =
+        isCancelled ? const Color(0xFF991B1B) : const Color(0xFFB91C1C);
+    final bg = isCancelled ? const Color(0xFFFEE2E2) : const Color(0xFFFEF2F2);
+    final icon =
+        isCancelled ? Icons.cancel_outlined : Icons.person_off_outlined;
     final text = isCancelled
-        ? 'This booking was cancelled. Lifecycle ended at the Scheduled step.'
-        : 'Cleaning completed. You can review the proof of completion below.';
+        ? 'This Pending request was cancelled by the Property Owner.'
+        : 'The provider declined this Pending request. Choose another eligible provider if needed.';
     return Container(
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(12),
@@ -732,7 +805,11 @@ class _TerminalBanner extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500, height: 1.3),
+              style: TextStyle(
+                  fontSize: 12,
+                  color: color,
+                  fontWeight: FontWeight.w500,
+                  height: 1.3),
             ),
           ),
         ],
@@ -747,11 +824,11 @@ class _TerminalBanner extends StatelessWidget {
 
 class _ProofOfCompletionRow extends StatelessWidget {
   const _ProofOfCompletionRow({required this.status});
-  final DemoBookingStatus status;
+  final BookingStatus status;
 
   @override
   Widget build(BuildContext context) {
-    final completed = status == DemoBookingStatus.completed;
+    final completed = status == BookingStatus.completed;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -769,7 +846,8 @@ class _ProofOfCompletionRow extends StatelessWidget {
             child: _ProofCard(
               label: 'After',
               caption: completed ? 'Photo uploaded' : 'Awaiting upload',
-              icon: completed ? Icons.check_circle_outline : Icons.image_outlined,
+              icon:
+                  completed ? Icons.check_circle_outline : Icons.image_outlined,
               hasImage: completed,
               highlight: completed,
             ),
@@ -797,13 +875,17 @@ class _ProofCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = highlight ? const Color(0xFF10B981) : const Color(0xFF9CA3AF);
-    final borderColor = highlight ? const Color(0xFF10B981) : const Color(0xFFD1D5DB);
+    final borderColor =
+        highlight ? const Color(0xFF10B981) : const Color(0xFFD1D5DB);
     return Container(
       height: 140,
       decoration: BoxDecoration(
         color: hasImage ? const Color(0xFFECFDF5) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: hasImage ? 1.5 : 1.2, style: BorderStyle.solid),
+        border: Border.all(
+            color: borderColor,
+            width: hasImage ? 1.5 : 1.2,
+            style: BorderStyle.solid),
       ),
       child: hasImage
           ? Stack(
@@ -817,19 +899,37 @@ class _ProofCard extends StatelessWidget {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: highlight
-                              ? [const Color(0xFFA7F3D0), const Color(0xFFD1FAE5)]
-                              : [const Color(0xFFE0E7FF), const Color(0xFFF3F4F6)],
+                              ? [
+                                  const Color(0xFFA7F3D0),
+                                  const Color(0xFFD1FAE5)
+                                ]
+                              : [
+                                  const Color(0xFFE0E7FF),
+                                  const Color(0xFFF3F4F6)
+                                ],
                         ),
                       ),
                       child: Stack(
                         children: [
                           Positioned(
-                            top: 18, left: 18,
-                            child: Container(width: 60, height: 60, decoration: BoxDecoration(color: Colors.white.withOpacity(0.4), shape: BoxShape.circle)),
+                            top: 18,
+                            left: 18,
+                            child: Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.4),
+                                    shape: BoxShape.circle)),
                           ),
                           Positioned(
-                            bottom: 20, right: 16,
-                            child: Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), shape: BoxShape.circle)),
+                            bottom: 20,
+                            right: 16,
+                            child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.5),
+                                    shape: BoxShape.circle)),
                           ),
                         ],
                       ),
@@ -837,16 +937,21 @@ class _ProofCard extends StatelessWidget {
                   ),
                 ),
                 Positioned(
-                  top: 8, right: 8,
+                  top: 8,
+                  right: 8,
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                    child: const Icon(Icons.check, size: 12, color: Colors.white),
+                    decoration:
+                        BoxDecoration(color: color, shape: BoxShape.circle),
+                    child:
+                        const Icon(Icons.check, size: 12, color: Colors.white),
                   ),
                 ),
                 Positioned(
-                  left: 10, bottom: 8,
-                  child: _ProofLabel(label: label, caption: caption, color: color),
+                  left: 10,
+                  bottom: 8,
+                  child:
+                      _ProofLabel(label: label, caption: caption, color: color),
                 ),
               ],
             )
@@ -866,7 +971,8 @@ class _ProofCard extends StatelessWidget {
 }
 
 class _ProofLabel extends StatelessWidget {
-  const _ProofLabel({required this.label, required this.caption, required this.color});
+  const _ProofLabel(
+      {required this.label, required this.caption, required this.color});
   final String label;
   final String caption;
   final Color color;
@@ -879,7 +985,8 @@ class _ProofLabel extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
+          style: TextStyle(
+              fontSize: 13, fontWeight: FontWeight.w700, color: color),
         ),
         Text(
           caption,
@@ -944,119 +1051,72 @@ class _AvailableActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = _primaryAction();
-    final secondary = _secondaryActions();
-    if (primary == null && secondary.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Card(
-          color: const Color(0xFFF3F4F6),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: const [
-                Icon(Icons.lock_outline, size: 18, color: Color(0xFF6B7280)),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'This booking is in a terminal state. No further actions allowed.',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-                  ),
-                ),
-              ],
-            ),
-          ),
+    final (icon, title, message, color) = switch (booking.status) {
+      BookingStatus.pending => (
+          Icons.hourglass_top,
+          'Waiting for provider response',
+          'You may edit or cancel this request before it is accepted.',
+          const Color(0xFF6B7280),
         ),
-      );
-    }
+      BookingStatus.accepted => (
+          Icons.event_available,
+          'Booking accepted',
+          'The agreed service date and time are confirmed. Message the provider if needed.',
+          const Color(0xFF0F766E),
+        ),
+      BookingStatus.inProgress => (
+          Icons.cleaning_services,
+          'Cleaning in progress',
+          'The provider will submit completion evidence when the work is finished.',
+          const Color(0xFFD97706),
+        ),
+      BookingStatus.completed => (
+          Icons.task_alt,
+          'Cleaning completed',
+          'Review the completion evidence and submit a rating when ready.',
+          const Color(0xFF15803D),
+        ),
+      BookingStatus.declined => (
+          Icons.person_search,
+          'Provider declined the request',
+          'Return to provider recommendations to choose another eligible provider.',
+          const Color(0xFFB91C1C),
+        ),
+      BookingStatus.cancelled => (
+          Icons.cancel_outlined,
+          'Request cancelled',
+          'This request is closed and no longer reserves any provider time.',
+          const Color(0xFF7F1D1D),
+        ),
+    };
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          padding: const EdgeInsets.all(16),
+          child: Row(
             children: [
-              if (primary != null) ...[
-                FilledButton.icon(
-                  onPressed: () => _showSnack(context, '${primary.$1} (FSM action)'),
-                  icon: Icon(primary.$2, size: 18),
-                  label: Text(primary.$1, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: primary.$3,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
+              Icon(icon, color: color),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(message, style: const TextStyle(fontSize: 13)),
+                  ],
                 ),
-                if (secondary.isNotEmpty) const SizedBox(height: 10),
-              ],
-              for (var i = 0; i < secondary.length; i++) ...[
-                if (i > 0) const SizedBox(height: 8),
-                _secondaryButton(context, secondary[i]),
-              ],
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _secondaryButton(BuildContext context, (String, IconData, Color) a) {
-    return OutlinedButton.icon(
-      onPressed: () => _showSnack(context, '${a.$1} (FSM action)'),
-      icon: Icon(a.$2, size: 18),
-      label: Text(a.$1, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: a.$3,
-        side: BorderSide(color: a.$3.withOpacity(0.5)),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-
-  (String, IconData, Color)? _primaryAction() {
-    switch (booking.status) {
-      case DemoBookingStatus.requested:
-        return ('Accept booking', Icons.check_circle, const Color(0xFF2E7D32));
-      case DemoBookingStatus.accepted:
-        return ('Confirm schedule', Icons.event_available, const Color(0xFF2E7D32));
-      case DemoBookingStatus.scheduled:
-        return ('Start job', Icons.play_arrow, const Color(0xFFF59E0B));
-      case DemoBookingStatus.rescheduled:
-        return ('Confirm new time', Icons.event_repeat, const Color(0xFF8E24AA));
-      case DemoBookingStatus.inProgress:
-        return ('Mark complete', Icons.task_alt, const Color(0xFF10B981));
-      case DemoBookingStatus.delayed:
-        return ('Resume job', Icons.play_arrow, const Color(0xFF2E7D32));
-      case DemoBookingStatus.completed:
-      case DemoBookingStatus.rejected:
-      case DemoBookingStatus.cancelled:
-        return null;
-    }
-  }
-
-  List<(String, IconData, Color)> _secondaryActions() {
-    final out = <(String, IconData, Color)>[];
-    if (booking.status == DemoBookingStatus.scheduled) {
-      out.add(('Mark delayed', Icons.schedule, const Color(0xFFEF4444)));
-    }
-    if (booking.status == DemoBookingStatus.inProgress) {
-      out.add(('Mark delayed', Icons.schedule, const Color(0xFFEF4444)));
-    }
-    if (booking.status != DemoBookingStatus.completed &&
-        booking.status != DemoBookingStatus.cancelled) {
-      out.add(('Cancel booking', Icons.close, const Color(0xFFEF4444)));
-    }
-    return out;
-  }
-
-  void _showSnack(BuildContext context, String text) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(text),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -1121,8 +1181,8 @@ class _OwnerRatingCardState extends State<_OwnerRatingCard> {
                 alreadyRated
                     ? 'Your rating is recorded'
                     : 'How was the cleaning?',
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w700),
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 12),
               if (alreadyRated)

@@ -41,7 +41,8 @@ class ProviderInboxScreen extends StatefulWidget {
   State<ProviderInboxScreen> createState() => _ProviderInboxScreenState();
 }
 
-class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTickerProviderStateMixin {
+class _ProviderInboxScreenState extends State<ProviderInboxScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tab;
   String _navTab = 'inbox';
   FilterResult _filter = FilterResult.empty;
@@ -64,23 +65,24 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
   List<DemoBooking> _filterBookings(List<DemoBooking> source, _InboxTab tab) {
     var out = source;
     if (tab == _InboxTab.newRequests) {
-      out = out.where((b) => b.status == DemoBookingStatus.requested).toList();
+      out = out.where((b) => b.status == BookingStatus.pending).toList();
     } else if (tab == _InboxTab.active) {
-      out = out.where((b) =>
-          b.status == DemoBookingStatus.accepted ||
-          b.status == DemoBookingStatus.scheduled ||
-          b.status == DemoBookingStatus.inProgress ||
-          b.status == DemoBookingStatus.delayed).toList();
+      out = out
+          .where((b) =>
+              b.status == BookingStatus.accepted ||
+              b.status == BookingStatus.inProgress)
+          .toList();
     } else if (tab == _InboxTab.completed) {
-      out = out.where((b) => b.status == DemoBookingStatus.completed).toList();
+      out = out.where((b) => b.status == BookingStatus.completed).toList();
     }
     out = applyFilter(out, _filter);
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      out = out.where((b) =>
-        b.property.toLowerCase().contains(q) ||
-        b.serviceType.toLowerCase().contains(q)
-      ).toList();
+      out = out
+          .where((b) =>
+              b.property.toLowerCase().contains(q) ||
+              b.serviceType.toLowerCase().contains(q))
+          .toList();
     }
     return out;
   }
@@ -88,8 +90,9 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
   // PI4: themed success snackbar
   void _accept(DemoBooking b, BookingStore store) {
     Haptics.medium();
-    final ok = store.updateStatus(b.id, DemoBookingStatus.accepted);
-    if (ok) {
+    final result = store.acceptPending(b.id);
+    if (result.accepted) {
+      final acceptedBooking = store.byId(b.id) ?? b;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Accepted ${b.property}'),
@@ -98,8 +101,16 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
           action: SnackBarAction(
             label: 'View',
             textColor: Colors.white,
-            onPressed: () => _openDetail(b),
+            onPressed: () => _openDetail(acceptedBooking),
           ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -108,7 +119,7 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
   // PI4: themed error snackbar
   void _decline(DemoBooking b, BookingStore store) {
     Haptics.heavy();
-    final ok = store.updateStatus(b.id, DemoBookingStatus.cancelled);
+    final ok = store.declineBooking(b.id);
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -121,10 +132,11 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
   }
 
   void _openDetail(DemoBooking b) {
+    final current = AppProviders.of(context).bookingStore.byId(b.id) ?? b;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ProviderJobDetailScreen(
-          booking: b,
+          booking: current,
           provider: widget.provider,
         ),
       ),
@@ -133,7 +145,9 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
 
   Future<void> _onDrawerNav(String id) async {
     switch (id) {
-      case 'inbox': setState(() => _navTab = 'inbox'); break;
+      case 'inbox':
+        setState(() => _navTab = 'inbox');
+        break;
       case 'schedule':
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => ProviderScheduleScreen(
@@ -158,19 +172,24 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
         ));
         break;
       case 'messages':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChatListScreen()));
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const ChatListScreen()));
         break;
       case 'stats':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProviderStatsScreen()));
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ProviderStatsScreen()));
         break;
       case 'about':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AboutScreen()));
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const AboutScreen()));
         break;
       case 'edit_profile':
-        final current = AppProviders.of(context).providerStore.currentProvider
-            ?? DemoProvider.ranked().first;
+        final current =
+            AppProviders.of(context).providerStore.currentProvider ??
+                DemoProvider.ranked().first;
         final updated = await Navigator.of(context).push<DemoProvider>(
-          MaterialPageRoute(builder: (_) => ProviderEditProfileScreen(provider: current)),
+          MaterialPageRoute(
+              builder: (_) => ProviderEditProfileScreen(provider: current)),
         );
         if (updated != null) {
           setState(() {});
@@ -219,7 +238,8 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
                 id: 'earnings',
                 icon: Icons.account_balance_wallet,
                 title: 'Your earnings at a glance',
-                body: "See this week's earnings, upcoming jobs, and incoming requests — all in one card.",
+                body:
+                    "See this week's earnings, upcoming jobs, and incoming requests — all in one card.",
                 accent: AppColors.primary,
                 alignment: CoachMarkAlignment.topLeft,
               ),
@@ -227,7 +247,8 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
                 id: 'tabs',
                 icon: Icons.tab,
                 title: '4 quick tabs',
-                body: 'Inbox / Schedule / Earnings / Profile. Tap a tab to navigate.',
+                body:
+                    'Inbox / Schedule / Earnings / Profile. Tap a tab to navigate.',
                 accent: AppColors.primary,
                 alignment: CoachMarkAlignment.bottomCenter,
               ),
@@ -235,7 +256,8 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
                 id: 'accept',
                 icon: Icons.check_circle,
                 title: 'Accept in one tap',
-                body: 'New job requests show here. Tap Accept (green) to confirm, or Decline (red) to pass.',
+                body:
+                    'New job requests show here. Tap Accept (green) to confirm, or Decline (red) to pass.',
                 accent: AppColors.primary,
                 alignment: CoachMarkAlignment.topRight,
               ),
@@ -257,8 +279,9 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
                 ));
               }
               if (id == 'profile') {
-                final current = AppProviders.of(context).providerStore.currentProvider
-                    ?? DemoProvider.ranked().first;
+                final current =
+                    AppProviders.of(context).providerStore.currentProvider ??
+                        DemoProvider.ranked().first;
                 Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => ProviderEditProfileScreen(provider: current),
                 ));
@@ -266,7 +289,10 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
             },
             tabs: const [
               NavTab(id: 'inbox', icon: Icons.inbox, label: 'Inbox'),
-              NavTab(id: 'schedule', icon: Icons.calendar_today, label: 'Schedule'),
+              NavTab(
+                  id: 'schedule',
+                  icon: Icons.calendar_today,
+                  label: 'Schedule'),
               NavTab(id: 'earnings', icon: Icons.payments, label: 'Earnings'),
               NavTab(id: 'profile', icon: Icons.person, label: 'Profile'),
             ],
@@ -284,7 +310,8 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
         Builder(builder: (ctx) {
           final isDark2 = AppProviders.of(ctx).isDark;
           return IconButton(
-            icon: Icon(isDark2 ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+            icon: Icon(
+                isDark2 ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
             onPressed: () => AppProviders.of(ctx).onToggleTheme(),
             tooltip: isDark2 ? 'Switch to light mode' : 'Switch to dark mode',
           );
@@ -303,7 +330,8 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
             ],
           ),
           onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const NotificationsScreen(role: 'Provider')),
+            MaterialPageRoute(
+                builder: (_) => const NotificationsScreen(role: 'Provider')),
           ),
           tooltip: 'Notifications',
         ),
@@ -323,9 +351,15 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
         indicatorWeight: 2.5,
         labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         tabs: [
-          Tab(text: 'New (${_filterBookings(storeForCount(context), _InboxTab.newRequests).length})'),
-          Tab(text: 'Active (${_filterBookings(storeForCount(context), _InboxTab.active).length})'),
-          Tab(text: 'Done (${_filterBookings(storeForCount(context), _InboxTab.completed).length})'),
+          Tab(
+              text:
+                  'New (${_filterBookings(storeForCount(context), _InboxTab.newRequests).length})'),
+          Tab(
+              text:
+                  'Active (${_filterBookings(storeForCount(context), _InboxTab.active).length})'),
+          Tab(
+              text:
+                  'Done (${_filterBookings(storeForCount(context), _InboxTab.completed).length})'),
           const Tab(text: 'All'),
         ],
       ),
@@ -349,11 +383,13 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
             decoration: InputDecoration(
               hintText: 'Search by property or service...',
               hintStyle: TextStyle(fontSize: 13, color: sem.textTertiary),
-              prefixIcon: Icon(Icons.search, size: 20, color: sem.textSecondary),
+              prefixIcon:
+                  Icon(Icons.search, size: 20, color: sem.textSecondary),
               suffixIcon: _searchQuery.isEmpty
                   ? null
                   : IconButton(
-                      icon: Icon(Icons.close, size: 18, color: sem.textSecondary),
+                      icon:
+                          Icon(Icons.close, size: 18, color: sem.textSecondary),
                       onPressed: () {
                         _searchCtrl.clear();
                         setState(() => _searchQuery = '');
@@ -362,7 +398,8 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
               filled: true,
               fillColor: sem.surface,
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(color: sem.border),
@@ -391,13 +428,16 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
 
   // PI3: themed earnings summary
   Widget _buildEarningsSummary(BuildContext context, BookingStore store) {
-    final all = store.bookings.where((b) => b.providerName == (widget.provider?.name ?? 'Provider A'));
-    final completed = all.where((b) => b.status == DemoBookingStatus.completed).length;
-    final upcoming = all.where((b) =>
-        b.status == DemoBookingStatus.scheduled ||
-        b.status == DemoBookingStatus.inProgress ||
-        b.status == DemoBookingStatus.accepted).length;
-    final newReq = all.where((b) => b.status == DemoBookingStatus.requested).length;
+    final all = store.bookings.where(
+        (b) => b.providerName == (widget.provider?.name ?? 'Provider A'));
+    final completed =
+        all.where((b) => b.status == BookingStatus.completed).length;
+    final upcoming = all
+        .where((b) =>
+            b.status == BookingStatus.accepted ||
+            b.status == BookingStatus.inProgress)
+        .length;
+    final newReq = all.where((b) => b.status == BookingStatus.pending).length;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -424,7 +464,8 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
                   color: Colors.white.withOpacity(0.18),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.work_outline, color: Colors.white, size: 22),
+                child: const Icon(Icons.work_outline,
+                    color: Colors.white, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -467,11 +508,15 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
           Row(
             children: [
               Expanded(
-                child: _EarningsStat(label: 'This week', value: 'RM 540', sub: '$completed done'),
+                child: _EarningsStat(
+                    label: 'This week',
+                    value: 'RM 540',
+                    sub: '$completed done'),
               ),
               const SizedBox(width: 6),
               Expanded(
-                child: _EarningsStat(label: 'Upcoming', value: '$upcoming', sub: 'jobs'),
+                child: _EarningsStat(
+                    label: 'Upcoming', value: '$upcoming', sub: 'jobs'),
               ),
               const SizedBox(width: 6),
               Expanded(
@@ -520,19 +565,27 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen> with SingleTi
 
   String _emptyTitle(_InboxTab tab) {
     switch (tab) {
-      case _InboxTab.newRequests: return 'No new requests';
-      case _InboxTab.active: return 'No active jobs';
-      case _InboxTab.completed: return 'No completed jobs yet';
-      case _InboxTab.all: return 'No jobs at all';
+      case _InboxTab.newRequests:
+        return 'No new requests';
+      case _InboxTab.active:
+        return 'No active jobs';
+      case _InboxTab.completed:
+        return 'No completed jobs yet';
+      case _InboxTab.all:
+        return 'No jobs at all';
     }
   }
 
   String _emptySubtitle(_InboxTab tab) {
     switch (tab) {
-      case _InboxTab.newRequests: return "We'll ping you when an owner routes a request to you.";
-      case _InboxTab.active: return 'Accept a request or wait for one to be assigned.';
-      case _InboxTab.completed: return 'Completed jobs will appear here for your records.';
-      case _InboxTab.all: return 'Pull to refresh or check your notifications.';
+      case _InboxTab.newRequests:
+        return "We'll ping you when an owner routes a request to you.";
+      case _InboxTab.active:
+        return 'Accept a request or wait for one to be assigned.';
+      case _InboxTab.completed:
+        return 'Completed jobs will appear here for your records.';
+      case _InboxTab.all:
+        return 'Pull to refresh or check your notifications.';
     }
   }
 }
@@ -556,7 +609,11 @@ class _NotificationDot extends StatelessWidget {
 
 // PI6: themed highlight state
 class _EarningsStat extends StatelessWidget {
-  const _EarningsStat({required this.label, required this.value, required this.sub, this.highlight = false});
+  const _EarningsStat(
+      {required this.label,
+      required this.value,
+      required this.sub,
+      this.highlight = false});
   final String label;
   final String value;
   final String sub;
@@ -620,7 +677,7 @@ class _ProviderJobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sem = SemanticColors.of(context);
-    final canRespond = booking.status == DemoBookingStatus.requested;
+    final canRespond = booking.status == BookingStatus.pending;
     return Card(
       child: InkWell(
         onTap: onTap,
@@ -663,7 +720,8 @@ class _ProviderJobCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           '${booking.serviceType}  ·  ${_formatTime(booking.scheduledStart)}',
-                          style: TextStyle(fontSize: 12, color: sem.textSecondary),
+                          style:
+                              TextStyle(fontSize: 12, color: sem.textSecondary),
                         ),
                       ],
                     ),
@@ -686,7 +744,10 @@ class _ProviderJobCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           booking.specialInstructions!,
-                          style: TextStyle(fontSize: 12, color: sem.textPrimary, height: 1.3),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: sem.textPrimary,
+                              height: 1.3),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),

@@ -21,32 +21,64 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _ctl = PageController();
   int _idx = 0;
 
-  static const _pages = <_OnbPageData>[
+  static const _ownerPages = <_OnbPageData>[
     _OnbPageData(
       icon: Icons.apartment,
-      title: 'Manage your properties',
-      body: 'Schedule cleanings, view status across your portfolio, and keep tenants happy with on-time service.',
+      title: 'Manage cleaning requests',
+      body:
+          'Create cleaning requests for your rental units and track every booking in one place.',
       accent: AppColors.primary,
     ),
     _OnbPageData(
       icon: Icons.person_search,
-      title: 'Match the right provider',
-      body: 'We rank candidates with multi-criteria analysis — availability, distance, rating, workload. Top match gets routed in seconds.',
+      title: 'Find an eligible provider',
+      body:
+          'Mandatory availability and conflict checks are applied first. Eligible providers are then ranked by distance, rating, and workload.',
       accent: AppColors.secondary,
     ),
     _OnbPageData(
       icon: Icons.verified,
-      title: 'Approve with proof',
-      body: 'Every job ends with before-and-after photos. You stay in control until you sign off.',
+      title: 'Track progress and evidence',
+      body:
+          'Follow the booking from Pending to Completed and review the provider’s before-and-after photos and completion remarks.',
       accent: AppColors.warning,
     ),
   ];
 
+  static const _providerPages = <_OnbPageData>[
+    _OnbPageData(
+      icon: Icons.inbox_outlined,
+      title: 'Review incoming requests',
+      body:
+          'See the service details and requested interval before accepting or declining each Pending request.',
+      accent: AppColors.primary,
+    ),
+    _OnbPageData(
+      icon: Icons.event_available,
+      title: 'Keep your schedule accurate',
+      body:
+          'Maintain declared availability and view the Accepted and In Progress bookings that occupy your schedule.',
+      accent: AppColors.secondary,
+    ),
+    _OnbPageData(
+      icon: Icons.add_a_photo_outlined,
+      title: 'Record completion evidence',
+      body:
+          'Update job progress and submit before-and-after photos with completion remarks before marking work Completed.',
+      accent: AppColors.warning,
+    ),
+  ];
+
+  List<_OnbPageData> _pagesFor(UserRole role) =>
+      role == UserRole.provider ? _providerPages : _ownerPages;
+
   void _skip() => UserSessionAccess.of(context).markOnboardingSeen();
 
   void _next() {
-    if (_idx < _pages.length - 1) {
-      _ctl.nextPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOut);
+    final pages = _pagesFor(UserSessionAccess.of(context).role);
+    if (_idx < pages.length - 1) {
+      _ctl.nextPage(
+          duration: const Duration(milliseconds: 280), curve: Curves.easeOut);
     } else {
       UserSessionAccess.of(context).markOnboardingSeen();
     }
@@ -54,9 +86,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLast = _idx == _pages.length - 1;
+    final pages = _pagesFor(UserSessionAccess.of(context).role);
+    final isLast = _idx == pages.length - 1;
     final sem = SemanticColors.of(context);
-    final accent = _pages[_idx].accent;
+    final accent = pages[_idx].accent;
     return Scaffold(
       body: AnimatedContainer(
         duration: const Duration(milliseconds: 400),
@@ -80,20 +113,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: PageView.builder(
                   controller: _ctl,
                   onPageChanged: (i) => setState(() => _idx = i),
-                  itemCount: _pages.length,
-                  itemBuilder: (ctx, i) => _OnbPage(data: _pages[i]),
+                  itemCount: pages.length,
+                  itemBuilder: (ctx, i) => _OnbPage(data: pages[i]),
                 ),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_pages.length, (i) {
+                children: List.generate(pages.length, (i) {
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     width: i == _idx ? 24 : 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: i == _idx ? _pages[_idx].accent : sem.border,
+                      color: i == _idx ? pages[_idx].accent : sem.border,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   );

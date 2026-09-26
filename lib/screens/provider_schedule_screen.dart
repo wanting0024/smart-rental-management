@@ -1,4 +1,4 @@
-﻿// lib/screens/provider_schedule_screen.dart
+// lib/screens/provider_schedule_screen.dart
 // Provider's own schedule view. Mirrors owner schedule but filtered to
 // this provider's bookings, with action availability hints.
 //
@@ -19,7 +19,8 @@ import '../widgets/empty_state.dart';
 import 'booking_detail_screen.dart';
 
 class ProviderScheduleScreen extends StatefulWidget {
-  const ProviderScheduleScreen({super.key, required this.providerName, required this.bookings});
+  const ProviderScheduleScreen(
+      {super.key, required this.providerName, required this.bookings});
   final String providerName;
   final List<DemoBooking> bookings;
 
@@ -44,6 +45,8 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen> {
   Widget build(BuildContext context) {
     final sem = SemanticColors.of(context);
     final mine = _myBookings;
+    final blockingBookings =
+        mine.where((booking) => booking.status.blocksProviderSlot).toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text('My schedule'),
@@ -70,16 +73,17 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen> {
           Expanded(
             child: CalendarWeekView(
               weekStart: _weekStart,
-              bookings: mine,
+              bookings: blockingBookings,
               onTapBooking: (b) => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => BookingDetailScreen(booking: b)),
+                MaterialPageRoute(
+                    builder: (_) => BookingDetailScreen(booking: b)),
               ),
               onChangeWeek: (w) => setState(() => _weekStart = w),
               today: {DateTime.now()},
             ),
           ),
           Divider(height: 1, thickness: 1, color: sem.border),
-          _buildTodayList(mine, sem),
+          _buildTodayList(blockingBookings, sem),
         ],
       ),
     );
@@ -87,23 +91,25 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen> {
 
   // PS2: themed stat tiles
   Widget _buildStats(List<DemoBooking> mine, SemanticColors sem) {
-    final thisWeek = mine.where((b) {
+    final blockingBookings = mine.where((b) => b.status.blocksProviderSlot);
+    final thisWeek = blockingBookings.where((b) {
       final now = DateTime.now();
       final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
       final endOfWeek = startOfWeek.add(const Duration(days: 7));
-      return b.scheduledStart.isAfter(startOfWeek) && b.scheduledStart.isBefore(endOfWeek);
+      return b.scheduledStart.isAfter(startOfWeek) &&
+          b.scheduledStart.isBefore(endOfWeek);
     }).length;
-    final upcoming = mine.where((b) =>
-        b.status == DemoBookingStatus.scheduled ||
-        b.status == DemoBookingStatus.accepted ||
-        b.status == DemoBookingStatus.requested ||
-        b.status == DemoBookingStatus.inProgress).length;
-    final hoursThisWeek = mine.where((b) {
+    final upcoming = mine.where((b) => b.status.blocksProviderSlot).length;
+    final hoursThisWeek = blockingBookings.where((b) {
       final now = DateTime.now();
       final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
       final endOfWeek = startOfWeek.add(const Duration(days: 7));
-      return b.scheduledStart.isAfter(startOfWeek) && b.scheduledStart.isBefore(endOfWeek);
-    }).fold<double>(0, (s, b) => s + b.scheduledEnd.difference(b.scheduledStart).inMinutes / 60.0);
+      return b.scheduledStart.isAfter(startOfWeek) &&
+          b.scheduledStart.isBefore(endOfWeek);
+    }).fold<double>(
+        0,
+        (s, b) =>
+            s + b.scheduledEnd.difference(b.scheduledStart).inMinutes / 60.0);
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -111,7 +117,8 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen> {
         children: [
           _stat('This week', '$thisWeek', AppColors.primary, sem),
           const SizedBox(width: 8),
-          _stat('Hours booked', hoursThisWeek.toStringAsFixed(1), AppColors.secondary, sem),
+          _stat('Hours booked', hoursThisWeek.toStringAsFixed(1),
+              AppColors.secondary, sem),
           const SizedBox(width: 8),
           _stat('Upcoming', '$upcoming', AppColors.statusCompleted, sem),
         ],
@@ -157,10 +164,12 @@ class _ProviderScheduleScreenState extends State<ProviderScheduleScreen> {
   // PS4 + PS6: themed today list
   Widget _buildTodayList(List<DemoBooking> mine, SemanticColors sem) {
     final now = DateTime.now();
-    final today = mine.where((b) =>
-        b.scheduledStart.year == now.year &&
-        b.scheduledStart.month == now.month &&
-        b.scheduledStart.day == now.day).toList()
+    final today = mine
+        .where((b) =>
+            b.scheduledStart.year == now.year &&
+            b.scheduledStart.month == now.month &&
+            b.scheduledStart.day == now.day)
+        .toList()
       ..sort((a, b) => a.scheduledStart.compareTo(b.scheduledStart));
     return Container(
       color: sem.surfaceAlt,

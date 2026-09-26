@@ -62,10 +62,18 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
 
   void _onDrawerNav(String routeId) {
     switch (routeId) {
-      case 'home': _switchTab('home'); break;
-      case 'schedule': _switchTab('schedule'); break;
-      case 'properties': _switchTab('properties'); break;
-      case 'browse': _switchTab('browse'); break;
+      case 'home':
+        _switchTab('home');
+        break;
+      case 'schedule':
+        _switchTab('schedule');
+        break;
+      case 'properties':
+        _switchTab('properties');
+        break;
+      case 'browse':
+        _switchTab('browse');
+        break;
       case 'notifications':
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => const NotificationsScreen(role: 'Owner'),
@@ -73,19 +81,23 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
         break;
       case 'profile':
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => _OwnerProfileScreen(onOpenBookings: () => _switchTab('home')),
+          builder: (_) =>
+              _OwnerProfileScreen(onOpenBookings: () => _switchTab('home')),
         ));
         break;
       case 'messages':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChatListScreen()));
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const ChatListScreen()));
         break;
       case 'spend':
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => OwnerSpendScreen(bookings: AppProviders.of(context).bookingStore.bookings),
+          builder: (_) => OwnerSpendScreen(
+              bookings: AppProviders.of(context).bookingStore.bookings),
         ));
         break;
       case 'about':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AboutScreen()));
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const AboutScreen()));
         break;
       case 'switch-role':
         _openProviderView();
@@ -100,13 +112,13 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
     );
     if (created != null && mounted) {
       AppProviders.of(context).bookingStore.add(
-        property: created.property,
-        serviceType: created.serviceType,
-        scheduledStart: created.scheduledStart,
-        scheduledEnd: created.scheduledEnd,
-        providerName: created.providerName,
-        specialInstructions: created.specialInstructions,
-      );
+            property: created.property,
+            serviceType: created.serviceType,
+            scheduledStart: created.scheduledStart,
+            scheduledEnd: created.scheduledEnd,
+            providerName: created.providerName,
+            specialInstructions: created.specialInstructions,
+          );
       Haptics.medium();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -165,7 +177,8 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                     id: 'hero',
                     icon: Icons.dashboard,
                     title: 'Your dashboard',
-                    body: 'At-a-glance stats: total bookings, in-progress, scheduled, and done.',
+                    body:
+                        'At-a-glance stats: total bookings, accepted, in progress, and completed.',
                     accent: AppColors.primary,
                     alignment: CoachMarkAlignment.topLeft,
                   ),
@@ -173,7 +186,8 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                     id: 'tabs',
                     icon: Icons.tab,
                     title: '5 quick tabs',
-                    body: 'Home / Schedule / Properties / Browse / Spend. Switch anytime.',
+                    body:
+                        'Home / Schedule / Properties / Browse / Spend. Switch anytime.',
                     accent: AppColors.primary,
                     alignment: CoachMarkAlignment.bottomCenter,
                   ),
@@ -206,8 +220,12 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
             onChange: _switchTab,
             tabs: const [
               NavTab(id: 'home', icon: Icons.dashboard, label: 'Home'),
-              NavTab(id: 'schedule', icon: Icons.calendar_today, label: 'Schedule'),
-              NavTab(id: 'properties', icon: Icons.apartment, label: 'Properties'),
+              NavTab(
+                  id: 'schedule',
+                  icon: Icons.calendar_today,
+                  label: 'Schedule'),
+              NavTab(
+                  id: 'properties', icon: Icons.apartment, label: 'Properties'),
               NavTab(id: 'browse', icon: Icons.person_search, label: 'Browse'),
               NavTab(id: 'spend', icon: Icons.payments, label: 'Spend'),
             ],
@@ -220,19 +238,31 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     String title;
     switch (_tab) {
-      case 'home': title = 'Owner Dashboard'; break;
-      case 'schedule': title = 'Schedule'; break;
-      case 'properties': title = 'My properties'; break;
-      case 'browse': title = 'Browse providers'; break;
-      case 'spend': title = 'Spending'; break;
-      default: title = 'Owner';
+      case 'home':
+        title = 'Owner Dashboard';
+        break;
+      case 'schedule':
+        title = 'Schedule';
+        break;
+      case 'properties':
+        title = 'My properties';
+        break;
+      case 'browse':
+        title = 'Browse providers';
+        break;
+      case 'spend':
+        title = 'Spending';
+        break;
+      default:
+        title = 'Owner';
     }
     final isDark = AppProviders.of(context).isDark;
     return AppBar(
       title: Text(title),
       actions: [
         IconButton(
-          icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+          icon: Icon(
+              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
           onPressed: () => AppProviders.of(context).onToggleTheme(),
           tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
         ),
@@ -256,7 +286,8 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
             ],
           ),
           onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const NotificationsScreen(role: 'Owner')),
+            MaterialPageRoute(
+                builder: (_) => const NotificationsScreen(role: 'Owner')),
           ),
           tooltip: 'Notifications',
         ),
@@ -267,12 +298,18 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
 
   Widget _buildBody(BuildContext context, BookingStore store) {
     switch (_tab) {
-      case 'home': return _buildHomeTab(context, store);
-      case 'schedule': return _embeddedSchedule(store);
-      case 'properties': return PropertyListScreen(bookings: store.bookings, embedded: true);
-      case 'browse': return _embeddedBrowse();
-      case 'spend': return OwnerSpendScreen(bookings: store.bookings);
-      default: return _buildHomeTab(context, store);
+      case 'home':
+        return _buildHomeTab(context, store);
+      case 'schedule':
+        return _embeddedSchedule(store);
+      case 'properties':
+        return PropertyListScreen(bookings: store.bookings, embedded: true);
+      case 'browse':
+        return _embeddedBrowse();
+      case 'spend':
+        return OwnerSpendScreen(bookings: store.bookings);
+      default:
+        return _buildHomeTab(context, store);
     }
   }
 
@@ -296,7 +333,8 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                   color: AppColors.primarySurface,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.auto_awesome, size: 18, color: AppColors.primary),
+                child: const Icon(Icons.auto_awesome,
+                    size: 18, color: AppColors.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -324,7 +362,8 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
         Expanded(
           child: ProviderBrowseScreen(
             onViewProfile: (p) => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => ProviderProfileScreen(provider: p)),
+              MaterialPageRoute(
+                  builder: (_) => ProviderProfileScreen(provider: p)),
             ),
           ),
         ),
@@ -336,13 +375,19 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
     final sem = SemanticColors.of(context);
     final allBookings = store.bookings;
     final filtered = applyFilter(
-      allBookings.where((b) =>
-        _searchQuery.isEmpty ||
-        b.property.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        b.serviceType.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        (b.providerName?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false) ||
-        b.status.label.toLowerCase().contains(_searchQuery.toLowerCase())
-      ).toList(),
+      allBookings
+          .where((b) =>
+              _searchQuery.isEmpty ||
+              b.property.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              b.serviceType
+                  .toLowerCase()
+                  .contains(_searchQuery.toLowerCase()) ||
+              (b.providerName
+                      ?.toLowerCase()
+                      .contains(_searchQuery.toLowerCase()) ??
+                  false) ||
+              b.status.label.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList(),
       _filter,
     );
     return RefreshIndicator(
@@ -374,13 +419,16 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                     hintStyle: TextStyle(fontSize: 13, color: sem.textTertiary),
                     prefixIcon: Padding(
                       padding: const EdgeInsets.only(left: 10, right: 6),
-                      child: Icon(Icons.search, size: 18, color: sem.textSecondary),
+                      child: Icon(Icons.search,
+                          size: 18, color: sem.textSecondary),
                     ),
-                    prefixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    prefixIconConstraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
                     suffixIcon: _searchQuery.isEmpty
                         ? null
                         : IconButton(
-                            icon: Icon(Icons.close, size: 16, color: sem.textSecondary),
+                            icon: Icon(Icons.close,
+                                size: 16, color: sem.textSecondary),
                             onPressed: () {
                               _searchCtrl.clear();
                               setState(() => _searchQuery = '');
@@ -389,7 +437,8 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                     isDense: true,
                     filled: true,
                     fillColor: sem.surface,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(color: sem.border),
@@ -418,7 +467,8 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                       clipBehavior: Clip.none,
                       children: [
                         Icon(Icons.tune, size: 20, color: sem.textSecondary),
-                        if (_filter.statusFilter != null || _filter.propertyFilter != null)
+                        if (_filter.statusFilter != null ||
+                            _filter.propertyFilter != null)
                           const Positioned(
                             top: -2,
                             right: -2,
@@ -462,7 +512,8 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                 children: [
                   Icon(Icons.search_off, size: 48, color: sem.textTertiary),
                   const SizedBox(height: 8),
-                  Text('No matches', style: TextStyle(fontSize: 14, color: sem.textSecondary)),
+                  Text('No matches',
+                      style: TextStyle(fontSize: 14, color: sem.textSecondary)),
                 ],
               ),
             )
@@ -472,7 +523,8 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                   child: BookingCard(
                     booking: b,
                     onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => BookingDetailScreen(booking: b)),
+                      MaterialPageRoute(
+                          builder: (_) => BookingDetailScreen(booking: b)),
                     ),
                   ),
                 )),
@@ -515,10 +567,14 @@ class _SummaryHeader extends StatelessWidget {
     // OH3: greeting is local to widget (parent already builds greeting string)
     final greeting = _greetingFor(DateTime.now().hour);
     final total = bookings.length;
-    final inProgress = bookings.where((b) => b.status == DemoBookingStatus.inProgress).length;
-    final scheduled = bookings.where((b) => b.status == DemoBookingStatus.scheduled).length;
-    final completed = bookings.where((b) => b.status == DemoBookingStatus.completed).length;
-    final requested = bookings.where((b) => b.status == DemoBookingStatus.requested).length;
+    final inProgress =
+        bookings.where((b) => b.status == BookingStatus.inProgress).length;
+    final accepted =
+        bookings.where((b) => b.status == BookingStatus.accepted).length;
+    final completed =
+        bookings.where((b) => b.status == BookingStatus.completed).length;
+    final pending =
+        bookings.where((b) => b.status == BookingStatus.pending).length;
     return Container(
       decoration: BoxDecoration(
         // OH4: use AppTheme gradient
@@ -546,7 +602,8 @@ class _SummaryHeader extends StatelessWidget {
                     color: Colors.white.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.apartment, color: Colors.white, size: 22),
+                  child: const Icon(Icons.apartment,
+                      color: Colors.white, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -574,7 +631,8 @@ class _SummaryHeader extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(6),
@@ -619,9 +677,9 @@ class _SummaryHeader extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 _StatCard(
-                  label: 'Sched.',
-                  value: '$scheduled',
-                  color: AppColors.statusScheduled,
+                  label: 'Accepted',
+                  value: '$accepted',
+                  color: AppColors.statusAccepted,
                 ),
                 const SizedBox(width: 6),
                 _StatCard(
@@ -632,12 +690,13 @@ class _SummaryHeader extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            if (requested > 0)
+            if (pending > 0)
               InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () {},
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -645,10 +704,11 @@ class _SummaryHeader extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.notifications_active, size: 14, color: Colors.white),
+                      const Icon(Icons.notifications_active,
+                          size: 14, color: Colors.white),
                       const SizedBox(width: 6),
                       Text(
-                        '$requested new request${requested == 1 ? '' : 's'} awaiting your review',
+                        '$pending pending request${pending == 1 ? '' : 's'} awaiting provider response',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.white,
@@ -748,7 +808,8 @@ class _OwnerProfileScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
+                    border: Border.all(
+                        color: Colors.white.withOpacity(0.4), width: 2),
                   ),
                   child: Center(
                     child: Text(
@@ -777,7 +838,9 @@ class _OwnerProfileScreen extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         'Owner · 5 properties',
-                        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13),
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 13),
                       ),
                     ],
                   ),
@@ -787,12 +850,16 @@ class _OwnerProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           const SectionHeader(title: 'Account'),
-          _tile(context, Icons.person_outline, 'Edit profile', 'Name, email, phone'),
-          _tile(context, Icons.lock_outline, 'Change password', 'Last changed 30 days ago'),
-          _tile(context, Icons.verified_user_outlined, 'Verification', 'NRIC verified'),
+          _tile(context, Icons.person_outline, 'Edit profile',
+              'Name, email, phone'),
+          _tile(context, Icons.lock_outline, 'Change password',
+              'Last changed 30 days ago'),
+          _tile(context, Icons.verified_user_outlined, 'Verification',
+              'NRIC verified'),
           const SizedBox(height: 16),
           const SectionHeader(title: 'Preferences'),
-          _tile(context, Icons.notifications_outlined, 'Notifications', 'Push, email, SMS'),
+          _tile(context, Icons.notifications_outlined, 'Notifications',
+              'Push, email, SMS'),
           _tile(context, Icons.language, 'Language', 'English (Malaysia)'),
           _tile(context, Icons.dark_mode_outlined, 'Appearance', 'Light mode'),
           const SizedBox(height: 16),
@@ -806,7 +873,8 @@ class _OwnerProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const SectionHeader(title: 'About'),
-          _tile(context, Icons.info_outline, 'App version', 'v0.1.0 · Sprint 0'),
+          _tile(
+              context, Icons.info_outline, 'App version', 'v0.1.0 · Sprint 0'),
           _tile(context, Icons.description_outlined, 'Terms of service', null),
           _tile(context, Icons.privacy_tip_outlined, 'Privacy policy', null),
           const SizedBox(height: 32),
@@ -851,17 +919,20 @@ class _OwnerProfileScreen extends StatelessWidget {
           ),
         ),
         subtitle: subtitle != null
-            ? Text(subtitle, style: TextStyle(fontSize: 12, color: sem.textSecondary))
+            ? Text(subtitle,
+                style: TextStyle(fontSize: 12, color: sem.textSecondary))
             : null,
-        trailing: Icon(Icons.arrow_forward_ios, size: 12, color: sem.textTertiary),
-        onTap: onTap ?? () {
-          ScaffoldMessenger.of(ctx).showSnackBar(
-            SnackBar(
-              content: Text('$title · Sprint 1 feature'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
+        trailing:
+            Icon(Icons.arrow_forward_ios, size: 12, color: sem.textTertiary),
+        onTap: onTap ??
+            () {
+              ScaffoldMessenger.of(ctx).showSnackBar(
+                SnackBar(
+                  content: Text('$title · Sprint 1 feature'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
       ),
     );
   }

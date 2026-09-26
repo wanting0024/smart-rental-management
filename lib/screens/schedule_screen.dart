@@ -1,4 +1,4 @@
-﻿// lib/screens/schedule_screen.dart
+// lib/screens/schedule_screen.dart
 // Owner-side schedule view. Week timeline + legend + list-of-today fallback.
 //
 // Round 10 polish (SC1-SC5):
@@ -17,7 +17,8 @@ import '../widgets/empty_state.dart';
 import 'booking_detail_screen.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key, required this.bookings, this.embedded = false});
+  const ScheduleScreen(
+      {super.key, required this.bookings, this.embedded = false});
   final List<DemoBooking> bookings;
 
   /// When true, skip the inner Scaffold/AppBar so the parent (e.g. owner shell)
@@ -65,7 +66,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           IconButton(
             // SC5: themed icon
             icon: Icon(Icons.today, color: sem.textSecondary),
-            onPressed: () => setState(() => _weekStart = mondayOf(DateTime.now())),
+            onPressed: () =>
+                setState(() => _weekStart = mondayOf(DateTime.now())),
             tooltip: 'Jump to this week',
           ),
           const SizedBox(width: 8),
@@ -78,10 +80,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   // SC2: themed legend
   Widget _buildLegend(SemanticColors sem) {
     final items = [
-      DemoBookingStatus.requested,
-      DemoBookingStatus.scheduled,
-      DemoBookingStatus.inProgress,
-      DemoBookingStatus.completed,
+      BookingStatus.pending,
+      BookingStatus.accepted,
+      BookingStatus.inProgress,
+      BookingStatus.completed,
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -131,10 +133,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   // SC3 + SC4: themed today list
   Widget _buildTodayList(SemanticColors sem) {
     final now = DateTime.now();
-    final todayBookings = widget.bookings.where((b) =>
-        b.scheduledStart.year == now.year &&
-        b.scheduledStart.month == now.month &&
-        b.scheduledStart.day == now.day).toList()
+    final todayBookings = widget.bookings
+        .where((b) =>
+            b.scheduledStart.year == now.year &&
+            b.scheduledStart.month == now.month &&
+            b.scheduledStart.day == now.day)
+        .toList()
       ..sort((a, b) => a.scheduledStart.compareTo(b.scheduledStart));
     return Container(
       color: sem.surfaceAlt,
@@ -167,7 +171,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ? const EmptyState(
                     icon: Icons.event_available,
                     title: 'No bookings today',
-                    subtitle: 'A quiet day. Use the form to schedule a cleaning.',
+                    subtitle:
+                        'A quiet day. Use the form to schedule a cleaning.',
                   )
                 : ListView.separated(
                     scrollDirection: Axis.horizontal,
