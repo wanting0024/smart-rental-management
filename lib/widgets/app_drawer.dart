@@ -1,0 +1,210 @@
+﻿// lib/widgets/app_drawer.dart
+// App-wide drawer with profile header, primary nav, theme switch, and footer for sign-out.
+
+import 'package:flutter/material.dart';
+import '../main.dart';
+import '../theme/app_theme.dart';
+
+class AppDrawer extends StatelessWidget {
+  const AppDrawer({super.key, required this.role, required this.onNavigate});
+  final String role; // 'Owner' or 'Provider'
+  final void Function(String routeId) onNavigate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      child: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            const Divider(height: 1, thickness: 1),
+            Expanded(child: _buildNavList(context)),
+            const Divider(height: 1, thickness: 1),
+            _buildFooter(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    final isOwner = role == 'Owner';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primary, AppColors.primaryLight],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Center(
+                  child: Text(
+                    isOwner ? 'OW' : 'PA',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isOwner ? 'Oh Wan Ting' : 'Provider A',
+                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isOwner ? 'Owner - Menara Suria' : 'Cleaning Service Provider',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6, height: 6,
+                  decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isOwner ? '5 properties managed' : 'Online - accepting jobs',
+                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavList(BuildContext context) {
+    final ownerItems = [
+      ('home', Icons.dashboard, 'Dashboard'),
+      ('schedule', Icons.calendar_today, 'Schedule'),
+      ('properties', Icons.apartment, 'Properties'),
+      ('browse', Icons.person_search, 'Browse providers'),
+      ('spend', Icons.payments, 'Spending'),
+      ('messages', Icons.chat_bubble_outline, 'Messages'),
+      ('notifications', Icons.notifications, 'Notifications'),
+      ('profile', Icons.person, 'Profile & settings'),
+      ('about', Icons.info_outline, 'About & help'),
+    ];
+    final providerItems = [
+      ('inbox', Icons.inbox, 'Job inbox'),
+      ('schedule', Icons.calendar_today, 'My schedule'),
+      ('earnings', Icons.account_balance_wallet, 'Earnings'),
+      ('profile', Icons.person_outline, 'View profile'),
+      ('edit_profile', Icons.edit, 'Edit profile'),
+      ('messages', Icons.chat_bubble_outline, 'Messages'),
+      ('stats', Icons.insights, 'My stats'),
+      ('notifications', Icons.notifications, 'Notifications'),
+      ('about', Icons.info_outline, 'About & help'),
+    ];
+    final items = role == 'Owner' ? ownerItems : providerItems;
+    final sem = SemanticColors.of(context);
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: items.map((it) {
+        return ListTile(
+          leading: Icon(it.$2, size: 20, color: sem.textPrimary),
+          title: Text(it.$3, style: TextStyle(fontSize: 14, color: sem.textPrimary)),
+          onTap: () {
+            Navigator.of(context).pop();
+            onNavigate(it.$1);
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildFooter(BuildContext context) {
+    final sem = SemanticColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Column(
+        children: [
+          Builder(builder: (ctx) {
+            final isDark = RentalTheme.of(ctx).isDark;
+            return ListTile(
+              leading: Icon(
+                isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                size: 20,
+                color: sem.textSecondary,
+              ),
+              title: Text(
+                isDark ? 'Light mode' : 'Dark mode',
+                style: TextStyle(fontSize: 14, color: sem.textPrimary),
+              ),
+              trailing: Switch(
+                value: isDark,
+                onChanged: (_) => AppProviders.of(ctx).onToggleTheme(),
+                activeColor: AppColors.primaryLight,
+              ),
+              onTap: () => AppProviders.of(ctx).onToggleTheme(),
+              dense: true,
+            );
+          }),
+          ListTile(
+            leading: const Icon(Icons.swap_horiz, size: 20, color: Color(0xFF6B7280)),
+            title: Text('Switch role', style: TextStyle(fontSize: 14, color: sem.textPrimary)),
+            onTap: () {
+              Navigator.of(context).pop();
+              onNavigate('switch-role');
+            },
+            dense: true,
+          ),
+          ListTile(
+            leading: const Icon(Icons.logout, size: 20, color: Color(0xFFEF4444)),
+            title: const Text('Sign out', style: TextStyle(fontSize: 14, color: Color(0xFFEF4444))),
+            onTap: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Sign out - Sprint 0 placeholder'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            dense: true,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Smart Rental v0.1.0 - Sprint 0',
+            style: TextStyle(fontSize: 11, color: sem.textTertiary),
+          ),
+        ],
+      ),
+    );
+  }
+}

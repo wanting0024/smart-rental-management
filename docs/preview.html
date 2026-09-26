@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Rental Management — Sprint 0 Design Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* === Brand === */
+    --primary: #2E7D32;
+    --primary-light: #4CAF50;
+    --primary-lighter: #81C784;
+    --primary-surface: #E8F5E9;
+    --primary-border: #C8E6C9;
+    --primary-dark: #1B5E20;
+    --secondary: #26A69A;
+    --secondary-light: #80CBC4;
+    --secondary-surface: #E0F2F1;
+    --secondary-border: #B2DFDB;
+    --secondary-dark: #00796B;
+    /* === Neutrals === */
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --border: #E5E7EB;
+    --border-strong: #D1D5DB;
+    --ink: #1F2937;
+    --ink-2: #374151;
+    --muted: #6B7280;
+    --muted-2: #9CA3AF;
+    --text-inverse: #FFFFFF;
+    /* === Status === */
+    --grey: #6B7280;
+    --indigo: #6366F1;
+    --orange: #FB8C00;
+    --emerald: #2E7D32;
+    --red: #EF4444;
+    --dark-red: #991B1B;
+    --teal: #26A69A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+  /* ===================== HERO ===================== */
+  .hero {
+    background:
+      radial-gradient(ellipse at top right, rgba(76, 175, 80, 0.10) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom left, rgba(46, 125, 50, 0.06) 0%, transparent 50%),
+      linear-gradient(180deg, #FFFFFF 0%, var(--bg) 100%);
+    padding: 64px 0 48px;
+    border-bottom: 1px solid var(--border);
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; background: var(--primary-surface);
+    color: var(--primary); font-size: 12px; font-weight: 600;
+    border-radius: 999px; letter-spacing: 0.3px; margin-bottom: 20px;
+  }
+  .eyebrow::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--primary); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .hero h1 {
+    font-size: 44px; font-weight: 700; letter-spacing: -0.02em;
+    line-height: 1.1; margin-bottom: 16px;
+  }
+  .hero h1 .accent { color: var(--primary); }
+  .hero p.lead {
+    font-size: 18px; color: var(--ink-2); max-width: 720px; line-height: 1.6;
+  }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px;
+  }
+  .meta-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; background: white;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 13px; color: var(--ink-2); font-weight: 500;
+  }
+  .meta-chip strong { color: var(--ink); font-weight: 600; }
+  .meta-chip svg { width: 14px; height: 14px; color: var(--primary); }
+
+  /* ===================== STATS ===================== */
+  .stats-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 0; background: white;
+    border: 1px solid var(--border); border-radius: 16px;
+    margin-top: 32px; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .stat-cell { padding: 20px 24px; border-right: 1px solid var(--border); }
+  .stat-cell:last-child { border-right: none; }
+  .stat-num {
+    font-size: 32px; font-weight: 700; letter-spacing: -0.02em;
+    color: var(--ink); line-height: 1;
+  }
+  .stat-num .unit { font-size: 16px; color: var(--muted); font-weight: 500; }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ===================== SECTIONS ===================== */
+  section { padding: 72px 0; }
+  .sec-head { margin-bottom: 36px; }
+  .sec-eyebrow {
+    font-size: 12px; font-weight: 600; color: var(--primary);
+    text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px;
+  }
+  .sec-head h2 {
+    font-size: 32px; font-weight: 700; letter-spacing: -0.015em;
+    margin-bottom: 8px;
+  }
+  .sec-head p { font-size: 16px; color: var(--muted); max-width: 700px; }
+
+  /* ===================== PHONE GRID ===================== */
+  .phone-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+  @media (max-width: 1024px) { .phone-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px)  { .phone-grid { grid-template-columns: 1fr; } }
+  .phone-card { display: flex; flex-direction: column; }
+  .phone-card-label { margin-bottom: 12px; }
+  .phone-card-label .num {
+    display: inline-block; width: 24px; height: 24px;
+    background: var(--primary); color: white;
+    font-size: 12px; font-weight: 600; border-radius: 6px;
+    line-height: 24px; text-align: center; margin-right: 8px;
+  }
+  .phone-card-label .name { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .phone-card-label .side { font-size: 12px; color: var(--muted); margin-left: 8px; }
+  .phone {
+    width: 100%; aspect-ratio: 9 / 17;
+    background: #0F172A; border-radius: 28px;
+    padding: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    position: relative; overflow: hidden;
+  }
+  .phone::before {
+    content: ''; position: absolute; top: 14px; left: 50%;
+    transform: translateX(-50%); width: 60px; height: 14px;
+    background: #0F172A; border-radius: 8px; z-index: 10;
+  }
+  .phone-screen {
+    width: 100%; height: 100%; background: var(--bg);
+    border-radius: 22px; overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+  }
+
+  /* ===================== APP CHROME ===================== */
+  .appbar {
+    padding: 18px 12px 12px;
+    background: white;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--ink);
+    border-bottom: 1px solid var(--border);
+  }
+  .appbar .actions { margin-left: auto; display: flex; gap: 6px; }
+  .appbar .icon { width: 18px; height: 18px; color: var(--muted); }
+  .appbar-back { color: var(--primary); }
+  .body { flex: 1; padding: 10px; overflow: hidden; }
+  .body.tight { padding: 8px; }
+
+  /* ---------- Owner home hero ---------- */
+  .home-hero {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    border-radius: 16px; padding: 12px; color: white;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25);
+  }
+  .home-hero .av {
+    width: 26px; height: 26px; background: rgba(255,255,255,0.18);
+    border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+  }
+  .home-hero .greet { font-size: 10px; opacity: 0.85; }
+  .home-hero .name { font-size: 14px; font-weight: 700; }
+  .home-hero .role { font-size: 9px; opacity: 0.8; letter-spacing: 0.4px; margin-top: 4px; }
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 10px; }
+  .stat-tile {
+    background: rgba(255,255,255,0.18); border-radius: 8px;
+    padding: 5px 6px;
+  }
+  .stat-tile .v { font-size: 14px; font-weight: 700; }
+  .stat-tile .l { font-size: 8px; opacity: 0.9; }
+  .home-notice {
+    margin-top: 8px; padding: 5px 8px; background: rgba(255,255,255,0.18);
+    border-radius: 8px; font-size: 9px; display: flex; align-items: center; gap: 4px;
+  }
+
+  /* ---------- Booking list ---------- */
+  .b-list { margin-top: 10px; }
+  .b-list-title { font-size: 11px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .b-card {
+    background: white; border: 1px solid var(--border); border-radius: 16px;
+    padding: 8px; margin-bottom: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .b-card .top { display: flex; justify-content: space-between; align-items: center; }
+  .b-card .prop { font-size: 11px; font-weight: 600; color: var(--ink); }
+  .b-card .svc { font-size: 9px; color: var(--muted); margin-top: 2px; }
+  .b-card .meta { font-size: 9px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .chip {
+    display: inline-block; padding: 3px 7px; border-radius: 999px;
+    font-size: 8px; font-weight: 600;
+  }
+  .chip-grey { background: #F3F4F6; color: var(--grey); }
+  .chip-teal { background: var(--secondary-surface); color: var(--secondary-dark); }
+  .chip-indigo { background: #EEF2FF; color: var(--indigo); }
+  .chip-orange { background: #FFF7ED; color: #C2410C; }
+  .chip-emerald { background: var(--primary-surface); color: var(--primary-dark); }
+  .chip-red { background: #FEF2F2; color: var(--red); }
+
+  /* ---------- Provider browse ---------- */
+  .rank-card {
+    background: white; border: 1px solid var(--border); border-radius: 16px;
+    padding: 10px; margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .rank-row { display: flex; align-items: center; gap: 8px; }
+  .rank-avatar {
+    width: 30px; height: 30px; background: var(--primary-surface);
+    border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    color: var(--primary); font-size: 10px; font-weight: 700;
+  }
+  .rank-name { font-size: 12px; font-weight: 600; color: var(--ink); }
+  .rank-avail { font-size: 9px; color: var(--muted); }
+  .rank-score {
+    margin-left: auto; background: var(--primary-surface);
+    color: var(--primary); font-size: 12px; font-weight: 700;
+    padding: 3px 7px; border-radius: 6px;
+  }
+  .rank-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .rank-tag {
+    font-size: 8px; padding: 2px 5px; border-radius: 6px;
+    display: inline-flex; align-items: center; gap: 2px;
+  }
+  .tag-star { background: #FEF3C7; color: #92400E; }
+  .tag-loc { background: #ECFDF5; color: #065F46; }
+  .tag-work { background: var(--secondary-surface); color: var(--secondary-dark); }
+  .tag-svc { background: #F3E8FF; color: #6B21A8; }
+  .rank-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .btn-sm {
+    flex: 1; font-size: 9px; padding: 5px 0; border-radius: 6px;
+    text-align: center; font-weight: 600;
+  }
+  .btn-out { background: white; border: 1px solid var(--primary); color: var(--primary); }
+  .btn-fill { background: var(--primary); color: white; }
+
+  /* ---------- Booking detail ---------- */
+  .bd-hero {
+    background: linear-gradient(135deg, var(--orange) 0%, #FBBF24 100%);
+    color: white; padding: 16px 12px 30px;
+  }
+  .bd-hero .id { font-size: 8px; letter-spacing: 0.4px; opacity: 0.85; }
+  .bd-hero .big { font-size: 14px; font-weight: 700; margin-top: 4px; }
+  .bd-hero .small { font-size: 8px; opacity: 0.8; letter-spacing: 0.5px; margin-top: 8px; }
+  .bd-chip { float: right; }
+  .bd-strip {
+    background: white; margin: -16px 8px 0; padding: 8px;
+    border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .bd-step { text-align: center; flex: 1; }
+  .bd-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); margin: 0 auto 2px; }
+  .bd-dot.done { background: var(--primary); }
+  .bd-dot.current { background: var(--orange); box-shadow: 0 0 0 3px rgba(251, 140, 0, 0.2); }
+  .bd-line { flex: 1; height: 1px; background: var(--border); }
+  .bd-line.done { background: var(--primary); }
+  .bd-step .l { font-size: 7px; color: var(--muted); }
+  .proof {
+    margin: 8px; padding: 8px; background: white;
+    border: 1.5px dashed var(--border); border-radius: 12px;
+    text-align: center; font-size: 9px; color: var(--muted);
+  }
+
+  /* ---------- New booking form ---------- */
+  .form-section { margin-bottom: 10px; }
+  .form-label { font-size: 10px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+  .form-helper { font-size: 8px; color: var(--muted); margin-bottom: 6px; }
+  .form-field {
+    background: var(--bg); border: 1px solid var(--border-strong); border-radius: 8px;
+    padding: 7px 9px; font-size: 10px; color: var(--muted);
+  }
+  .form-field.filled { color: var(--ink); }
+  .form-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .service-tile {
+    background: white; border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 7px 9px; margin-bottom: 5px; display: flex; align-items: center; gap: 6px;
+  }
+  .service-tile.selected { border-color: var(--primary); background: var(--primary-surface); }
+  .radio { width: 12px; height: 12px; border: 1.5px solid var(--muted-2); border-radius: 50%; }
+  .radio.checked { border-color: var(--primary); display: flex; align-items: center; justify-content: center; }
+  .radio.checked::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+  .svc-name { font-size: 10px; font-weight: 600; color: var(--ink); }
+  .svc-sub { font-size: 8px; color: var(--muted); }
+  .submit-btn {
+    background: var(--primary); color: white; text-align: center;
+    padding: 9px; border-radius: 8px; font-size: 11px; font-weight: 600; margin-top: 4px;
+  }
+
+  /* ---------- Schedule ---------- */
+  .cal-head {
+    background: var(--bg); padding: 6px 4px;
+    display: grid; grid-template-columns: 28px repeat(7, 1fr);
+    border-bottom: 1px solid var(--border); text-align: center;
+  }
+  .cal-day-name { font-size: 8px; font-weight: 600; color: var(--muted); }
+  .cal-day-num { font-size: 10px; font-weight: 600; color: var(--ink); margin: 3px auto 0; }
+  .cal-day-num.today { background: var(--primary); color: white; width: 16px; height: 16px; border-radius: 50%; line-height: 16px; }
+  .cal-body {
+    display: grid; grid-template-columns: 28px repeat(7, 1fr);
+    flex: 1; position: relative;
+  }
+  .cal-time { font-size: 7px; color: var(--muted-2); text-align: right; padding: 2px 4px 0 0; border-right: 1px solid var(--border); }
+  .cal-cell { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .cal-event {
+    position: absolute; left: 36px; right: 4px;
+    background: rgba(251, 140, 0, 0.18); border-left: 2px solid var(--orange);
+    border-radius: 4px; padding: 2px 4px; font-size: 7px; font-weight: 700; color: var(--orange);
+  }
+  .cal-event.indigo { background: rgba(99, 102, 241, 0.18); border-color: var(--indigo); color: var(--indigo); }
+  .cal-event.emerald { background: var(--primary-surface); border-color: var(--primary); color: var(--primary-dark); }
+  .cal-event.grey { background: #F3F4F6; border-color: var(--grey); color: var(--grey); }
+  .cal-today-strip {
+    padding: 8px 10px; background: var(--bg); border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cal-today-strip .t { font-size: 10px; font-weight: 700; color: var(--ink); }
+  .mini-card {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 8px; min-width: 130px;
+  }
+  .mini-card .prop { font-size: 9px; font-weight: 600; color: var(--ink); }
+  .mini-card .sub { font-size: 8px; color: var(--muted); margin-top: 2px; }
+
+  /* ---------- Provider inbox ---------- */
+  .pi-hero {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    margin: 8px; padding: 12px; border-radius: 16px; color: white;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25);
+  }
+  .pi-hero .row { display: flex; align-items: center; gap: 8px; }
+  .pi-hero .av { width: 26px; height: 26px; background: rgba(255,255,255,0.18); border-radius: 8px; }
+  .pi-hero .name { font-size: 12px; font-weight: 700; }
+  .pi-hero .role { font-size: 9px; opacity: 0.85; }
+  .pi-hero .online { margin-left: auto; font-size: 9px; background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 6px; }
+  .pi-hero .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 10px; }
+  .pi-stat { background: rgba(255,255,255,0.18); border-radius: 6px; padding: 5px 7px; }
+  .pi-stat.hl { background: white; }
+  .pi-stat .l { font-size: 8px; opacity: 0.9; }
+  .pi-stat .v { font-size: 14px; font-weight: 700; line-height: 1.1; }
+  .pi-stat .s { font-size: 7px; opacity: 0.8; }
+  .pi-stat.hl .l, .pi-stat.hl .s { color: var(--muted); opacity: 1; }
+  .pi-stat.hl .v { color: var(--primary); }
+
+  .tabs { display: flex; background: white; border-bottom: 1px solid var(--border); }
+  .tab { flex: 1; text-align: center; font-size: 9px; padding: 8px 2px; color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; }
+  .tab.active { color: var(--primary); border-color: var(--primary); }
+
+  /* ---------- Active job ---------- */
+  .aj-hero {
+    background: linear-gradient(135deg, var(--indigo) 0%, #818CF8 100%);
+    color: white; padding: 18px 12px 36px;
+  }
+  .aj-hero .tag { font-size: 8px; letter-spacing: 0.5px; opacity: 0.85; }
+  .aj-hero .big { font-size: 18px; font-weight: 700; margin-top: 4px; }
+  .aj-hero .lbl { font-size: 8px; opacity: 0.8; letter-spacing: 0.5px; margin-top: 8px; }
+  .info-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 10px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+  .info-row { display: flex; align-items: center; padding: 6px 0; font-size: 10px; border-bottom: 1px solid var(--border); }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .k { color: var(--muted); }
+  .info-row .v { margin-left: auto; font-weight: 600; color: var(--ink); }
+  .photo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .photo-slot {
+    height: 70px; background: var(--bg); border: 1.5px dashed var(--border);
+    border-radius: 12px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-size: 8px; color: var(--muted);
+  }
+  .photo-slot.done { background: var(--primary-surface); border: 1.5px solid var(--primary); color: var(--primary-dark); }
+  .fab-update {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    background: var(--indigo); color: white; padding: 7px 14px;
+    border-radius: 999px; font-size: 10px; font-weight: 600;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  }
+
+  /* ===================== DESIGN TOKENS ===================== */
+  .tokens-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  }
+  @media (max-width: 900px) { .tokens-grid { grid-template-columns: 1fr; } }
+  .token-group {
+    background: white; border: 1px solid var(--border); border-radius: 16px;
+    padding: 20px;
+  }
+  .token-group h4 { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .token-group h4 svg { width: 16px; height: 16px; color: var(--primary); }
+  .swatch-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12px; }
+  .swatch { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); flex-shrink: 0; }
+  .swatch-row .name { color: var(--ink-2); }
+  .swatch-row .hex { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  /* ===================== COMPONENT PREVIEW ===================== */
+  .comp-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  }
+  @media (max-width: 900px) { .comp-grid { grid-template-columns: 1fr; } }
+  .comp-card {
+    background: white; border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .comp-card h4 { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .comp-demo { display: flex; flex-direction: column; gap: 12px; }
+  .demo-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn-demo { padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: default; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-out { background: white; color: var(--primary); border: 1.2px solid var(--primary); }
+  .btn-text { color: var(--primary); }
+  .btn-secondary { background: var(--secondary); color: white; }
+  .input-demo {
+    background: var(--bg); border: 1px solid var(--border-strong); border-radius: 8px;
+    padding: 12px 14px; font-size: 13px; color: var(--ink); min-width: 220px;
+  }
+  .input-demo.focused { border-color: var(--primary); border-width: 1.5px; padding: 11.5px 13.5px; }
+  .input-demo label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; font-weight: 500; }
+  .demo-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .demo-card .title { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .demo-card .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .demo-chip { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .demo-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+    background: var(--red); color: white; font-size: 10px; font-weight: 700;
+  }
+  .demo-fab {
+    width: 56px; height: 56px; border-radius: 16px; background: var(--primary);
+    color: white; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
+    font-size: 24px; font-weight: 300;
+  }
+  .demo-nav {
+    display: flex; background: white; border: 1px solid var(--border); border-radius: 12px;
+    padding: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .demo-nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 8px 4px; border-radius: 8px; font-size: 10px; font-weight: 500;
+    color: var(--muted);
+  }
+  .demo-nav-item.active { background: var(--primary-surface); color: var(--primary); font-weight: 600; }
+  .demo-appbar {
+    background: white; border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .demo-appbar .title { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .demo-appbar .actions { margin-left: auto; display: flex; gap: 6px; }
+
+  /* ===================== FOOTER ===================== */
+  footer {
+    background: var(--ink); color: white; padding: 48px 0 32px; margin-top: 64px;
+  }
+  footer h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  footer p { font-size: 13px; color: rgba(255,255,255,0.6); max-width: 600px; }
+  .footer-meta { display: flex; gap: 32px; margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.5); flex-wrap: wrap; }
+  .footer-meta strong { color: var(--primary-lighter); }
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Sprint 0 · UX Prototype · Emerald + Teal Design System</div>
+    <h1>Smart Rental Management<br><span class="accent">Owner &amp; Cleaning Service Provider</span></h1>
+    <p class="lead">A Flutter mobile prototype for the FYP module. Material 3 + Modern Minimalist + 8dp grid + 16dp radius. Soft shadows, emerald green primary, teal secondary — Airbnb-clean property management feel.</p>
+
+    <div class="meta-row">
+      <div class="meta-chip"><strong>16</strong> screens</div>
+      <div class="meta-chip"><strong>11</strong> widgets</div>
+      <div class="meta-chip"><strong>39</strong> tests passing</div>
+      <div class="meta-chip"><strong>0</strong> errors</div>
+      <div class="meta-chip"><strong>Flutter</strong> 3.24.5</div>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-cell">
+        <div class="stat-num">16</div>
+        <div class="stat-label">Screens</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num">11</div>
+        <div class="stat-label">Reusable widgets</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num">7 <span class="unit">states</span></div>
+        <div class="stat-label">FSM (ADR-0004)</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">Tests passing</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DESIGN TOKENS ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">Design System</div>
+      <h2>Tokens</h2>
+      <p>Emerald Green 800 (#2E7D32) primary. Teal 400 (#26A69A) secondary. 8dp spacing grid. 16dp canonical radius. Material 3 surfaces.</p>
+    </div>
+    <div class="tokens-grid">
+      <div class="token-group">
+        <h4>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+          Brand
+        </h4>
+        <div class="swatch-row"><div class="swatch" style="background:#2E7D32"></div><span class="name">primary</span><span class="hex">#2E7D32</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#4CAF50"></div><span class="name">primary-light</span><span class="hex">#4CAF50</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#81C784"></div><span class="name">primary-lighter</span><span class="hex">#81C784</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#E8F5E9"></div><span class="name">primary-surface</span><span class="hex">#E8F5E9</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#C8E6C9"></div><span class="name">primary-border</span><span class="hex">#C8E6C9</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#1B5E20"></div><span class="name">primary-dark</span><span class="hex">#1B5E20</span></div>
+      </div>
+      <div class="token-group">
+        <h4>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+          Secondary (Teal)
+        </h4>
+        <div class="swatch-row"><div class="swatch" style="background:#26A69A"></div><span class="name">secondary</span><span class="hex">#26A69A</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#80CBC4"></div><span class="name">secondary-light</span><span class="hex">#80CBC4</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#E0F2F1"></div><span class="name">secondary-surface</span><span class="hex">#E0F2F1</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#B2DFDB"></div><span class="name">secondary-border</span><span class="hex">#B2DFDB</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#00796B"></div><span class="name">secondary-dark</span><span class="hex">#00796B</span></div>
+      </div>
+      <div class="token-group">
+        <h4>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          Neutrals + Status
+        </h4>
+        <div class="swatch-row"><div class="swatch" style="background:#1F2937"></div><span class="name">text-primary</span><span class="hex">#1F2937</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#6B7280"></div><span class="name">text-secondary</span><span class="hex">#6B7280</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#E5E7EB"></div><span class="name">border</span><span class="hex">#E5E7EB</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#FAFAFA"></div><span class="name">background</span><span class="hex">#FAFAFA</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#FB8C00"></div><span class="name">warning</span><span class="hex">#FB8C00</span></div>
+        <div class="swatch-row"><div class="swatch" style="background:#EF4444"></div><span class="name">error</span><span class="hex">#EF4444</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMPONENT PREVIEW ============ -->
+<section style="background:white;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">Components</div>
+      <h2>Spec</h2>
+      <p>Every component rendered in the new palette. 16dp corners, 8dp grid, soft shadows.</p>
+    </div>
+    <div class="comp-grid">
+      <div class="comp-card">
+        <h4>App Bar</h4>
+        <div class="demo-appbar">
+          <span style="color:var(--primary);font-size:18px;">←</span>
+          <span class="title">Owner Dashboard</span>
+          <div class="actions">
+            <span style="color:var(--muted);font-size:14px;">🔍</span>
+            <span style="color:var(--muted);font-size:14px;position:relative;">🔔<span class="demo-badge" style="position:absolute;top:-4px;right:-4px;">1</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="comp-card">
+        <h4>Buttons</h4>
+        <div class="demo-row">
+          <div class="btn-demo btn-primary">Filled</div>
+          <div class="btn-demo btn-out">Outlined</div>
+          <div class="btn-demo btn-text">Text</div>
+          <div class="btn-demo btn-secondary">Teal</div>
+        </div>
+        <div class="demo-row" style="margin-top: 8px;">
+          <div class="btn-demo btn-primary" style="opacity: 0.4;">Disabled</div>
+          <div class="btn-demo btn-primary" style="display: flex; align-items: center; gap: 6px;">+ New request</div>
+        </div>
+      </div>
+      <div class="comp-card">
+        <h4>Text Fields</h4>
+        <div class="input-demo">
+          <label>Email</label>
+          <div>owner@example.com</div>
+        </div>
+        <div class="input-demo focused" style="margin-top:8px;">
+          <label>Search</label>
+          <div>🔍 <span style="color:var(--ink);">Unit A-12</span></div>
+        </div>
+        <div class="input-demo" style="margin-top:8px;">
+          <label>Property</label>
+          <div style="color:var(--muted-2);">Select a property</div>
+        </div>
+      </div>
+      <div class="comp-card">
+        <h4>Status Chips + Badges</h4>
+        <div class="demo-row">
+          <span class="demo-chip chip-emerald">Completed</span>
+          <span class="demo-chip chip-teal">Accepted</span>
+          <span class="demo-chip chip-indigo">Scheduled</span>
+          <span class="demo-chip chip-orange">In Progress</span>
+        </div>
+        <div class="demo-row" style="margin-top: 8px;">
+          <span class="demo-chip chip-grey">Requested</span>
+          <span class="demo-chip chip-red">Delayed</span>
+          <span class="demo-badge" style="margin-left:8px;">3</span>
+        </div>
+      </div>
+      <div class="comp-card">
+        <h4>Card</h4>
+        <div class="demo-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div class="title">Unit A-12, Menara Suria</div>
+            <span class="demo-chip chip-orange">In Progress</span>
+          </div>
+          <div class="sub" style="margin-top: 4px;">Move-out cleaning · 10:00 - 12:00</div>
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; gap: 12px;">
+            <span style="font-size:11px; color: var(--muted);">🕐 2h</span>
+            <span style="font-size:11px; color: var(--muted);">💰 RM 160</span>
+            <span style="font-size:11px; color: var(--muted);">👤 Provider A</span>
+          </div>
+        </div>
+      </div>
+      <div class="comp-card">
+        <h4>Bottom Navigation</h4>
+        <div class="demo-nav">
+          <div class="demo-nav-item active">
+            <span style="font-size:14px;">🏠</span>
+            <span>Home</span>
+          </div>
+          <div class="demo-nav-item">
+            <span style="font-size:14px;">📅</span>
+            <span>Schedule</span>
+          </div>
+          <div class="demo-nav-item">
+            <span style="font-size:14px;">🏢</span>
+            <span>Properties</span>
+          </div>
+          <div class="demo-nav-item">
+            <span style="font-size:14px;">🔍</span>
+            <span>Browse</span>
+          </div>
+          <div class="demo-nav-item">
+            <span style="font-size:14px;">💰</span>
+            <span>Spend</span>
+          </div>
+        </div>
+      </div>
+      <div class="comp-card">
+        <h4>Floating Action Button</h4>
+        <div style="display: flex; gap: 16px; align-items: center;">
+          <div class="demo-fab">+</div>
+          <div style="font-size: 12px; color: var(--muted);">16dp radius · shadow 0 4px 12px rgba(46, 125, 50, 0.4)</div>
+        </div>
+      </div>
+      <div class="comp-card">
+        <h4>Calendar Picker (Week View)</h4>
+        <div style="background: var(--bg); border-radius: 8px; padding: 8px;">
+          <div style="display: grid; grid-template-columns: 28px repeat(7, 1fr); gap: 1px; text-align: center; margin-bottom: 4px;">
+            <div></div>
+            <div style="font-size:9px; font-weight:600; color: var(--muted);">MON</div>
+            <div style="font-size:9px; font-weight:600; color: var(--muted);">TUE</div>
+            <div style="font-size:9px; font-weight:600; color: var(--primary);">WED</div>
+            <div style="font-size:9px; font-weight:600; color: var(--muted);">THU</div>
+            <div style="font-size:9px; font-weight:600; color: var(--muted);">FRI</div>
+            <div style="font-size:9px; font-weight:600; color: var(--muted);">SAT</div>
+            <div style="font-size:9px; font-weight:600; color: var(--muted);">SUN</div>
+          </div>
+          <div style="display: grid; grid-template-columns: 28px repeat(7, 1fr); gap: 1px; height: 60px;">
+            <div style="font-size:8px; color: var(--muted-2); text-align:right; padding-right: 4px;">10 AM</div>
+            <div style="background: white; border: 1px solid var(--border); border-radius: 4px; padding: 2px; font-size:7px; color: var(--orange); font-weight:700; grid-column: span 2;">A-12 Move-out</div>
+            <div style="background: white; border: 1px solid var(--border);"></div>
+            <div style="background: white; border: 1px solid var(--border); border-radius: 4px; padding: 2px; font-size:7px; color: var(--indigo); font-weight:700; grid-column: span 2;">B-08 Deep</div>
+            <div style="background: white; border: 1px solid var(--border);"></div>
+            <div style="background: white; border: 1px solid var(--border);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCREENS ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">Screens</div>
+      <h2>16 screens, 1 full loop</h2>
+      <p>3 owner core + 4 extended owner + 5 provider + 4 modal/profile. All in the new emerald + teal palette.</p>
+    </div>
+
+    <div class="phone-grid">
+      <!-- OWNER HOME -->
+      <div class="phone-card">
+        <div class="phone-card-label">
+          <span class="num">1</span><span class="name">Owner Home</span><span class="side">Owner</span>
+        </div>
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="appbar">
+              Owner Dashboard
+              <div class="actions">
+                <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              </div>
+            </div>
+            <div class="body tight">
+              <div class="home-hero">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="av">🏢</div>
+                  <div>
+                    <div class="greet">Welcome back</div>
+                    <div class="name">Oh Wan Ting</div>
+                  </div>
+                </div>
+                <div class="role">OWNER MODULE</div>
+                <div class="stat-row">
+                  <div class="stat-tile"><div class="v">4</div><div class="l">Total</div></div>
+                  <div class="stat-tile"><div class="v">1</div><div class="l">Active</div></div>
+                  <div class="stat-tile"><div class="v">1</div><div class="l">Sched.</div></div>
+                  <div class="stat-tile"><div class="v">1</div><div class="l">Done</div></div>
+                </div>
+                <div class="home-notice">
+                  🔔 1 new request awaiting your review
+                </div>
+              </div>
+              <div class="b-list">
+                <div class="b-list-title">Cleaning service requests</div>
+                <div class="b-card">
+                  <div class="top"><span class="prop">Unit A-12, Menara Suria</span><span class="chip chip-orange">In Progress</span></div>
+                  <div class="svc">Move-out cleaning</div>
+                  <div class="meta">🕐 Jul 14, 10:00 - 12:00</div>
+                </div>
+                <div class="b-card">
+                  <div class="top"><span class="prop">Unit B-08, Menara Suria</span><span class="chip chip-indigo">Scheduled</span></div>
+                  <div class="svc">Deep cleaning</div>
+                </div>
+                <div class="b-card">
+                  <div class="top"><span class="prop">Unit C-21, Menara Suria</span><span class="chip chip-grey">Requested</span></div>
+                  <div class="svc">Routine cleaning</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROVIDER BROWSE -->
+      <div class="phone-card">
+        <div class="phone-card-label">
+          <span class="num">2</span><span class="name">Provider Browse</span><span class="side">Owner</span>
+        </div>
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="appbar">
+              <span class="appbar-back">←</span> Choose a provider
+            </div>
+            <div class="body tight">
+              <div class="rank-card">
+                <div class="rank-row">
+                  <div class="rank-avatar">#1</div>
+                  <div><div class="rank-name">Provider A</div><div class="rank-avail">Full match</div></div>
+                  <div class="rank-score">0.93</div>
+                </div>
+                <div class="rank-tags">
+                  <span class="rank-tag tag-star">★ 4.8</span>
+                  <span class="rank-tag tag-loc">📍 2.0 km</span>
+                  <span class="rank-tag tag-work">Low workload</span>
+                </div>
+                <div class="rank-actions">
+                  <div class="btn-sm btn-out">View profile</div>
+                  <div class="btn-sm btn-fill">Assign</div>
+                </div>
+              </div>
+              <div class="rank-card">
+                <div class="rank-row">
+                  <div class="rank-avatar">#2</div>
+                  <div><div class="rank-name">Provider B</div><div class="rank-avail">Full match</div></div>
+                  <div class="rank-score">0.81</div>
+                </div>
+                <div class="rank-tags">
+                  <span class="rank-tag tag-star">★ 4.9</span>
+                  <span class="rank-tag tag-loc">📍 5.0 km</span>
+                  <span class="rank-tag tag-work">High workload</span>
+                </div>
+                <div class="rank-actions">
+                  <div class="btn-sm btn-out">View profile</div>
+                  <div class="btn-sm btn-fill">Assign</div>
+                </div>
+              </div>
+              <div class="rank-card">
+                <div class="rank-row">
+                  <div class="rank-avatar">#3</div>
+                  <div><div class="rank-name">Provider C</div><div class="rank-avail">Partial match</div></div>
+                  <div class="rank-score">0.74</div>
+                </div>
+                <div class="rank-tags">
+                  <span class="rank-tag tag-star">★ 4.5</span>
+                  <span class="rank-tag tag-loc">📍 1.0 km</span>
+                  <span class="rank-tag tag-work">Medium workload</span>
+                </div>
+                <div class="rank-actions">
+                  <div class="btn-sm btn-out">View profile</div>
+                  <div class="btn-sm btn-fill">Assign</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOOKING DETAIL -->
+      <div class="phone-card">
+        <div class="phone-card-label">
+          <span class="num">3</span><span class="name">Booking Detail</span><span class="side">Owner</span>
+        </div>
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="bd-hero">
+              <span class="bd-chip"><span class="chip chip-orange">In Progress</span></span>
+              <div class="id">B-001 · MOVE-OUT CLEANING</div>
+              <div class="big">Unit A-12, Menara Suria</div>
+              <div class="small">JUL 14 · 10:00 - 12:00</div>
+            </div>
+            <div class="bd-strip">
+              <div class="bd-step"><div class="bd-dot done"></div><div class="l">Req</div></div>
+              <div class="bd-line done"></div>
+              <div class="bd-step"><div class="bd-dot done"></div><div class="l">Acc</div></div>
+              <div class="bd-line done"></div>
+              <div class="bd-step"><div class="bd-dot done"></div><div class="l">Sch</div></div>
+              <div class="bd-line"></div>
+              <div class="bd-step"><div class="bd-dot current"></div><div class="l">InP</div></div>
+              <div class="bd-line"></div>
+              <div class="bd-step"><div class="bd-dot"></div><div class="l">Done</div></div>
+            </div>
+            <div class="body tight">
+              <div class="info-card">
+                <div class="info-row"><span class="k">👤 Provider</span><span class="v">Provider A</span></div>
+                <div class="info-row"><span class="k">⏱ Duration</span><span class="v">2 hours</span></div>
+                <div class="info-row"><span class="k">💰 Cost</span><span class="v">RM 240</span></div>
+              </div>
+              <div class="form-label" style="margin-top:8px;">Before &amp; After</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <div class="photo-slot done">📷<br>Before<br><span style="opacity:0.7">Captured</span></div>
+                <div class="photo-slot">📷<br>After<br><span style="opacity:0.7">Pending</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW BOOKING -->
+      <div class="phone-card">
+        <div class="phone-card-label">
+          <span class="num">4</span><span class="name">New Booking</span><span class="side">Owner</span>
+        </div>
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="appbar">
+              <span class="appbar-back">✕</span> New request
+            </div>
+            <div class="body tight">
+              <div class="form-section">
+                <div class="form-label">Property</div>
+                <div class="form-field filled">Unit A-12, Menara Suria</div>
+              </div>
+              <div class="form-section">
+                <div class="form-label">Service type</div>
+                <div class="form-helper">Pick one — duration and base price follow</div>
+                <div class="service-tile">
+                  <div class="radio"></div>
+                  <div><div class="svc-name">Standard cleaning</div><div class="svc-sub">2 hours · from RM 80</div></div>
+                </div>
+                <div class="service-tile selected">
+                  <div class="radio checked"></div>
+                  <div><div class="svc-name">Deep cleaning</div><div class="svc-sub">3 hours · from RM 150</div></div>
+                </div>
+                <div class="service-tile">
+                  <div class="radio"></div>
+                  <div><div class="svc-name">Move-out cleaning</div><div class="svc-sub">3 hours · from RM 170</div></div>
+                </div>
+              </div>
+              <div class="form-section">
+                <div class="form-label">When</div>
+                <div class="form-field-row">
+                  <div class="form-field filled">📅 18/7/2026</div>
+                  <div class="form-field filled">🕐 10:00 AM</div>
+                </div>
+              </div>
+              <div class="submit-btn">Submit request</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCHEDULE -->
+      <div class="phone-card">
+        <div class="phone-card-label">
+          <span class="num">5</span><span class="name">Schedule</span><span class="side">Owner</span>
+        </div>
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="appbar">
+              Schedule
+            </div>
+            <div class="cal-head">
+              <div></div>
+              <div><div class="cal-day-name">MON</div><div class="cal-day-num">13</div></div>
+              <div><div class="cal-day-name">TUE</div><div class="cal-day-num">14</div></div>
+              <div><div class="cal-day-name">WED</div><div class="cal-day-num today">15</div></div>
+              <div><div class="cal-day-name">THU</div><div class="cal-day-num">16</div></div>
+              <div><div class="cal-day-name">FRI</div><div class="cal-day-num">17</div></div>
+              <div><div class="cal-day-name">SAT</div><div class="cal-day-num">18</div></div>
+              <div><div class="cal-day-name">SUN</div><div class="cal-day-num">19</div></div>
+            </div>
+            <div class="cal-body">
+              <div class="cal-time">7 AM</div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+              <div class="cal-time">10 AM</div><div class="cal-cell"></div><div class="cal-cell" style="position:relative;">
+                <div class="cal-event" style="top:0;height:54px;">A-12 · Move-out</div>
+              </div><div class="cal-cell"></div><div class="cal-cell" style="position:relative;">
+                <div class="cal-event indigo" style="top:0;height:84px;">B-08 · Deep</div>
+              </div><div class="cal-cell"></div><div class="cal-cell" style="position:relative;">
+                <div class="cal-event grey" style="top:0;height:54px;">C-21 · Routine</div>
+              </div><div class="cal-cell"></div>
+              <div class="cal-time">1 PM</div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+            </div>
+            <div class="cal-today-strip">
+              <div class="t">Today · 1</div>
+              <div class="mini-card" style="margin-left:8px;">
+                <div class="prop">A-12 · Move-out</div>
+                <div class="sub">10:00 - 12:00 · In Progress</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROVIDER INBOX -->
+      <div class="phone-card">
+        <div class="phone-card-label">
+          <span class="num">6</span><span class="name">Provider Inbox</span><span class="side">Provider</span>
+        </div>
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="appbar">
+              Provider Inbox
+            </div>
+            <div class="pi-hero">
+              <div class="row">
+                <div class="av">💼</div>
+                <div>
+                  <div class="name">Provider A</div>
+                  <div class="role">Cleaning Service Provider</div>
+                </div>
+                <div class="online">Online</div>
+              </div>
+              <div class="stats">
+                <div class="pi-stat"><div class="l">THIS WEEK</div><div class="v">RM 540</div><div class="s">1 done</div></div>
+                <div class="pi-stat"><div class="l">UPCOMING</div><div class="v">2</div><div class="s">jobs</div></div>
+                <div class="pi-stat hl"><div class="l">NEW</div><div class="v">1</div><div class="s">requests</div></div>
+              </div>
+            </div>
+            <div class="tabs">
+              <div class="tab active">New (1)</div>
+              <div class="tab">Active (2)</div>
+              <div class="tab">Done (1)</div>
+              <div class="tab">All</div>
+            </div>
+            <div class="body tight">
+              <div class="rank-card">
+                <div class="rank-row">
+                  <div><div class="rank-name">Unit C-21, Menara Suria</div><div class="rank-avail">Routine cleaning</div></div>
+                  <span class="chip chip-grey">Requested</span>
+                </div>
+                <div style="font-size:9px;color:var(--muted);margin-top:6px;">🕐 18 Jul · 09:00 · 120 min</div>
+                <div style="background:#FFF7ED;padding:5px 6px;border-radius:6px;font-size:8px;color:#7C2D12;margin-top:6px;">📝 "Tenant requested morning slot."</div>
+                <div class="rank-actions">
+                  <div class="btn-sm" style="background:white;border:1px solid #FCA5A5;color:#EF4444;">Decline</div>
+                  <div class="btn-sm" style="background:var(--primary);color:white;">Accept</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVE JOB -->
+      <div class="phone-card">
+        <div class="phone-card-label">
+          <span class="num">7</span><span class="name">Active Job</span><span class="side">Provider</span>
+        </div>
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="aj-hero">
+              <div class="tag">B-002 · IN PROGRESS</div>
+              <div class="big">Unit B-08, Menara Suria</div>
+              <div class="lbl">JUL 16 · 14:00 - 17:00</div>
+            </div>
+            <div class="body tight">
+              <div class="info-card">
+                <div class="info-row"><span class="k">🧹 Service</span><span class="v">Deep cleaning</span></div>
+                <div class="info-row"><span class="k">⏱ Duration</span><span class="v">180 min</span></div>
+                <div class="info-row"><span class="k">💵 Payout</span><span class="v">RM 240</span></div>
+              </div>
+              <div class="form-label" style="margin-top:4px;">Before &amp; After</div>
+              <div class="photo-row">
+                <div class="photo-slot done">✓<br>Before<br><span style="opacity:0.7">Captured</span></div>
+                <div class="photo-slot">📷<br>After<br><span style="opacity:0.7">Pending</span></div>
+              </div>
+              <div class="info-card" style="margin-top:8px;">
+                <div class="info-row"><span class="k">✓ Arrive on time</span></div>
+                <div class="info-row"><span class="k">✓ Confirm scope</span></div>
+                <div class="info-row"><span class="k">✓ Before photo</span></div>
+                <div class="info-row" style="opacity:0.5;"><span class="k">○ After photo</span></div>
+                <div class="info-row" style="opacity:0.5;"><span class="k">○ Job complete</span></div>
+              </div>
+            </div>
+            <div class="fab-update">Update status</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <h3>Smart Rental Management — FYP Sprint 0</h3>
+    <p>Standalone Flutter prototype. Material 3 + Emerald + Teal design system. Open <strong>README.md</strong> in the project root for run instructions, <strong>DEMO.md</strong> for the viva script, and <strong>SPRINT_PLAN.md</strong> for the full backlog.</p>
+    <div class="footer-meta">
+      <div>📁 <strong>C:\Users\yunli\Downloads\rental_app_demo</strong></div>
+      <div>🧪 39 tests</div>
+      <div>📱 Flutter 3.24.5</div>
+      <div>🎨 Emerald + Teal</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

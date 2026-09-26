@@ -1,0 +1,76 @@
+// lib/services/provider_store.dart
+// In-memory store for provider profile data. Single source of truth so
+// editing the profile updates the rank list, profile screen, earnings, etc.
+//
+// Sprint 0: pure in-memory. Sprint 1: backed by Supabase (providers table).
+
+import 'package:flutter/foundation.dart';
+import '../models/demo_data.dart';
+
+class ProviderStore extends ChangeNotifier {
+  ProviderStore() {
+    _providers = List.of(DemoProvider.ranked());
+  }
+
+  late List<DemoProvider> _providers;
+  List<DemoProvider> get providers => List.unmodifiable(_providers);
+
+  /// The currently-logged-in provider's id (set by UserSession on login).
+  /// Used by the edit profile page to know which one to load.
+  String? _currentProviderId;
+  String? get currentProviderId => _currentProviderId;
+
+  void setCurrentProviderId(String? id) {
+    _currentProviderId = id;
+    notifyListeners();
+  }
+
+  DemoProvider? byId(String id) {
+    try {
+      return _providers.firstWhere((p) => p.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The logged-in provider. Falls back to the first provider if none set.
+  DemoProvider? get currentProvider {
+    if (_currentProviderId != null) {
+      final p = byId(_currentProviderId!);
+      if (p != null) return p;
+    }
+    return _providers.isEmpty ? null : _providers.first;
+  }
+
+  /// Update the provider with [id]. Other providers are untouched.
+  /// Triggers a listener notification so the rank list, profile view,
+  /// earnings, and MCDA score all refresh.
+  void update(DemoProvider updated) {
+    final i = _providers.indexWhere((p) => p.id == updated.id);
+    if (i < 0) return;
+    // Re-derive score from current fields to keep MCDA consistent.
+    final withRecomputedScore = updated.copyWith(score: updated.computedScore);
+    _providers = List.of(_providers)..[i] = withRecomputedScore;
+    // Re-sort so the rank list stays in score order.
+    _providers.sort((a, b) => b.score.compareTo(a.score));
+    notifyListeners();
+  }
+
+  /// Add a brand new provider. Used when a provider signs up.
+  void add(DemoProvider provider) {
+    _providers = [provider, ..._providers];
+    notifyListeners();
+  }
+
+  /// Toggle the availability of the current provider.
+  void toggleAvailability(String providerId) {
+    final p = byId(providerId);
+    if (p == null) return;
+    final next = p.availability == 'Full match'
+        ? 'Partial match'
+        : p.availability == 'Partial match'
+            ? 'No slot'
+            : 'Full match';
+    update(p.copyWith(availability: next));
+  }
+}
