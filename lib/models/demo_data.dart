@@ -29,6 +29,11 @@ class DemoProvider {
     required this.workload,
     required this.score,
     required this.availability,
+    this.activeBookingCount = 0,
+    this.distanceSuitability = 0,
+    this.ratingSuitability = 0,
+    this.workloadSuitability = 0,
+    this.hasRankingBreakdown = false,
     this.phone = '+60 12-345 6789',
     this.email = 'provider.a@smartrental.my',
     this.bio =
@@ -48,6 +53,11 @@ class DemoProvider {
   final String workload; // Low / Medium / High
   final double score;
   final String availability; // Full match / Partial match / No slot
+  final int activeBookingCount;
+  final double distanceSuitability;
+  final double ratingSuitability;
+  final double workloadSuitability;
+  final bool hasRankingBreakdown;
 
   // Editable fields
   final String phone;
@@ -82,6 +92,11 @@ class DemoProvider {
     bool? isVerified,
     int? avatarColorIndex,
     double? score,
+    int? activeBookingCount,
+    double? distanceSuitability,
+    double? ratingSuitability,
+    double? workloadSuitability,
+    bool? hasRankingBreakdown,
     bool? showPhoneToOwners,
   }) {
     return DemoProvider(
@@ -93,6 +108,11 @@ class DemoProvider {
       workload: workload ?? this.workload,
       availability: availability ?? this.availability,
       score: score ?? this.score,
+      activeBookingCount: activeBookingCount ?? this.activeBookingCount,
+      distanceSuitability: distanceSuitability ?? this.distanceSuitability,
+      ratingSuitability: ratingSuitability ?? this.ratingSuitability,
+      workloadSuitability: workloadSuitability ?? this.workloadSuitability,
+      hasRankingBreakdown: hasRankingBreakdown ?? this.hasRankingBreakdown,
       phone: phone ?? this.phone,
       email: email ?? this.email,
       bio: bio ?? this.bio,
@@ -105,28 +125,9 @@ class DemoProvider {
     );
   }
 
-  /// Recompute the MCDA score (ADR-0001) from the current fields.
-  /// Weights: availability 0.35, distance 0.20, rating 0.25, workload 0.20.
-  double get computedScore {
-    final availScore = availability == 'Full match'
-        ? 1.0
-        : availability == 'Partial match'
-            ? 0.6
-            : 0.0;
-    final distScore = (1.0 - (distanceKm / 10.0).clamp(0.0, 1.0));
-    final ratingScore = rating / 5.0;
-    final workScore = workload == 'Low'
-        ? 1.0
-        : workload == 'Medium'
-            ? 0.5
-            : 0.2;
-    return (availScore * 0.35 +
-        distScore * 0.20 +
-        ratingScore * 0.25 +
-        workScore * 0.20);
-  }
-
-  static List<DemoProvider> ranked() => [
+  /// Raw provider fixtures. Request-specific eligibility and ranking are
+  /// calculated by ProviderMatchingService rather than stored here.
+  static List<DemoProvider> seeded() => [
         DemoProvider(
           id: 'p-a',
           name: 'Provider A',
@@ -134,8 +135,9 @@ class DemoProvider {
           distanceKm: 2.0,
           rating: 4.8,
           workload: 'Low',
-          score: 0.93,
+          score: 0,
           availability: 'Full match',
+          activeBookingCount: 1,
         ),
         DemoProvider(
           id: 'p-b',
@@ -144,8 +146,9 @@ class DemoProvider {
           distanceKm: 5.0,
           rating: 4.9,
           workload: 'High',
-          score: 0.81,
+          score: 0,
           availability: 'Full match',
+          activeBookingCount: 4,
         ),
         DemoProvider(
           id: 'p-c',
@@ -154,8 +157,9 @@ class DemoProvider {
           distanceKm: 1.0,
           rating: 4.5,
           workload: 'Medium',
-          score: 0.74,
+          score: 0,
           availability: 'Partial match',
+          activeBookingCount: 2,
         ),
       ];
 }

@@ -6,36 +6,32 @@ import 'package:rental_app_demo/models/demo_data.dart';
 
 void main() {
   group('DemoProvider', () {
-    test('ranked() returns 3 providers', () {
-      expect(DemoProvider.ranked().length, 3);
+    test('seeded() returns 3 raw provider profiles', () {
+      expect(DemoProvider.seeded().length, 3);
     });
 
-    test('providers are sorted by score descending (MCDA ADR-0001)', () {
-      final list = DemoProvider.ranked();
-      for (int i = 0; i < list.length - 1; i++) {
-        expect(list[i].score, greaterThanOrEqualTo(list[i + 1].score),
-            reason:
-                'Provider ${list[i].name} (${list[i].score}) should rank above '
-                '${list[i + 1].name} (${list[i + 1].score})');
+    test('raw profiles do not store a request-independent score', () {
+      for (final provider in DemoProvider.seeded()) {
+        expect(provider.score, 0);
+        expect(provider.hasRankingBreakdown, isFalse);
       }
     });
 
-    test('Provider A is the top match (matches tutor example R2)', () {
-      final a = DemoProvider.ranked().first;
+    test('Provider A has full declared availability', () {
+      final a = DemoProvider.seeded().first;
       expect(a.name, 'Provider A');
-      expect(a.score, closeTo(0.93, 0.001));
       expect(a.availability, 'Full match');
+      expect(a.activeBookingCount, 1);
     });
 
-    test('Provider C is the lowest match (matches tutor example R4)', () {
-      final c = DemoProvider.ranked().last;
+    test('Provider C is not fully available for the demo interval', () {
+      final c = DemoProvider.seeded().last;
       expect(c.name, 'Provider C');
-      expect(c.score, closeTo(0.74, 0.001));
       expect(c.availability, 'Partial match');
     });
 
     test('all providers have non-empty id, name, workload, availability', () {
-      for (final p in DemoProvider.ranked()) {
+      for (final p in DemoProvider.seeded()) {
         expect(p.id, isNotEmpty);
         expect(p.name, isNotEmpty);
         expect(p.workload, isNotEmpty);
@@ -43,6 +39,7 @@ void main() {
         expect(p.serviceTypes, isNotEmpty);
         expect(p.rating, inInclusiveRange(0, 5));
         expect(p.distanceKm, greaterThan(0));
+        expect(p.activeBookingCount, greaterThanOrEqualTo(0));
       }
     });
   });

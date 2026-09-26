@@ -1,4 +1,4 @@
-﻿// lib/widgets/provider_card.dart
+// lib/widgets/provider_card.dart
 import 'package:flutter/material.dart';
 import '../models/demo_data.dart';
 
@@ -29,7 +29,10 @@ class ProviderCard extends StatelessWidget {
                   backgroundColor: const Color(0xFFF1F8F4),
                   child: Text(
                     '#$rank',
-                    style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w700, fontSize: 13),
+                    style: const TextStyle(
+                        color: Color(0xFF2E7D32),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -39,24 +42,34 @@ class ProviderCard extends StatelessWidget {
                     children: [
                       Text(
                         provider.name,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        provider.availability,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        'Eligible for the full requested interval',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF2E7D32),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF1F8F4),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    provider.score.toStringAsFixed(2),
-                    style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w700, fontSize: 14),
+                    '${(provider.score * 100).round()}%',
+                    style: const TextStyle(
+                      color: Color(0xFF2E7D32),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ],
@@ -66,10 +79,25 @@ class ProviderCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 6,
               children: [
-                _Tag(icon: Icons.star, label: provider.rating.toStringAsFixed(1), color: const Color(0xFFF59E0B)),
-                _Tag(icon: Icons.location_on, label: '${provider.distanceKm.toStringAsFixed(1)} km', color: const Color(0xFF10B981)),
-                _Tag(icon: Icons.work, label: provider.workload, color: const Color(0xFF6366F1)),
-                for (final t in provider.serviceTypes) _Tag(icon: Icons.cleaning_services, label: t, color: const Color(0xFF8B5CF6)),
+                _Tag(
+                    icon: Icons.star,
+                    label: provider.rating.toStringAsFixed(1),
+                    color: const Color(0xFFF59E0B)),
+                _Tag(
+                    icon: Icons.location_on,
+                    label: '${provider.distanceKm.toStringAsFixed(1)} km',
+                    color: const Color(0xFF10B981)),
+                _Tag(
+                  icon: Icons.work,
+                  label:
+                      '${provider.activeBookingCount} active job${provider.activeBookingCount == 1 ? '' : 's'}',
+                  color: const Color(0xFF6366F1),
+                ),
+                for (final t in provider.serviceTypes)
+                  _Tag(
+                      icon: Icons.cleaning_services,
+                      label: t,
+                      color: const Color(0xFF8B5CF6)),
               ],
             ),
             const SizedBox(height: 12),
@@ -119,7 +147,9 @@ class _Tag extends StatelessWidget {
         children: [
           Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          Text(label,
+              style: TextStyle(
+                  color: color, fontSize: 11, fontWeight: FontWeight.w600)),
         ],
       ),
     );

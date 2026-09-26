@@ -22,27 +22,33 @@ class _AboutScreenState extends State<AboutScreen> {
   static const _faqs = [
     {
       'q': 'How does the MCDA matching work?',
-      'a': 'We score each provider using a weighted formula: Availability (0.35), Distance (0.20), Rating (0.25), Workload (0.20). The provider with the highest score gets routed the job.',
+      'a':
+          'The system first removes providers who fail service, full-interval availability, rental-window, or booking-conflict checks. It then ranks only eligible providers using equal weights for route distance, rating, and current workload.',
     },
     {
       'q': 'Can I cancel a booking after accepting?',
-      'a': 'Yes, but you\'ll be asked to pick a reason. Frequent cancellations affect your reliability score.',
+      'a':
+          'Yes, but you\'ll be asked to pick a reason. Frequent cancellations affect your reliability score.',
     },
     {
       'q': 'When does a recurring booking stop?',
-      'a': 'Recurring bookings continue until you cancel or pause them. You can pause via the booking detail page.',
+      'a':
+          'Recurring bookings continue until you cancel or pause them. You can pause via the booking detail page.',
     },
     {
       'q': 'How are payouts calculated?',
-      'a': 'Hourly rate × duration, minus a 15% platform fee. Payouts are processed weekly to your registered bank account.',
+      'a':
+          'Hourly rate × duration, minus a 15% platform fee. Payouts are processed weekly to your registered bank account.',
     },
     {
       'q': 'Can I change my service area?',
-      'a': 'Yes — go to Profile > Edit profile > Working hours. Your service radius is auto-computed from your listed address.',
+      'a':
+          'Yes — go to Profile > Edit profile > Working hours. Your service radius is auto-computed from your listed address.',
     },
     {
       'q': 'How do I dispute a review?',
-      'a': 'Open the review in your reviews page and tap "Report". Our team will review within 48 hours.',
+      'a':
+          'Open the review in your reviews page and tap "Report". Our team will review within 48 hours.',
     },
   ];
 
@@ -59,7 +65,8 @@ class _AboutScreenState extends State<AboutScreen> {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [AppColors.primary, AppColors.primaryLight],
               ),
               borderRadius: BorderRadius.circular(16),
@@ -67,17 +74,22 @@ class _AboutScreenState extends State<AboutScreen> {
             child: Column(
               children: [
                 Container(
-                  width: 64, height: 64,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.apartment, color: Colors.white, size: 36),
+                  child: const Icon(Icons.apartment,
+                      color: Colors.white, size: 36),
                 ),
                 const SizedBox(height: 12),
                 const Text(
                   'Smart Rental',
-                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 2),
                 const Text(
@@ -86,14 +98,18 @@ class _AboutScreenState extends State<AboutScreen> {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
                     'v0.1.0 · Sprint 0',
-                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
@@ -105,13 +121,17 @@ class _AboutScreenState extends State<AboutScreen> {
           Card(
             child: Column(
               children: [
-                _tile(context, Icons.help_outline, 'Help center', 'Browse articles and guides', null),
+                _tile(context, Icons.help_outline, 'Help center',
+                    'Browse articles and guides', null),
                 _divider(sem),
-                _tile(context, Icons.chat_bubble_outline, 'Contact support', 'We respond within 24h', null),
+                _tile(context, Icons.chat_bubble_outline, 'Contact support',
+                    'We respond within 24h', null),
                 _divider(sem),
-                _tile(context, Icons.description_outlined, 'Terms of service', null, null),
+                _tile(context, Icons.description_outlined, 'Terms of service',
+                    null, null),
                 _divider(sem),
-                _tile(context, Icons.privacy_tip_outlined, 'Privacy policy', null, null),
+                _tile(context, Icons.privacy_tip_outlined, 'Privacy policy',
+                    null, null),
               ],
             ),
           ),
@@ -119,7 +139,11 @@ class _AboutScreenState extends State<AboutScreen> {
           const SizedBox(height: 24),
           Text(
             'FREQUENTLY ASKED',
-            style: TextStyle(fontSize: 11, color: sem.textSecondary, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+            style: TextStyle(
+                fontSize: 11,
+                color: sem.textSecondary,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8),
           ),
           const SizedBox(height: 8),
           ..._faqs.asMap().entries.map((e) => _buildFAQ(e.key, e.value, sem)),
@@ -136,12 +160,16 @@ class _AboutScreenState extends State<AboutScreen> {
     );
   }
 
-  Widget _tile(BuildContext ctx, IconData icon, String title, String? subtitle, VoidCallback? onTap) {
+  Widget _tile(BuildContext ctx, IconData icon, String title, String? subtitle,
+      VoidCallback? onTap) {
     final sem = SemanticColors.of(ctx);
     return ListTile(
       leading: Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(color: AppColors.primarySurface, borderRadius: BorderRadius.circular(8)),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+            color: AppColors.primarySurface,
+            borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, size: 18, color: AppColors.primary),
       ),
       title: Text(
@@ -163,15 +191,19 @@ class _AboutScreenState extends State<AboutScreen> {
         size: 12,
         color: sem.textTertiary,
       ),
-      onTap: onTap ?? () {
-        ScaffoldMessenger.of(ctx).showSnackBar(
-          SnackBar(content: Text('$title - Sprint 1 will add this'), behavior: SnackBarBehavior.floating),
-        );
-      },
+      onTap: onTap ??
+          () {
+            ScaffoldMessenger.of(ctx).showSnackBar(
+              SnackBar(
+                  content: Text('$title - Sprint 1 will add this'),
+                  behavior: SnackBarBehavior.floating),
+            );
+          },
     );
   }
 
-  Widget _divider(SemanticColors sem) => Divider(height: 1, color: sem.border, indent: 60);
+  Widget _divider(SemanticColors sem) =>
+      Divider(height: 1, color: sem.border, indent: 60);
 
   Widget _buildFAQ(int idx, Map<String, String> faq, SemanticColors sem) {
     final isOpen = _expandedFAQs.contains(idx);
@@ -220,7 +252,8 @@ class _AboutScreenState extends State<AboutScreen> {
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: Text(
                 faq['a']!,
-                style: TextStyle(fontSize: 13, color: sem.textSecondary, height: 1.5),
+                style: TextStyle(
+                    fontSize: 13, color: sem.textSecondary, height: 1.5),
               ),
             ),
         ],

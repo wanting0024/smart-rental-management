@@ -139,7 +139,7 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ProviderInboxScreen(
-          provider: DemoProvider.ranked().first,
+          provider: DemoProvider.seeded().first,
         ),
       ),
     );
@@ -350,7 +350,7 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                       ),
                     ),
                     Text(
-                      'Ranked by MCDA · ADR-0001',
+                      'Eligibility filters first · then equal-weight ranking',
                       style: TextStyle(fontSize: 11, color: sem.textSecondary),
                     ),
                   ],

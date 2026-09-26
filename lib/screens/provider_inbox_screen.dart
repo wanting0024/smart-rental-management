@@ -167,7 +167,7 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen>
       case 'profile':
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => ProviderProfileScreen(
-            provider: widget.provider ?? DemoProvider.ranked().first,
+            provider: widget.provider ?? DemoProvider.seeded().first,
           ),
         ));
         break;
@@ -186,7 +186,7 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen>
       case 'edit_profile':
         final current =
             AppProviders.of(context).providerStore.currentProvider ??
-                DemoProvider.ranked().first;
+                DemoProvider.seeded().first;
         final updated = await Navigator.of(context).push<DemoProvider>(
           MaterialPageRoute(
               builder: (_) => ProviderEditProfileScreen(provider: current)),
@@ -281,7 +281,7 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen>
               if (id == 'profile') {
                 final current =
                     AppProviders.of(context).providerStore.currentProvider ??
-                        DemoProvider.ranked().first;
+                        DemoProvider.seeded().first;
                 Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => ProviderEditProfileScreen(provider: current),
                 ));

@@ -2,7 +2,6 @@
 // Verifies the ReviewStore and MessageStore behaviors.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rental_app_demo/models/message.dart';
 import 'package:rental_app_demo/models/review.dart';
 import 'package:rental_app_demo/services/message_store.dart';
 import 'package:rental_app_demo/services/review_store.dart';

@@ -1,8 +1,6 @@
 // lib/screens/provider_browse_screen.dart
-// Provider Browse screen. Mirrors the tutor example table
-// (Provider A full match, Provider B full match, Provider C partial match).
-// Scores are precomputed using the same availability/distance/rating/workload
-// weights documented in ADR-0003 in the FYP project.
+// Provider Browse screen. Providers must pass all mandatory eligibility checks
+// before they are ranked by distance, rating, and current workload.
 //
 // Round 9 polish (PB1-PB6):
 //   PB1 Sort selector (Score / Distance / Rating / Price) — default Score
@@ -13,6 +11,8 @@
 //   PB6 SectionHeader widget for consistency
 
 import 'package:flutter/material.dart';
+import '../features/matching/domain/provider_matching.dart';
+import '../main.dart';
 import '../models/demo_data.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
@@ -40,20 +40,35 @@ class ProviderBrowseScreen extends StatefulWidget {
 
 class _ProviderBrowseScreenState extends State<ProviderBrowseScreen> {
   _ProviderSort _sort = _ProviderSort.score;
-  String? _serviceType; // null = all
+  String _serviceType = 'standard';
 
   @override
   Widget build(BuildContext context) {
+    final providers = AppProviders.of(context);
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        providers.providerStore,
+        providers.bookingStore,
+      ]),
+      builder: (context, _) => _buildContent(context, providers),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, AppProviders providers) {
     final sem = SemanticColors.of(context);
-    final providers = DemoProvider.ranked();
-
-    // Apply service-type filter, then sort.
-    final filtered = (_serviceType == null
-            ? providers.toList()
-            : providers.where((p) => p.serviceTypes.contains(_serviceType)).toList())
-        .cast<DemoProvider>();
-
-    final sorted = [...filtered];
+    final requestedStart = DateTime(2026, 7, 20, 10);
+    final request = ProviderMatchRequest(
+      serviceType: _serviceType,
+      requestedStart: requestedStart,
+      requestedEnd: requestedStart.add(const Duration(hours: 2)),
+      rentalWindowStart: DateTime(2026, 7, 20, 8),
+      rentalWindowEnd: DateTime(2026, 7, 20, 18),
+    );
+    final result = providers.providerStore.matchProviders(
+      request: request,
+      bookings: providers.bookingStore.bookings,
+    );
+    final sorted = [...result.rankedProviders];
     switch (_sort) {
       case _ProviderSort.score:
         sorted.sort((a, b) => b.score.compareTo(a.score));
@@ -112,8 +127,10 @@ class _ProviderBrowseScreenState extends State<ProviderBrowseScreen> {
                           ),
                         ),
                         Text(
-                          'Unit A-12 · Mon 14 Jul 10:00–12:00 · standard cleaning',
-                          style: TextStyle(fontSize: 11, color: sem.textSecondary),
+                          'Unit A-12 · Mon 20 Jul 10:00–12:00 · '
+                          '${_serviceLabel(_serviceType)}',
+                          style:
+                              TextStyle(fontSize: 11, color: sem.textSecondary),
                         ),
                       ],
                     ),
@@ -121,37 +138,63 @@ class _ProviderBrowseScreenState extends State<ProviderBrowseScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(Icons.info_outline, size: 12, color: AppColors.primaryDark),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'MCDA · availability 0.35 · distance 0.20 · rating 0.25 · workload 0.20',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: AppColors.primaryDark,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                'Eligibility first · service · full interval · rental window · no conflict',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: AppColors.primaryDark,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Ranking · distance 1/3 · rating 1/3 · current workload 1/3',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: AppColors.primaryDark,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        // PB2: Service-type filter chip row
+        Text(
+          'Requested service',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: sem.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
         _buildServiceTypeFilter(sem),
         const SizedBox(height: 12),
-        // PB1: Sort selector
         _buildSortBar(sem, sorted.length),
+        if (result.excludedProviders.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.filter_alt_outlined,
+                  size: 14, color: sem.textSecondary),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  '${result.excludedProviders.length} provider${result.excludedProviders.length == 1 ? '' : 's'} '
+                  'excluded by mandatory checks before scoring.',
+                  style: TextStyle(fontSize: 11, color: sem.textSecondary),
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 12),
         if (sorted.isEmpty)
           const EmptyState(
             icon: Icons.person_search_outlined,
-            title: 'No providers match',
-            subtitle: 'Try a different service type or sort option.',
+            title: 'No eligible provider',
+            subtitle:
+                'No provider passed every mandatory check for this request.',
           )
         else
           for (var i = 0; i < sorted.length; i++) ...[
@@ -168,9 +211,7 @@ class _ProviderBrowseScreenState extends State<ProviderBrowseScreen> {
   }
 
   Widget _buildServiceTypeFilter(SemanticColors sem) {
-    // Build the chip list: "All" + each ServiceTypeOption label.
-    final entries = <(String?, String)>[
-      (null, 'All'),
+    final entries = <(String, String)>[
       for (final s in ServiceTypeOption.all) (s.id, s.label),
     ];
     return SizedBox(
@@ -209,6 +250,13 @@ class _ProviderBrowseScreenState extends State<ProviderBrowseScreen> {
         },
       ),
     );
+  }
+
+  String _serviceLabel(String serviceId) {
+    for (final service in ServiceTypeOption.all) {
+      if (service.id == serviceId) return service.label;
+    }
+    return serviceId;
   }
 
   Widget _buildSortBar(SemanticColors sem, int resultCount) {

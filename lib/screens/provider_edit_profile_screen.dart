@@ -17,7 +17,6 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../main.dart';
 import '../models/demo_data.dart';
-import '../services/provider_store.dart';
 import '../theme/app_theme.dart';
 import '../utils/haptics.dart';
 import 'provider_profile_screen.dart';

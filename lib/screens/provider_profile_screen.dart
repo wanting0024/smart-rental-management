@@ -1,4 +1,4 @@
-﻿// lib/screens/provider_profile_screen.dart
+// lib/screens/provider_profile_screen.dart
 // Full provider profile. Tappable from Provider Browse, Provider Inbox,
 // and Active Job Detail (the "View profile" buttons all go here).
 //
@@ -17,7 +17,8 @@ import '../theme/app_theme.dart';
 import '../widgets/section_header.dart';
 
 class ProviderProfileScreen extends StatelessWidget {
-  const ProviderProfileScreen({super.key, required this.provider, this.heroColor});
+  const ProviderProfileScreen(
+      {super.key, required this.provider, this.heroColor});
   final DemoProvider provider;
   final Color? heroColor;
 
@@ -132,10 +133,16 @@ class ProviderProfileScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             _heroStat(
-                              label: 'Score',
-                              value: provider.score.toStringAsFixed(2),
-                              sub: '/ 1.00',
-                              highlight: true,
+                              label: provider.hasRankingBreakdown
+                                  ? 'Match'
+                                  : 'Rate',
+                              value: provider.hasRankingBreakdown
+                                  ? '${(provider.score * 100).round()}%'
+                                  : 'RM ${provider.hourlyRate.toStringAsFixed(0)}',
+                              sub: provider.hasRankingBreakdown
+                                  ? 'request score'
+                                  : '/ hour',
+                              highlight: provider.hasRankingBreakdown,
                             ),
                           ],
                         ),
@@ -169,7 +176,8 @@ class ProviderProfileScreen extends StatelessWidget {
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Message provider · Sprint 1 feature'),
+                                content:
+                                    Text('Message provider · Sprint 1 feature'),
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
@@ -184,7 +192,8 @@ class ProviderProfileScreen extends StatelessWidget {
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('${provider.name} assigned (demo)'),
+                                content:
+                                    Text('${provider.name} assigned (demo)'),
                                 backgroundColor: AppColors.success,
                                 behavior: SnackBarBehavior.floating,
                               ),
@@ -266,72 +275,77 @@ class ProviderProfileScreen extends StatelessWidget {
 
   Widget _buildMatchCard(BuildContext context) {
     final sem = SemanticColors.of(context);
-    final isFull = provider.availability == 'Full match';
-    final color = isFull ? AppColors.success : AppColors.warning;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionHeader(
-              title: 'Match analysis',
-              subtitle: 'MCDA score breakdown (ADR-0001)',
-            ),
-            const SizedBox(height: 12),
-            _scoreBar('Availability', provider.score * 0.4, '0.40 weight',
-                color: color, sem: sem),
-            const SizedBox(height: 8),
-            _scoreBar(
-              'Distance',
-              1.0 - (provider.distanceKm / 10).clamp(0, 1),
-              '0.20 weight',
-              color: AppColors.primary,
-              sem: sem,
-            ),
-            const SizedBox(height: 8),
-            _scoreBar(
-              'Rating',
-              provider.rating / 5,
-              '0.25 weight',
-              color: AppColors.secondary,
-              sem: sem,
-            ),
-            const SizedBox(height: 8),
-            _scoreBar(
-              'Workload',
-              provider.workload == 'Low'
-                  ? 1.0
-                  : provider.workload == 'Medium'
-                      ? 0.5
-                      : 0.2,
-              '0.20 weight',
-              color: AppColors.warning,
-              sem: sem,
+            SectionHeader(
+              title: 'Two-stage match analysis',
+              subtitle: provider.hasRankingBreakdown
+                  ? 'Mandatory eligibility first, then equal-weight ranking'
+                  : 'A score is calculated for a specific service request',
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: AppColors.success.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: color.withOpacity(0.3)),
+                border: Border.all(
+                  color: AppColors.success.withOpacity(0.3),
+                ),
               ),
               child: Row(
                 children: [
-                  Icon(isFull ? Icons.check_circle : Icons.info, size: 16, color: color),
+                  const Icon(
+                    Icons.verified_outlined,
+                    size: 16,
+                    color: AppColors.success,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      isFull
-                          ? 'Full match — can take the entire job at your requested time.'
-                          : 'Partial match — limited slots available. May need to negotiate time.',
-                      style: TextStyle(fontSize: 12, color: color, height: 1.3),
+                      provider.hasRankingBreakdown
+                          ? 'Passed service, full-interval availability, rental-window, and conflict checks.'
+                          : 'Eligibility is checked when an owner submits a service request.',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.success,
+                        height: 1.3,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+            if (provider.hasRankingBreakdown) ...[
+              const SizedBox(height: 12),
+              _scoreBar(
+                'Distance',
+                provider.distanceSuitability,
+                '1/3 weight',
+                color: AppColors.primary,
+                sem: sem,
+              ),
+              const SizedBox(height: 8),
+              _scoreBar(
+                'Rating',
+                provider.ratingSuitability,
+                '1/3 weight',
+                color: AppColors.secondary,
+                sem: sem,
+              ),
+              const SizedBox(height: 8),
+              _scoreBar(
+                'Workload',
+                provider.workloadSuitability,
+                '1/3 weight',
+                color: AppColors.warning,
+                sem: sem,
+              ),
+            ],
           ],
         ),
       ),
@@ -395,9 +409,11 @@ class ProviderProfileScreen extends StatelessWidget {
                 _statTile('128', 'Jobs done', Icons.check_circle_outline,
                     AppColors.success, sem),
                 const SizedBox(width: 8),
-                _statTile('4.8', 'Avg rating', Icons.star, AppColors.warning, sem),
+                _statTile(
+                    '4.8', 'Avg rating', Icons.star, AppColors.warning, sem),
                 const SizedBox(width: 8),
-                _statTile('96%', 'On time', Icons.access_time, AppColors.primary, sem),
+                _statTile('96%', 'On time', Icons.access_time,
+                    AppColors.primary, sem),
               ],
             ),
           ],
@@ -448,14 +464,16 @@ class ProviderProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionHeader(title: 'Services offered', subtitle: 'Tap to filter jobs'),
+            const SectionHeader(
+                title: 'Services offered', subtitle: 'Tap to filter jobs'),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: provider.serviceTypes.map((s) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.primarySurface,
                     borderRadius: BorderRadius.circular(6),
@@ -508,26 +526,23 @@ class ProviderProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const SectionHeader(title: 'Current workload'),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    provider.workload,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: color,
-                    ),
+            SectionHeader(
+              title: 'Current workload',
+              action: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  provider.workload,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: color,
                   ),
                 ),
-              ],
+              ),
             ),
             const SizedBox(height: 12),
             ClipRRect(
@@ -541,11 +556,15 @@ class ProviderProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              provider.workload == 'Low'
-                  ? 'Plenty of room. Will accept new jobs quickly.'
-                  : provider.workload == 'Medium'
-                      ? 'Some jobs in progress. New jobs may take 1-2 days.'
-                      : 'Heavily booked. Best for non-urgent jobs.',
+              provider.hasRankingBreakdown
+                  ? '${provider.activeBookingCount} Accepted or In Progress '
+                      'booking${provider.activeBookingCount == 1 ? '' : 's'} '
+                      'overlap the seven-day workload window.'
+                  : provider.workload == 'Low'
+                      ? 'Plenty of room. Will accept new jobs quickly.'
+                      : provider.workload == 'Medium'
+                          ? 'Some jobs in progress. New jobs may take 1-2 days.'
+                          : 'Heavily booked. Best for non-urgent jobs.',
               style: TextStyle(
                 fontSize: 12,
                 color: sem.textSecondary,
