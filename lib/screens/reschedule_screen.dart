@@ -97,6 +97,15 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
     final duration =
         widget.booking.scheduledEnd.difference(widget.booking.scheduledStart);
     final store = AppProviders.of(context).bookingStore;
+    final validationError = store.revisionError(
+      id: widget.booking.id,
+      newStart: start,
+      newEnd: start.add(duration),
+    );
+    if (validationError != null) {
+      setState(() => _error = validationError);
+      return;
+    }
     final updated = store.revisePendingBooking(
       id: widget.booking.id,
       newStart: start,
@@ -115,7 +124,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Pending request updated. Availability will be checked again.',
+          'Pending request updated. Availability was checked and will be rechecked before acceptance.',
         ),
         backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,

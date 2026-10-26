@@ -2,11 +2,8 @@
 // Provider-side active job screen. Mirror of BookingDetail but with
 // provider-centric actions: check-in, start, finish, upload before/after.
 //
-// Round 13 polish (PJ1-PJ2):
-//   PJ1 Modal bottom sheet background now uses sem.surface (dark mode aware).
-//        All other Colors.white are inside green/orange hero+button contexts
-//        and intentionally stay white (on top of colored backgrounds).
-//   PJ2 Theme.of(context).colorScheme.surface replaced with sem.surface.
+// Uses the shared navy header and a high-contrast status label. Status actions
+// retain their meaning without turning the entire page into a status color.
 
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -17,8 +14,8 @@ import '../models/demo_data.dart';
 import '../theme/app_theme.dart';
 import '../utils/haptics.dart';
 import '../widgets/reject_reason_sheet.dart';
+import '../widgets/cancellation_reason_sheet.dart';
 import '../widgets/section_header.dart';
-import '../widgets/status_chip.dart';
 
 class ProviderJobDetailScreen extends StatefulWidget {
   const ProviderJobDetailScreen({
@@ -73,6 +70,13 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
       failureMessage = result.message;
     } else if (next == BookingStatus.declined) {
       succeeded = store.declineBooking(_booking.id, reason: reason);
+    } else if (next == BookingStatus.cancelled) {
+      succeeded = reason != null &&
+          store.cancelBooking(
+            _booking.id,
+            actor: BookingActor.provider,
+            reason: reason,
+          );
     } else {
       if (next == BookingStatus.completed) {
         store.update(
@@ -127,22 +131,23 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                      color: const Color(0xFFE5E7EB),
+                      color: SemanticColors.of(ctx).border,
                       borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Update job status',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827)),
+                    color: SemanticColors.of(ctx).textPrimary),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Pick the next state. This notifies the owner.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+              Text(
+                'The updated status will be visible to the owner.',
+                style: TextStyle(
+                    fontSize: 12, color: SemanticColors.of(ctx).textSecondary),
               ),
               const SizedBox(height: 16),
               ...actions.map((a) => Padding(
@@ -158,8 +163,28 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
 
   Widget _actionTile(BuildContext ctx, _StatusAction a) {
     return InkWell(
-      onTap: () {
+      onTap: () async {
         Navigator.of(ctx).pop();
+        if (a.next == BookingStatus.cancelled) {
+          final result = await showModalBottomSheet<Map<String, String>>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            builder: (_) => CancellationReasonSheet(
+              bookingId: _booking.id,
+              forProvider: true,
+            ),
+          );
+          if (!mounted || result == null) return;
+          final reason = bookingCancellationReason(result, forProvider: true);
+          final outcome = _transition(a.next, reason: reason);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(outcome.message),
+            backgroundColor:
+                outcome.succeeded ? AppColors.positive : AppColors.negative,
+          ));
+          return;
+        }
         // Declining a Pending request may include an optional reason.
         if (a.next == BookingStatus.declined) {
           RejectReasonSheet.show(
@@ -175,8 +200,7 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                             : 'Booking declined: "$reason"'
                         : outcome.message,
                   ),
-                  backgroundColor:
-                      outcome.succeeded ? a.next.color : AppColors.error,
+                  backgroundColor: AppColors.negative,
                   behavior: SnackBarBehavior.floating,
                 ),
               );
@@ -202,7 +226,8 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(outcome.message),
-            backgroundColor: outcome.succeeded ? a.next.color : AppColors.error,
+            backgroundColor:
+                outcome.succeeded ? AppColors.positive : AppColors.negative,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -231,21 +256,23 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                 children: [
                   Text(
                     a.label,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827)),
+                        color: SemanticColors.of(ctx).textPrimary),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     a.subtitle,
-                    style:
-                        const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: SemanticColors.of(ctx).textSecondary),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+            Icon(Icons.chevron_right,
+                color: SemanticColors.of(ctx).textTertiary),
           ],
         ),
       ),
@@ -258,18 +285,20 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
       case BookingStatus.pending:
         return [
           _StatusAction('Accept job', 'Owner will be notified',
-              BookingStatus.accepted, Icons.check, const Color(0xFF10B981)),
+              BookingStatus.accepted, Icons.check, AppColors.primary),
           _StatusAction('Decline request', 'Owner can choose another provider',
-              BookingStatus.declined, Icons.close, const Color(0xFFEF4444)),
+              BookingStatus.declined, Icons.close, AppColors.negative),
         ];
       case BookingStatus.accepted:
         return [
+          _StatusAction('Start job', 'Changes status to In Progress',
+              BookingStatus.inProgress, Icons.play_arrow, AppColors.primary),
           _StatusAction(
-              'Start job',
-              'Changes status to In Progress',
-              BookingStatus.inProgress,
-              Icons.play_arrow,
-              const Color(0xFFF59E0B)),
+              'Cancel booking',
+              'A reason is required and kept in booking history',
+              BookingStatus.cancelled,
+              Icons.cancel_outlined,
+              AppColors.negative),
         ];
       case BookingStatus.inProgress:
         return [
@@ -278,7 +307,7 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
               'Requires photos and completion remarks',
               BookingStatus.completed,
               Icons.task_alt,
-              const Color(0xFF10B981)),
+              AppColors.primary),
         ];
       case BookingStatus.completed:
       case BookingStatus.declined:
@@ -295,24 +324,21 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
           SliverAppBar(
             expandedHeight: 200,
             pinned: true,
-            backgroundColor: _booking.status.color,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? AppTheme.darkHeroGradient.colors.first
+                : AppColors.primary,
             foregroundColor: Colors.white,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(_booking.property.split(',').first,
                   style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600)),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white)),
               titlePadding:
                   const EdgeInsets.only(left: 56, bottom: 16, right: 16),
               background: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      _booking.status.color,
-                      _booking.status.color.withOpacity(0.7)
-                    ],
-                  ),
+                  gradient: AppTheme.heroGradient(context),
                 ),
                 child: SafeArea(
                   child: Padding(
@@ -339,7 +365,23 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                               ),
                             ),
                             const Spacer(),
-                            StatusChip(status: _booking.status),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.16),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.pill),
+                              ),
+                              child: Text(
+                                _booking.status.label,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         const Spacer(),
@@ -392,11 +434,13 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
           ? null
           : FloatingActionButton.extended(
               onPressed: _showActionSheet,
-              backgroundColor: _booking.status.color,
-              icon: const Icon(Icons.swap_horiz, color: Colors.white),
-              label: const Text('Update status',
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              icon: Icon(Icons.swap_horiz,
+                  color: Theme.of(context).colorScheme.onPrimary),
+              label: Text('Update status',
                   style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600)),
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontWeight: FontWeight.w600)),
             ),
     );
   }
@@ -424,6 +468,7 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
   }
 
   Widget _buildLocationCard() {
+    final sem = SemanticColors.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -439,13 +484,14 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F8F4),
+                    color: sem.primarySurface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFC8E6C9)),
+                    border: Border.all(color: sem.primaryBorder),
                   ),
-                  child: const Center(
-                      child:
-                          Icon(Icons.map, size: 32, color: Color(0xFF2E7D32))),
+                  child: Center(
+                      child: Icon(Icons.map,
+                          size: 32,
+                          color: Theme.of(context).colorScheme.primary)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -454,16 +500,16 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                     children: [
                       Text(
                         _booking.property,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF111827)),
+                            color: sem.textPrimary),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
+                      Text(
                         '2.0 km from your location  -  ~8 min drive',
                         style:
-                            TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                            TextStyle(fontSize: 12, color: sem.textSecondary),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -521,6 +567,7 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
   }
 
   Widget _buildProofCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -564,8 +611,12 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                 color: (_hasBefore &&
                         _hasAfter &&
                         _completionRemarksController.text.trim().isNotEmpty)
-                    ? const Color(0xFF065F46)
-                    : const Color(0xFF92400E),
+                    ? (isDark
+                        ? const Color(0xFF78D8BC)
+                        : const Color(0xFF065F46))
+                    : (isDark
+                        ? const Color(0xFFFFC786)
+                        : const Color(0xFF92400E)),
               ),
             ),
           ],
@@ -575,6 +626,8 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
   }
 
   Widget _photoSlot(String label, bool uploaded) {
+    final sem = SemanticColors.of(context);
+    final accent = Theme.of(context).colorScheme.primary;
     final isBefore = label == 'Before';
     final image = isBefore ? _beforeImage : _afterImage;
     return InkWell(
@@ -583,10 +636,10 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
       child: Container(
         height: 110,
         decoration: BoxDecoration(
-          color: uploaded ? const Color(0xFFECFDF5) : const Color(0xFFF9FAFB),
+          color: uploaded ? sem.secondarySurface : sem.surfaceAlt,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: uploaded ? const Color(0xFF10B981) : const Color(0xFFE5E7EB),
+            color: uploaded ? sem.secondaryBorder : sem.border,
             width: uploaded ? 1.5 : 1,
           ),
         ),
@@ -595,21 +648,20 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.add_a_photo,
-                      size: 28, color: Color(0xFF6B7280)),
+                  Icon(Icons.add_a_photo, size: 28, color: accent),
                   const SizedBox(height: 6),
                   Text(
                     'Add $label',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF374151),
+                      color: sem.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
+                  Text(
                     'Tap to choose photo',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                    style: TextStyle(fontSize: 11, color: sem.textSecondary),
                   ),
                 ],
               ),
@@ -674,19 +726,21 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
   }
 
   Widget _buildPhotoFallback(bool isBefore) {
+    final sem = SemanticColors.of(context);
     return Container(
-      color: const Color(0xFFECFDF5),
+      color: sem.secondarySurface,
       alignment: Alignment.center,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.check_circle, size: 24, color: Color(0xFF10B981)),
+          Icon(Icons.check_circle,
+              size: 24, color: Theme.of(context).colorScheme.secondary),
           const SizedBox(height: 4),
           Text(
             isBefore ? 'Before photo' : 'After photo',
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF065F46),
+                color: sem.textPrimary,
                 fontWeight: FontWeight.w600),
           ),
         ],
@@ -808,13 +862,13 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.photo_camera, color: Color(0xFF2E7D32)),
+              leading: const Icon(Icons.photo_camera, color: AppColors.primary),
               title: const Text('Take photo'),
               onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
             ),
             ListTile(
               leading:
-                  const Icon(Icons.photo_library, color: Color(0xFF2E7D32)),
+                  const Icon(Icons.photo_library, color: AppColors.primary),
               title: const Text('Choose from gallery'),
               onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
             ),
@@ -826,37 +880,68 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
   }
 
   Widget _buildNotesCard() {
-    if (_booking.specialInstructions == null) return const SizedBox.shrink();
+    final notes = _booking.specialInstructions?.trim();
+    if (notes == null || notes.isEmpty) return const SizedBox.shrink();
+    final sem = SemanticColors.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionHeader(title: 'Owner notes'),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF7ED),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFFED7AA)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.format_quote,
-                      size: 16, color: Color(0xFF9A3412)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _booking.specialInstructions!,
-                      style: const TextStyle(
-                          fontSize: 13, color: Color(0xFF7C2D12), height: 1.4),
-                    ),
+            const SectionHeader(title: 'Cleaning instructions'),
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: sem.primarySurface,
+                  child: Icon(Icons.person_outline,
+                      size: 20, color: Theme.of(context).colorScheme.primary),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2, bottom: 8),
+                        child: Text(
+                          'Property Owner',
+                          style: TextStyle(
+                            color: sem.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: sem.primarySurface,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(4),
+                            topRight: Radius.circular(14),
+                            bottomLeft: Radius.circular(14),
+                            bottomRight: Radius.circular(14),
+                          ),
+                        ),
+                        child: Text(
+                          notes,
+                          style: TextStyle(
+                            color: sem.textPrimary,
+                            fontSize: 14,
+                            height: 1.45,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
@@ -865,6 +950,7 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
   }
 
   Widget _buildChecklistCard() {
+    final sem = SemanticColors.of(context);
     final confirmed = _booking.status == BookingStatus.accepted ||
         _booking.status == BookingStatus.inProgress ||
         _booking.status == BookingStatus.completed;
@@ -906,9 +992,7 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                           c.$1,
                           style: TextStyle(
                             fontSize: 13,
-                            color: c.$2
-                                ? const Color(0xFF111827)
-                                : const Color(0xFF6B7280),
+                            color: c.$2 ? sem.textPrimary : sem.textSecondary,
                             fontWeight:
                                 c.$2 ? FontWeight.w500 : FontWeight.w400,
                           ),
@@ -924,19 +1008,19 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
   }
 
   Widget _infoRow(IconData icon, String label, String value) {
+    final sem = SemanticColors.of(context);
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF6B7280)),
+        Icon(icon, size: 16, color: sem.textSecondary),
         const SizedBox(width: 8),
-        Text(label,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+        Text(label, style: TextStyle(fontSize: 12, color: sem.textSecondary)),
         const Spacer(),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF111827)),
+              color: sem.textPrimary),
         ),
       ],
     );

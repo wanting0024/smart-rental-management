@@ -1,10 +1,47 @@
-# Smart Rental Management — Sprint 0 Demo
+# Smart Rental Management — Owner and Cleaning Service Provider
 
-Standalone Flutter demo of the **Owner Module + Cleaning Service Provider Module**
+Flutter implementation of the **Owner Module + Cleaning Service Provider Module**
 for the FYP *"Smart Rental Management Mobile Application"*.
 
-All data is hardcoded — no Supabase, no auth, no backend. Runs fully offline so
-tutors and stakeholders can preview the full UX without setting anything up.
+The app has separate local UI-preview and authenticated Supabase-backed modes.
+Hosted setup, device validation and release acceptance are still pending; local
+tests or a working preview are not launch approval. Current work is tracked in
+`DEVELOPMENT_PROGRESS.md` and `SECURITY_AND_PRIVACY_TASKS.md`.
+
+## Current UAT checkpoint — 0.1.4+5 (26 October 2026)
+
+- Connected Owner and Provider flows retain the original UI and use isolated
+  Staging. Owner navigation has five primary tabs; Home, Properties, Providers,
+  Bookings and Profile each have a distinct purpose.
+- Owner Home has one Request cleaning primary action, status shortcuts and
+  separate Pending / Upcoming lists. Providers browses approved public profiles;
+  Bookings searches and filters the complete owned history before paging.
+- Booking lifecycle, private validated evidence, participant chat, notifications,
+  Schedule, Earnings and profile operations use protected backend operations.
+- Verified at this checkpoint: 850 Flutter tests, local PostgreSQL migrations
+  001–029 under both privilege profiles, and fixed-account Staging read checks.
+  The Android Profile UAT package was built and its signing identity checked.
+  Paired physical-phone UAT is still pending; this is not public-launch approval.
+
+See [current navigation and UAT checklist](docs/2026-10-26_OWNER_NAVIGATION.md),
+[completion status](PROTOTYPE_COMPLETION.md) and
+[backend setup](supabase/README.md). Terms / Privacy remain unpublished drafts;
+payments, real support operations and password-recovery callback setup are not
+accepted as complete.
+
+Local backend configuration, credentials, signing files, downloaded runtimes,
+test outputs and APK installers are deliberately excluded from Git. Start with
+the example configuration files and the backend setup documentation; use your
+own authorized environment. Never commit test-account passwords or server keys.
+
+Run `flutter pub get` and `flutter test` to verify the Flutter source. Connected
+runs also require the configured Staging backend and its deployed migrations.
+
+Password recovery setup and limitations: `supabase/PASSWORD_RECOVERY.md`.
+Booking-message and evidence-upload limits: `supabase/BOOKING_COMMUNICATION_LIMITS.md`.
+Trusted photo validation, legacy-data impact and coordinated staging setup: `supabase/VERIFIED_EVIDENCE.md`.
+The initial Sprint 0 screen inventory below describes the legacy offline
+preview, not the complete current connected implementation.
 
 ---
 

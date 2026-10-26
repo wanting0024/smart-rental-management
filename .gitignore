@@ -43,3 +43,36 @@ web/canvaskit/
 *.log
 *.bak
 *.bak.*
+supabase/backend_config.local.json
+supabase/backend_config.staging.local.json
+supabase/backend_config.production.local.json
+output/staging-private/
+
+# Local credentials are not client-build inputs; administrator tools use process env.
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.mobileprovision
+
+# Local server-function dependencies (never app assets).
+node_modules/
+
+# Optional disposable PostgreSQL test runtime/clusters; not app assets.
+output/postgres-runtime/
+output/pg-verify-*/
+
+# Generated reports, private UAT state, installers and downloaded test runtimes.
+# Keep reproducible source/tests/docs in Git; keep local outputs on this device.
+/output/
+/tmp/
+/coverage/
+/test/failures/
+__pycache__/
+*.py[cod]
+*.apk
+*.aab
+*.apks
+*.ipa
+*.keystore

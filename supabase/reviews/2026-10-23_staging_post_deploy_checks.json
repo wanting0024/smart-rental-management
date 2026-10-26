@@ -1,0 +1,15 @@
+{
+  "relation_count": true,
+  "rls_and_owners": true,
+  "anon_function_only_marker": true,
+  "exact_authenticated_rpc_allowlist": true,
+  "exact_server_rpc_allowlist": true,
+  "fixed_function_search_paths": true,
+  "no_special_table_privileges": true,
+  "no_anon_or_server_direct_business_access": true,
+  "no_obsolete_booking_insert_policy": true,
+  "private_evidence_bucket": true,
+  "no_client_evidence_storage_insert_policy": true,
+  "unassigned_environment_is_expected": true,
+  "history_19_entries": true
+}

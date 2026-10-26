@@ -8,6 +8,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../features/bookings/domain/booking_status_change.dart';
 import '../main.dart';
 import '../models/demo_data.dart';
 import '../services/user_session.dart';
@@ -66,7 +67,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
     if (result != null && mounted) {
       final store = AppProviders.of(context).bookingStore;
-      store.updateStatus(_booking.id, BookingStatus.cancelled);
+      final reason = bookingCancellationReason(result);
+      final succeeded = reason != null &&
+          store.cancelBooking(
+            _booking.id,
+            actor: BookingActor.owner,
+            reason: reason,
+          );
+      if (!succeeded) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'This booking could not be cancelled. Refresh and try again.'),
+        ));
+        return;
+      }
       Haptics.heavy();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -109,13 +123,25 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final store = AppProviders.of(context).bookingStore;
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) {
+        _booking = store.byId(_booking.id) ?? _booking;
+        return _buildPage(context, store.historyFor(_booking.id));
+      },
+    );
+  }
+
+  Widget _buildPage(
+      BuildContext context, List<BookingStatusChange> statusHistory) {
     final sem = SemanticColors.of(context);
     return Scaffold(
       backgroundColor: sem.background,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 200,
+            expandedHeight: 232,
             pinned: true,
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
@@ -164,7 +190,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   }
                 },
                 itemBuilder: (ctx) => [
-                  if (_booking.status == BookingStatus.pending)
+                  if (_booking.status == BookingStatus.pending ||
+                      _booking.status == BookingStatus.accepted)
                     PopupMenuItem(
                         value: 'edit_pending',
                         child: Row(children: [
@@ -195,7 +222,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           Icon(Icons.cancel_outlined,
                               size: 16, color: AppColors.error),
                           SizedBox(width: 8),
-                          Text('Cancel request',
+                          Text('Cancel booking',
                               style: TextStyle(color: AppColors.error))
                         ])),
                   PopupMenuItem(
@@ -222,7 +249,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               const SizedBox(height: 16),
               const _SectionHeader(title: 'Service lifecycle'),
               const SizedBox(height: 8),
-              _LifecycleStepper(booking: _booking),
+              _LifecycleStepper(booking: _booking, history: statusHistory),
+              const SizedBox(height: 16),
+              const _SectionHeader(title: 'Status history'),
+              const SizedBox(height: 8),
+              _StatusHistoryCard(history: statusHistory),
               const SizedBox(height: 16),
               const _SectionHeader(title: 'Proof of completion'),
               const SizedBox(height: 8),
@@ -333,7 +364,7 @@ class _HeroSection extends StatelessWidget {
                     ],
                   ),
                 ),
-                StatusChip(status: booking.status),
+                StatusChip(status: booking.status, onDark: true),
               ],
             ),
             const SizedBox(height: 8),
@@ -504,10 +535,11 @@ class _DetailRow extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: AppColors.primarySurface,
+            color: sem.primarySurface,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, size: 18, color: AppColors.primary),
+          child: Icon(icon,
+              size: 18, color: Theme.of(context).colorScheme.primary),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -571,8 +603,10 @@ class _SpecialInstructionsBlock extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(text,
-              style: const TextStyle(
-                  fontSize: 13, color: Color(0xFF78350F), height: 1.4)),
+              style: TextStyle(
+                  fontSize: 13,
+                  color: SemanticColors.of(context).textPrimary,
+                  height: 1.4)),
         ],
       ),
     );
@@ -591,14 +625,83 @@ class _SectionHeader extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Text(
           title.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF6B7280),
+            color: SemanticColors.of(context).textSecondary,
             letterSpacing: 1.0,
           ),
         ),
       );
+}
+
+class _StatusHistoryCard extends StatelessWidget {
+  const _StatusHistoryCard({required this.history});
+
+  final List<BookingStatusChange> history;
+
+  @override
+  Widget build(BuildContext context) {
+    final sem = SemanticColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: history.isEmpty
+              ? Text(
+                  'Earlier transition history is unavailable for this demo booking.',
+                  style: TextStyle(fontSize: 12, color: sem.textSecondary),
+                )
+              : Column(
+                  children: [
+                    for (var i = history.length - 1; i >= 0; i--) ...[
+                      if (i < history.length - 1)
+                        Divider(height: 22, color: sem.border),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.history,
+                              size: 18, color: sem.textSecondary),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  history[i].previousStatus == null
+                                      ? history[i].newStatus.label
+                                      : '${history[i].previousStatus!.label} → ${history[i].newStatus.label}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: sem.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${history[i].changedBy} · ${DateFormat('d MMM y, HH:mm').format(history[i].changedAt)}',
+                                  style: TextStyle(
+                                      fontSize: 11, color: sem.textSecondary),
+                                ),
+                                if (history[i].reason?.isNotEmpty ?? false)
+                                  Text(
+                                    history[i].reason!,
+                                    style: TextStyle(
+                                        fontSize: 11, color: sem.textSecondary),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
 }
 
 // ====================================================================
@@ -606,8 +709,9 @@ class _SectionHeader extends StatelessWidget {
 // ====================================================================
 
 class _LifecycleStepper extends StatelessWidget {
-  const _LifecycleStepper({required this.booking});
+  const _LifecycleStepper({required this.booking, required this.history});
   final DemoBooking booking;
+  final List<BookingStatusChange> history;
 
   static const _steps = <(String, BookingStatus, IconData)>[
     ('Pending', BookingStatus.pending, Icons.assignment_outlined),
@@ -634,6 +738,9 @@ class _LifecycleStepper extends StatelessWidget {
     final currentIdx = _indexOf(booking.status);
     final isAlternativeTerminal = booking.status == BookingStatus.cancelled ||
         booking.status == BookingStatus.declined;
+    final wasAccepted = history.any(
+      (event) => event.previousStatus == BookingStatus.accepted,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -646,7 +753,14 @@ class _LifecycleStepper extends StatelessWidget {
                 _StepRow(
                   icon: _steps[i].$3,
                   label: _steps[i].$1,
-                  state: _stepState(i, currentIdx),
+                  state: isAlternativeTerminal
+                      ? (i == 0 ||
+                              (i == 1 &&
+                                  booking.status == BookingStatus.cancelled &&
+                                  wasAccepted)
+                          ? _StepState.completed
+                          : _StepState.pending)
+                      : _stepState(i, currentIdx),
                 ),
                 if (i < _steps.length - 1)
                   _StepConnector(
@@ -654,8 +768,7 @@ class _LifecycleStepper extends StatelessWidget {
                     interrupted: false,
                   ),
               ],
-              if (isAlternativeTerminal)
-                _TerminalBanner(status: booking.status),
+              if (isAlternativeTerminal) _TerminalBanner(booking: booking),
             ],
           ),
         ),
@@ -725,8 +838,8 @@ class _StepRow extends StatelessWidget {
                       ? FontWeight.w700
                       : FontWeight.w600,
                   color: state == _StepState.pending
-                      ? const Color(0xFF9CA3AF)
-                      : const Color(0xFF111827),
+                      ? SemanticColors.of(context).textTertiary
+                      : SemanticColors.of(context).textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
@@ -777,19 +890,19 @@ class _StepConnector extends StatelessWidget {
 }
 
 class _TerminalBanner extends StatelessWidget {
-  const _TerminalBanner({required this.status});
-  final BookingStatus status;
+  const _TerminalBanner({required this.booking});
+  final DemoBooking booking;
 
   @override
   Widget build(BuildContext context) {
-    final isCancelled = status == BookingStatus.cancelled;
+    final isCancelled = booking.status == BookingStatus.cancelled;
     final color =
         isCancelled ? const Color(0xFF991B1B) : const Color(0xFFB91C1C);
     final bg = isCancelled ? const Color(0xFFFEE2E2) : const Color(0xFFFEF2F2);
     final icon =
         isCancelled ? Icons.cancel_outlined : Icons.person_off_outlined;
     final text = isCancelled
-        ? 'This Pending request was cancelled by the Property Owner.'
+        ? 'This booking was cancelled${booking.cancellationReason == null ? '.' : ': ${booking.cancellationReason}'}'
         : 'The provider declined this Pending request. Choose another eligible provider if needed.';
     return Container(
       margin: const EdgeInsets.only(top: 12),
@@ -874,13 +987,16 @@ class _ProofCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = highlight ? const Color(0xFF10B981) : const Color(0xFF9CA3AF);
-    final borderColor =
-        highlight ? const Color(0xFF10B981) : const Color(0xFFD1D5DB);
+    final sem = SemanticColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = highlight
+        ? (isDark ? const Color(0xFF7DD6B5) : const Color(0xFF10B981))
+        : sem.textTertiary;
+    final borderColor = highlight ? color : sem.borderStrong;
     return Container(
       height: 140,
       decoration: BoxDecoration(
-        color: hasImage ? const Color(0xFFECFDF5) : Colors.white,
+        color: hasImage ? sem.secondarySurface : sem.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: borderColor,
@@ -898,15 +1014,17 @@ class _ProofCard extends StatelessWidget {
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: highlight
-                              ? [
-                                  const Color(0xFFA7F3D0),
-                                  const Color(0xFFD1FAE5)
-                                ]
-                              : [
-                                  const Color(0xFFE0E7FF),
-                                  const Color(0xFFF3F4F6)
-                                ],
+                          colors: isDark
+                              ? [sem.secondarySurface, sem.surfaceAlt]
+                              : highlight
+                                  ? [
+                                      const Color(0xFFA7F3D0),
+                                      const Color(0xFFD1FAE5)
+                                    ]
+                                  : [
+                                      const Color(0xFFE0E7FF),
+                                      const Color(0xFFF3F4F6)
+                                    ],
                         ),
                       ),
                       child: Stack(
@@ -990,7 +1108,8 @@ class _ProofLabel extends StatelessWidget {
         ),
         Text(
           caption,
-          style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
+          style: TextStyle(
+              fontSize: 10, color: SemanticColors.of(context).textSecondary),
         ),
       ],
     );

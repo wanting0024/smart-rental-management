@@ -5,9 +5,21 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def releaseKeystoreFile = rootProject.file('key.properties')
+def releaseKeystore = new Properties()
+if (releaseKeystoreFile.exists()) {
+    releaseKeystoreFile.withInputStream { releaseKeystore.load(it) }
+    ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].each { field ->
+        if (!releaseKeystore[field]) {
+            throw new GradleException("Missing $field in android/key.properties")
+        }
+    }
+}
+
 android {
     namespace = "com.example.rentalapp.rental_app_demo"
-    compileSdk = 35
+    // Required by the OS-backed auth vault plugin; minSdk remains 23.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -30,11 +42,35 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        release {
+            if (releaseKeystoreFile.exists()) {
+                storeFile file(releaseKeystore['storeFile'])
+                storePassword releaseKeystore['storePassword']
+                keyAlias releaseKeystore['keyAlias']
+                keyPassword releaseKeystore['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            // A debug-signed APK remains available for local release-mode QA.
+            // A Play Store bundle requires the private upload key below.
+            signingConfig = releaseKeystoreFile.exists()
+                ? signingConfigs.release
+                : signingConfigs.debug
+        }
+    }
+}
+
+tasks.matching { it.name == 'bundleRelease' }.configureEach {
+    doFirst {
+        if (!releaseKeystoreFile.exists()) {
+            throw new GradleException(
+                'Android App Bundle requires android/key.properties and a private upload keystore. '
+                + 'Do not publish a debug-signed build.'
+            )
         }
     }
 }

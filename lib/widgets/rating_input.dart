@@ -16,6 +16,8 @@ class RatingInput extends StatefulWidget {
     this.initialComment,
     this.onSubmit,
     this.compact = false,
+    this.busy = false,
+    this.onChanged,
   });
 
   /// Pre-fill the rating (e.g., when re-rendering after submission).
@@ -30,6 +32,8 @@ class RatingInput extends StatefulWidget {
 
   /// Use a smaller visual size (e.g., for embedding in a card).
   final bool compact;
+  final bool busy;
+  final VoidCallback? onChanged;
 
   @override
   State<RatingInput> createState() => _RatingInputState();
@@ -49,11 +53,12 @@ class _RatingInputState extends State<RatingInput> {
   @override
   void didUpdateWidget(covariant RatingInput oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialRating != null && widget.initialRating != _rating) {
+    if (widget.initialRating != null &&
+        widget.initialRating != oldWidget.initialRating) {
       _rating = widget.initialRating!;
     }
     if (widget.initialComment != null &&
-        widget.initialComment != _comment.text) {
+        widget.initialComment != oldWidget.initialComment) {
       _comment.text = widget.initialComment!;
     }
   }
@@ -89,7 +94,12 @@ class _RatingInputState extends State<RatingInput> {
                     : const Color(0xFFD1D5DB),
                 size: starSize,
               ),
-              onPressed: () => setState(() => _rating = i + 1),
+              onPressed: widget.busy
+                  ? null
+                  : () {
+                      setState(() => _rating = i + 1);
+                      widget.onChanged?.call();
+                    },
             );
           }),
         ),
@@ -104,7 +114,8 @@ class _RatingInputState extends State<RatingInput> {
         const SizedBox(height: 12),
         TextField(
           controller: _comment,
-          enabled: _rating > 0,
+          onChanged: (_) => widget.onChanged?.call(),
+          enabled: _rating > 0 && !widget.busy,
           maxLines: 3,
           maxLength: 300,
           decoration: const InputDecoration(
@@ -119,7 +130,7 @@ class _RatingInputState extends State<RatingInput> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: canSubmit
+              onPressed: canSubmit && !widget.busy
                   ? () {
                       final text = _comment.text.trim();
                       widget.onSubmit!(
@@ -132,9 +143,11 @@ class _RatingInputState extends State<RatingInput> {
                 minimumSize: const Size(0, 48),
               ),
               child: Text(
-                widget.initialRating != null
-                    ? 'Update rating'
-                    : 'Submit rating',
+                widget.busy
+                    ? 'Saving rating…'
+                    : widget.initialRating != null
+                        ? 'Update rating'
+                        : 'Submit rating',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),

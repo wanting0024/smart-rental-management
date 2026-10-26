@@ -1,0 +1,5 @@
+[
+  {"test_table":"_security_probe_ctas_20261023","rls_enabled":true,"anon_select":false,"anon_insert":false,"anon_update":false,"anon_delete":false,"authenticated_select":false,"authenticated_insert":false,"authenticated_update":false,"authenticated_delete":false,"residual_anon_truncate":true},
+  {"test_table":"_security_probe_plain_20261023","rls_enabled":true,"anon_select":false,"anon_insert":false,"anon_update":false,"anon_delete":false,"authenticated_select":false,"authenticated_insert":false,"authenticated_update":false,"authenticated_delete":false,"residual_anon_truncate":true},
+  {"test_table":"_security_probe_selectinto_20261023","rls_enabled":true,"anon_select":false,"anon_insert":false,"anon_update":false,"anon_delete":false,"authenticated_select":false,"authenticated_insert":false,"authenticated_update":false,"authenticated_delete":false,"residual_anon_truncate":true}
+]

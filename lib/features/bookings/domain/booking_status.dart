@@ -6,6 +6,7 @@
 /// Alternative terminal paths:
 /// Pending -> Declined
 /// Pending -> Cancelled
+/// Accepted -> Cancelled (before work starts, with a reason)
 enum BookingStatus {
   pending,
   accepted,
@@ -14,6 +15,8 @@ enum BookingStatus {
   declined,
   cancelled,
 }
+
+enum BookingActor { owner, provider }
 
 extension BookingStatusX on BookingStatus {
   String get label => switch (this) {
@@ -46,7 +49,10 @@ abstract final class BookingLifecycle {
       BookingStatus.declined,
       BookingStatus.cancelled,
     },
-    BookingStatus.accepted: {BookingStatus.inProgress},
+    BookingStatus.accepted: {
+      BookingStatus.inProgress,
+      BookingStatus.cancelled,
+    },
     BookingStatus.inProgress: {BookingStatus.completed},
     BookingStatus.completed: {},
     BookingStatus.declined: {},
@@ -55,4 +61,8 @@ abstract final class BookingLifecycle {
 
   static bool canTransition(BookingStatus from, BookingStatus to) =>
       permittedTransitions[from]!.contains(to);
+
+  static bool canCancel(BookingStatus status, BookingActor actor) =>
+      (status == BookingStatus.pending && actor == BookingActor.owner) ||
+      status == BookingStatus.accepted;
 }

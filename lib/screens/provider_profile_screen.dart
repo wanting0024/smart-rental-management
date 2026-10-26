@@ -15,36 +15,74 @@ import 'package:flutter/material.dart';
 import '../models/demo_data.dart';
 import '../theme/app_theme.dart';
 import '../widgets/section_header.dart';
+import '../services/backend/provider_profile_snapshot.dart';
 
 class ProviderProfileScreen extends StatelessWidget {
   const ProviderProfileScreen(
-      {super.key, required this.provider, this.heroColor});
+      {super.key,
+      required this.provider,
+      this.heroColor,
+      this.onSelect,
+      this.snapshot,
+      this.onEdit,
+      this.onRefresh,
+      this.onManageAvailability,
+      this.refreshNotice,
+      this.bottomNavigationBar});
   final DemoProvider provider;
   final Color? heroColor;
+  final VoidCallback? onSelect;
+  final ProviderProfileSnapshot? snapshot;
+  final VoidCallback? onEdit, onRefresh, onManageAvailability;
+  final Widget? bottomNavigationBar;
+  final Widget? refreshNotice;
+  bool get connected => snapshot != null;
 
   @override
   Widget build(BuildContext context) {
-    final heroColorFinal = heroColor ?? AppColors.primary;
+    final heroColorFinal = heroColor ??
+        (Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF244966)
+            : AppColors.primary);
     return Scaffold(
+      bottomNavigationBar: bottomNavigationBar,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 200,
+            expandedHeight: (connected ? 280 : 200) +
+                (MediaQuery.textScalerOf(context).scale(1) - 1) * 260,
             pinned: true,
             backgroundColor: heroColorFinal,
             foregroundColor: Colors.white,
+            actions: connected
+                ? [
+                    IconButton(
+                        onPressed: onRefresh,
+                        tooltip: 'Refresh profile',
+                        icon: const Icon(Icons.refresh)),
+                    IconButton(
+                        onPressed: onEdit,
+                        tooltip: 'Edit profile',
+                        icon: const Icon(Icons.edit_outlined)),
+                  ]
+                : null,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [heroColorFinal, heroColorFinal.withOpacity(0.7)],
+                    colors: Theme.of(context).brightness == Brightness.dark &&
+                            heroColor == null
+                        ? AppTheme.darkHeroGradient.colors
+                        : [heroColorFinal, heroColorFinal.withOpacity(0.7)],
                   ),
                 ),
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 56),
+                    padding: connected
+                        ? const EdgeInsets.fromLTRB(20, 64, 20, 20)
+                        : const EdgeInsets.fromLTRB(20, 16, 20, 56),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -54,7 +92,16 @@ class ProviderProfileScreen extends StatelessWidget {
                               width: 56,
                               height: 56,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: connected
+                                    ? const [
+                                        AppColors.primary,
+                                        AppColors.secondary,
+                                        Color(0xFF6366F1),
+                                        Color(0xFFFB8C00),
+                                        Color(0xFFEF4444),
+                                        Color(0xFF8B5CF6)
+                                      ][snapshot!.avatar]
+                                    : Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(28),
                                 border: Border.all(
                                   color: Colors.white.withOpacity(0.4),
@@ -78,7 +125,11 @@ class ProviderProfileScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    provider.name,
+                                    provider.name.isEmpty && connected
+                                        ? 'Your provider profile'
+                                        : provider.name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 22,
@@ -88,33 +139,55 @@ class ProviderProfileScreen extends StatelessWidget {
                                   const SizedBox(height: 2),
                                   Text(
                                     'Cleaning Service Provider',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.85),
                                       fontSize: 13,
                                     ),
                                   ),
+                                  if (connected) ...[
+                                    const SizedBox(height: 6),
+                                    Text(snapshot!.approvalLabel,
+                                        style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12)),
+                                  ],
                                 ],
                               ),
                             ),
-                            // PP2: themed success pill
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.success,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'Online',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                            // PP2: quiet online indicator shared with Inbox
+                            if (!connected)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.14),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.pill),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.circle,
+                                        color: connected
+                                            ? Colors.white70
+                                            : AppColors.onlineDot,
+                                        size: 7),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                        connected
+                                            ? snapshot!.approvalLabel
+                                            : 'Online',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600)),
+                                  ],
                                 ),
                               ),
-                            ),
                           ],
                         ),
                         const Spacer(),
@@ -122,26 +195,41 @@ class ProviderProfileScreen extends StatelessWidget {
                           children: [
                             _heroStat(
                               label: 'Rating',
-                              value: provider.rating.toStringAsFixed(1),
+                              value: connected
+                                  ? (snapshot!.rating?.toStringAsFixed(1) ??
+                                      '—')
+                                  : provider.rating.toStringAsFixed(1),
                               sub: '/ 5.0',
                             ),
                             const SizedBox(width: 12),
                             _heroStat(
-                              label: 'Distance',
-                              value: provider.distanceKm.toStringAsFixed(1),
-                              sub: 'km away',
+                              label: connected ? 'Jobs done' : 'Distance',
+                              value: connected
+                                  ? '${snapshot!.completed}'
+                                  : provider.distanceKm.toStringAsFixed(1),
+                              sub: connected ? 'completed' : 'km away',
                             ),
                             const SizedBox(width: 12),
                             _heroStat(
                               label: provider.hasRankingBreakdown
                                   ? 'Match'
                                   : 'Rate',
-                              value: provider.hasRankingBreakdown
-                                  ? '${(provider.score * 100).round()}%'
-                                  : 'RM ${provider.hourlyRate.toStringAsFixed(0)}',
-                              sub: provider.hasRankingBreakdown
-                                  ? 'request score'
-                                  : '/ hour',
+                              value: connected
+                                  ? (snapshot!.hourly != null
+                                      ? 'RM ${snapshot!.hourly!.toStringAsFixed(2)}'
+                                      : snapshot!.daily != null
+                                          ? 'RM ${snapshot!.daily!.toStringAsFixed(2)}'
+                                          : '—')
+                                  : provider.hasRankingBreakdown
+                                      ? '${(provider.score * 100).round()}%'
+                                      : 'RM ${provider.hourlyRate.toStringAsFixed(0)}',
+                              sub: connected
+                                  ? (snapshot!.hourly != null
+                                      ? '/ hour'
+                                      : '/ 8 hours')
+                                  : provider.hasRankingBreakdown
+                                      ? 'request score'
+                                      : '/ hour',
                               highlight: provider.hasRankingBreakdown,
                             ),
                           ],
@@ -153,6 +241,11 @@ class ProviderProfileScreen extends StatelessWidget {
               ),
             ),
           ),
+          if (refreshNotice != null)
+            SliverToBoxAdapter(
+                child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: refreshNotice)),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -173,36 +266,38 @@ class ProviderProfileScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content:
-                                    Text('Message provider · Sprint 1 feature'),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.chat_bubble_outline, size: 16),
-                          label: const Text('Message'),
+                          onPressed: connected
+                              ? onManageAvailability
+                              : () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Message provider · Sprint 1 feature'),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                          icon: Icon(
+                              connected
+                                  ? Icons.schedule
+                                  : Icons.chat_bubble_outline,
+                              size: 16),
+                          label: Text(connected ? 'Availability' : 'Message'),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content:
-                                    Text('${provider.name} assigned (demo)'),
-                                backgroundColor: AppColors.success,
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.check, size: 16),
-                          label: const Text('Assign to job'),
+                      if (onSelect != null || connected) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: connected ? onEdit : onSelect,
+                            icon: Icon(
+                                connected ? Icons.edit_outlined : Icons.check,
+                                size: 16),
+                            label: Text(
+                                connected ? 'Edit profile' : 'Select provider'),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -250,14 +345,18 @@ class ProviderProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: highlight ? AppColors.primary : Colors.white,
-              ),
-            ),
+            FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: highlight ? AppColors.primary : Colors.white,
+                  ),
+                )),
             Text(
               sub,
               style: TextStyle(
@@ -275,6 +374,31 @@ class ProviderProfileScreen extends StatelessWidget {
 
   Widget _buildMatchCard(BuildContext context) {
     final sem = SemanticColors.of(context);
+    if (connected)
+      return Card(
+          child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SectionHeader(title: 'About your service'),
+                    const SizedBox(height: 12),
+                    Text(
+                        snapshot!.bio.isEmpty
+                            ? 'No introduction added yet.'
+                            : snapshot!.bio,
+                        style: TextStyle(color: sem.textPrimary)),
+                    const SizedBox(height: 12),
+                    Text('Service area: ${snapshot!.area}',
+                        style: TextStyle(color: sem.textSecondary)),
+                    const SizedBox(height: 8),
+                    Text(
+                        'Hourly: ${snapshot!.hourly == null ? 'Not offered' : 'RM ${snapshot!.hourly!.toStringAsFixed(2)} / hour'}',
+                        style: TextStyle(color: sem.textSecondary)),
+                    Text(
+                        'Daily: ${snapshot!.daily == null ? 'Not offered' : 'RM ${snapshot!.daily!.toStringAsFixed(2)} / 8 hours'}',
+                        style: TextStyle(color: sem.textSecondary)),
+                  ])));
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -291,10 +415,10 @@ class ProviderProfileScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
+                color: AppColors.positive.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.success.withOpacity(0.3),
+                  color: AppColors.positive.withOpacity(0.24),
                 ),
               ),
               child: Row(
@@ -302,7 +426,7 @@ class ProviderProfileScreen extends StatelessWidget {
                   const Icon(
                     Icons.verified_outlined,
                     size: 16,
-                    color: AppColors.success,
+                    color: AppColors.positive,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -310,9 +434,11 @@ class ProviderProfileScreen extends StatelessWidget {
                       provider.hasRankingBreakdown
                           ? 'Passed service, full-interval availability, rental-window, and conflict checks.'
                           : 'Eligibility is checked when an owner submits a service request.',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.success,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF7DD6B5)
+                            : AppColors.positive,
                         height: 1.3,
                       ),
                     ),
@@ -326,7 +452,7 @@ class ProviderProfileScreen extends StatelessWidget {
                 'Distance',
                 provider.distanceSuitability,
                 '1/3 weight',
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
                 sem: sem,
               ),
               const SizedBox(height: 8),
@@ -334,7 +460,7 @@ class ProviderProfileScreen extends StatelessWidget {
                 'Rating',
                 provider.ratingSuitability,
                 '1/3 weight',
-                color: AppColors.secondary,
+                color: Theme.of(context).colorScheme.secondary,
                 sem: sem,
               ),
               const SizedBox(height: 8),
@@ -342,7 +468,7 @@ class ProviderProfileScreen extends StatelessWidget {
                 'Workload',
                 provider.workloadSuitability,
                 '1/3 weight',
-                color: AppColors.warning,
+                color: Theme.of(context).colorScheme.primary,
                 sem: sem,
               ),
             ],
@@ -406,14 +532,24 @@ class ProviderProfileScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                _statTile('128', 'Jobs done', Icons.check_circle_outline,
-                    AppColors.success, sem),
+                _statTile(
+                    connected ? '${snapshot!.completed}' : '128',
+                    'Jobs done',
+                    Icons.check_circle_outline,
+                    Theme.of(context).colorScheme.primary,
+                    sem),
                 const SizedBox(width: 8),
                 _statTile(
-                    '4.8', 'Avg rating', Icons.star, AppColors.warning, sem),
+                    connected
+                        ? (snapshot!.rating?.toStringAsFixed(1) ?? '—')
+                        : '4.8',
+                    'Avg rating',
+                    Icons.star,
+                    Theme.of(context).colorScheme.secondary,
+                    sem),
                 const SizedBox(width: 8),
-                _statTile('96%', 'On time', Icons.access_time,
-                    AppColors.primary, sem),
+                _statTile(connected ? '—' : '96%', 'On time', Icons.access_time,
+                    Theme.of(context).colorScheme.primary, sem),
               ],
             ),
           ],
@@ -458,14 +594,18 @@ class ProviderProfileScreen extends StatelessWidget {
 
   // PP5: themed service chip
   Widget _buildServicesCard(BuildContext context) {
+    final sem = SemanticColors.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionHeader(
-                title: 'Services offered', subtitle: 'Tap to filter jobs'),
+            SectionHeader(
+                title: 'Services offered',
+                subtitle: connected
+                    ? 'Saved cleaning capabilities'
+                    : 'Tap to filter jobs'),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -475,32 +615,35 @@ class ProviderProfileScreen extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.primarySurface,
+                    color: sem.primarySurface,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.primaryBorder),
+                    border: Border.all(color: sem.primaryBorder),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.cleaning_services,
                         size: 12,
-                        color: AppColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(width: 4),
-                      Text(
+                      Flexible(
+                          child: Text(
                         _serviceLabel(s),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.primaryDark,
+                          color: sem.textPrimary,
                         ),
-                      ),
+                      )),
                     ],
                   ),
                 );
               }).toList(),
             ),
+            if (connected && provider.serviceTypes.isEmpty)
+              const Text('No services selected yet.'),
           ],
         ),
       ),
@@ -509,6 +652,28 @@ class ProviderProfileScreen extends StatelessWidget {
 
   Widget _buildWorkloadCard(BuildContext context) {
     final sem = SemanticColors.of(context);
+    if (connected)
+      return Card(
+          child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SectionHeader(title: 'Current workload'),
+                    const SizedBox(height: 12),
+                    Text(
+                        '${snapshot!.active} accepted or in-progress jobs overlap the next 7 days.',
+                        style: TextStyle(color: sem.textPrimary)),
+                    const SizedBox(height: 8),
+                    Text('Working hours (MYT)',
+                        style: TextStyle(color: sem.textSecondary)),
+                    const SizedBox(height: 8),
+                    Text(snapshot!.weeklySummary,
+                        style: TextStyle(color: sem.textPrimary, height: 1.5)),
+                    const SizedBox(height: 8),
+                    Text('On-time performance is not measured yet.',
+                        style: TextStyle(color: sem.textSecondary)),
+                  ])));
     // PP4: themed workload color
     final color = provider.workload == 'Low'
         ? AppColors.success
@@ -579,6 +744,24 @@ class ProviderProfileScreen extends StatelessWidget {
 
   // PP6 + PP7: themed contact rows + phone privacy
   Widget _buildContactCard(BuildContext context) {
+    if (connected)
+      return Card(
+          child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SectionHeader(title: 'Contact'),
+                    const SizedBox(height: 12),
+                    _contactRow(Icons.phone, 'Your phone',
+                        snapshot!.contact ?? 'Not provided'),
+                    const Divider(height: 16),
+                    _contactRow(Icons.email, 'Sign-in email', snapshot!.email),
+                    const SizedBox(height: 12),
+                    Text(snapshot!.sharePhone
+                        ? 'Phone sharing is enabled for owners of Accepted or In Progress bookings.'
+                        : 'Phone sharing is off. Your own number remains visible here.'),
+                  ])));
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -622,10 +805,11 @@ class ProviderProfileScreen extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.primarySurface,
+              color: sem.primarySurface,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 16, color: AppColors.primary),
+            child:
+                Icon(icon, size: 16, color: Theme.of(ctx).colorScheme.primary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -647,21 +831,22 @@ class ProviderProfileScreen extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            icon: Icon(
-              Icons.arrow_forward_ios,
-              size: 12,
-              color: sem.textTertiary,
+          if (!connected)
+            IconButton(
+              icon: Icon(
+                Icons.arrow_forward_ios,
+                size: 12,
+                color: sem.textTertiary,
+              ),
+              onPressed: () {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(
+                    content: Text('$label tapped · Sprint 1 will open dialer'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
             ),
-            onPressed: () {
-              ScaffoldMessenger.of(ctx).showSnackBar(
-                SnackBar(
-                  content: Text('$label tapped · Sprint 1 will open dialer'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-          ),
         ],
       );
     });

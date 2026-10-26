@@ -1,9 +1,11 @@
-﻿// lib/widgets/app_drawer.dart
+// lib/widgets/app_drawer.dart
 // App-wide drawer with profile header, primary nav, theme switch, and footer for sign-out.
 
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
+import '../services/user_session.dart';
+import 'message_unread_scope.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key, required this.role, required this.onNavigate});
@@ -17,7 +19,7 @@ class AppDrawer extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            _buildHeader(context),
             const Divider(height: 1, thickness: 1),
             Expanded(child: _buildNavList(context)),
             const Divider(height: 1, thickness: 1),
@@ -28,33 +30,44 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     final isOwner = role == 'Owner';
+    final connected = AppProviders.of(context).backend != null;
+    final session = connected ? UserSessionAccess.of(context) : null;
+    final name = connected
+        ? session!.displayName
+        : isOwner
+            ? 'Oh Wan Ting'
+            : 'Provider A';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primaryLight],
-        ),
-      ),
+      decoration: BoxDecoration(gradient: AppTheme.heroGradient(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 48, height: 48,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Center(
                   child: Text(
-                    isOwner ? 'OW' : 'PA',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                    connected
+                        ? (name.isEmpty
+                            ? '?'
+                            : name.substring(0, 1).toUpperCase())
+                        : isOwner
+                            ? 'OW'
+                            : 'PA',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16),
                   ),
                 ),
               ),
@@ -64,15 +77,23 @@ class AppDrawer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isOwner ? 'Oh Wan Ting' : 'Provider A',
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+                      name,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isOwner ? 'Owner - Menara Suria' : 'Cleaning Service Provider',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      connected
+                          ? (isOwner ? 'Property Owner' : 'Service Provider')
+                          : isOwner
+                              ? 'Owner - Menara Suria'
+                              : 'Cleaning Service Provider',
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -92,14 +113,26 @@ class AppDrawer extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 6, height: 6,
-                  decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFF10B981), shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  isOwner ? '5 properties managed' : 'Online - accepting jobs',
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-                ),
+                Flexible(
+                    child: Text(
+                  connected
+                      ? 'Signed-in account'
+                      : isOwner
+                          ? '5 properties managed'
+                          : 'Online - accepting jobs',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                )),
               ],
             ),
           ),
@@ -137,8 +170,12 @@ class AppDrawer extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: items.map((it) {
         return ListTile(
-          leading: Icon(it.$2, size: 20, color: sem.textPrimary),
-          title: Text(it.$3, style: TextStyle(fontSize: 14, color: sem.textPrimary)),
+          leading: it.$1 == 'messages'
+              ? MessageUnreadBadge(
+                  child: Icon(it.$2, size: 20, color: sem.textPrimary))
+              : Icon(it.$2, size: 20, color: sem.textPrimary),
+          title: Text(it.$3,
+              style: TextStyle(fontSize: 14, color: sem.textPrimary)),
           onTap: () {
             Navigator.of(context).pop();
             onNavigate(it.$1);
@@ -150,6 +187,7 @@ class AppDrawer extends StatelessWidget {
 
   Widget _buildFooter(BuildContext context) {
     final sem = SemanticColors.of(context);
+    final backend = AppProviders.of(context).backend;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Column(
@@ -169,26 +207,36 @@ class AppDrawer extends StatelessWidget {
               trailing: Switch(
                 value: isDark,
                 onChanged: (_) => AppProviders.of(ctx).onToggleTheme(),
-                activeColor: AppColors.primaryLight,
+                activeColor: Theme.of(context).colorScheme.secondary,
               ),
               onTap: () => AppProviders.of(ctx).onToggleTheme(),
               dense: true,
             );
           }),
+          if (backend == null)
+            ListTile(
+              leading:
+                  Icon(Icons.swap_horiz, size: 20, color: sem.textSecondary),
+              title: Text('Switch role',
+                  style: TextStyle(fontSize: 14, color: sem.textPrimary)),
+              onTap: () {
+                Navigator.of(context).pop();
+                onNavigate('switch-role');
+              },
+              dense: true,
+            ),
           ListTile(
-            leading: const Icon(Icons.swap_horiz, size: 20, color: Color(0xFF6B7280)),
-            title: Text('Switch role', style: TextStyle(fontSize: 14, color: sem.textPrimary)),
+            leading: Icon(Icons.logout,
+                size: 20, color: Theme.of(context).colorScheme.error),
+            title: Text('Sign out',
+                style: TextStyle(
+                    fontSize: 14, color: Theme.of(context).colorScheme.error)),
             onTap: () {
               Navigator.of(context).pop();
-              onNavigate('switch-role');
-            },
-            dense: true,
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout, size: 20, color: Color(0xFFEF4444)),
-            title: const Text('Sign out', style: TextStyle(fontSize: 14, color: Color(0xFFEF4444))),
-            onTap: () {
-              Navigator.of(context).pop();
+              if (backend != null) {
+                onNavigate('sign-out');
+                return;
+              }
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Sign out - Sprint 0 placeholder'),
@@ -200,7 +248,9 @@ class AppDrawer extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Smart Rental v0.1.0 - Sprint 0',
+            backend != null
+                ? 'Smart Rental · Connected workspace'
+                : 'Smart Rental v0.1.0 - Sprint 0',
             style: TextStyle(fontSize: 11, color: sem.textTertiary),
           ),
         ],

@@ -56,9 +56,34 @@ void main() {
       });
     });
 
-    test('normal path is Accepted to In Progress to Completed', () {
-      expect(_next(BookingStatus.accepted), {BookingStatus.inProgress});
+    test('Accepted may start work or be cancelled before work starts', () {
+      expect(_next(BookingStatus.accepted), {
+        BookingStatus.inProgress,
+        BookingStatus.cancelled,
+      });
       expect(_next(BookingStatus.inProgress), {BookingStatus.completed});
+    });
+
+    test('cancellation actor rules are explicit', () {
+      expect(
+          BookingLifecycle.canCancel(BookingStatus.pending, BookingActor.owner),
+          isTrue);
+      expect(
+          BookingLifecycle.canCancel(
+              BookingStatus.pending, BookingActor.provider),
+          isFalse);
+      expect(
+          BookingLifecycle.canCancel(
+              BookingStatus.accepted, BookingActor.owner),
+          isTrue);
+      expect(
+          BookingLifecycle.canCancel(
+              BookingStatus.accepted, BookingActor.provider),
+          isTrue);
+      expect(
+          BookingLifecycle.canCancel(
+              BookingStatus.inProgress, BookingActor.owner),
+          isFalse);
     });
 
     test('all terminal states have no outgoing transition', () {

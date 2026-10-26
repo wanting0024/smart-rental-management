@@ -11,6 +11,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../main.dart';
 import '../models/demo_data.dart';
 import '../theme/app_theme.dart';
 import '../widgets/booking_card.dart';
@@ -19,15 +20,77 @@ import '../widgets/section_header.dart';
 import '../widgets/status_chip.dart';
 import 'booking_detail_screen.dart';
 import 'new_booking_screen.dart';
+import 'property_form_screen.dart';
 
-class PropertyDetailScreen extends StatelessWidget {
+class PropertyDetailScreen extends StatefulWidget {
   const PropertyDetailScreen(
-      {super.key, required this.property, required this.bookings});
+      {super.key,
+      required this.property,
+      required this.bookings,
+      this.connected = false,
+      this.onEditConnected,
+      this.onRequestConnected,
+      this.onOpenBookingConnected,
+      this.footer,
+      this.totalBookings,
+      this.onRefreshConnected});
   final DemoProperty property;
   final List<DemoBooking> bookings;
+  final bool connected;
+  final VoidCallback? onEditConnected, onRequestConnected;
+  final ValueChanged<String>? onOpenBookingConnected;
+  final Widget? footer;
+  final int? totalBookings;
+  final Future<void> Function()? onRefreshConnected;
+
+  @override
+  State<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
+}
+
+class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
+  late DemoProperty property;
+  List<DemoBooking> get bookings => widget.connected
+      ? widget.bookings
+      : AppProviders.of(context).bookingStore.forProperty(property.display);
+
+  @override
+  void initState() {
+    super.initState();
+    property = widget.property;
+  }
+
+  Future<void> _editProperty() async {
+    if (widget.onEditConnected != null) {
+      widget.onEditConnected!();
+      return;
+    }
+    final app = AppProviders.of(context);
+    final updated = await Navigator.of(context).push<DemoProperty>(
+      MaterialPageRoute(
+        builder: (_) => PropertyFormScreen(
+          store: app.propertyStore,
+          bookings: app.bookingStore.bookings,
+          initial: property,
+        ),
+      ),
+    );
+    if (updated != null && mounted) setState(() => property = updated);
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.connected) {
+      property = widget.property;
+      return _buildPage(context);
+    }
+    final store = AppProviders.of(context).bookingStore;
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) => _buildPage(context),
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
     final sem = SemanticColors.of(context);
     final upcoming = bookings
         .where((b) =>
@@ -51,101 +114,117 @@ class PropertyDetailScreen extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.edit, color: sem.textSecondary),
             tooltip: 'Edit property',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Edit property · Sprint 1 feature'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
+            onPressed: _editProperty,
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 16),
-          const SectionHeader(
-            title: 'Upcoming bookings',
-            subtitle: 'Pending, accepted, or in progress',
-          ),
-          const SizedBox(height: 8),
-          if (upcoming.isEmpty)
-            const EmptyState(
-              icon: Icons.event_available,
-              title: 'No upcoming cleanings',
-              subtitle: 'Use the button below to schedule a cleaning.',
-            )
-          else
-            ...upcoming.map((b) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: BookingCard(
-                    booking: b,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => BookingDetailScreen(booking: b),
+      body: RefreshIndicator(
+          onRefresh: widget.onRefreshConnected ?? () async {},
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            children: [
+              _buildHeader(),
+              if (widget.connected)
+                Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                        '${bookings.length} bookings shown · Newest requests first')),
+              const SizedBox(height: 16),
+              SectionHeader(
+                title: 'Upcoming bookings',
+                subtitle: widget.connected
+                    ? 'Pending, accepted, or in progress · Bookings shown below'
+                    : 'Pending, accepted, or in progress',
+              ),
+              const SizedBox(height: 8),
+              if (upcoming.isEmpty)
+                EmptyState(
+                  icon: Icons.event_available,
+                  title: widget.connected
+                      ? 'No upcoming cleanings among the bookings shown'
+                      : 'No upcoming cleanings',
+                  subtitle: 'Use the button below to schedule a cleaning.',
+                )
+              else
+                ...upcoming.map((b) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: BookingCard(
+                        booking: b,
+                        onTap: () => widget.onOpenBookingConnected != null
+                            ? widget.onOpenBookingConnected!(b.id)
+                            : Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      BookingDetailScreen(booking: b),
+                                ),
+                              ),
                       ),
-                    ),
-                  ),
-                )),
-          const SizedBox(height: 16),
-          const SectionHeader(title: 'Booking history'),
-          const SizedBox(height: 8),
-          if (past.isEmpty)
-            const EmptyState(
-              icon: Icons.history,
-              title: 'No past bookings',
-              subtitle: 'Completed, declined, or cancelled jobs appear here.',
-            )
-          else
-            ...past.map((b) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Card(
-                    child: ListTile(
-                      leading: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: b.status.color.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.history,
-                          size: 18,
-                          color: b.status.color,
+                    )),
+              const SizedBox(height: 16),
+              SectionHeader(
+                  title: widget.connected
+                      ? 'Booking history · Bookings shown below'
+                      : 'Booking history'),
+              const SizedBox(height: 8),
+              if (past.isEmpty)
+                const EmptyState(
+                  icon: Icons.history,
+                  title: 'No past bookings',
+                  subtitle:
+                      'Completed, declined, or cancelled jobs appear here.',
+                )
+              else
+                ...past.map((b) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Card(
+                        child: ListTile(
+                          leading: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: b.status.color.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.history,
+                              size: 18,
+                              color: b.status.color,
+                            ),
+                          ),
+                          // PD3: intl date format
+                          title: Text(
+                            b.serviceType,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: sem.textPrimary,
+                            ),
+                          ),
+                          subtitle: Text(
+                            DateFormat('d MMM y').format(b.scheduledStart),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: sem.textSecondary,
+                            ),
+                          ),
+                          trailing: StatusChip(status: b.status),
+                          onTap: () => widget.onOpenBookingConnected != null
+                              ? widget.onOpenBookingConnected!(b.id)
+                              : Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        BookingDetailScreen(booking: b),
+                                  ),
+                                ),
                         ),
                       ),
-                      // PD3: intl date format
-                      title: Text(
-                        b.serviceType,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: sem.textPrimary,
-                        ),
-                      ),
-                      subtitle: Text(
-                        DateFormat('d MMM y').format(b.scheduledStart),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: sem.textSecondary,
-                        ),
-                      ),
-                      trailing: StatusChip(status: b.status),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => BookingDetailScreen(booking: b),
-                        ),
-                      ),
-                    ),
-                  ),
-                )),
-          const SizedBox(height: 24),
-        ],
-      ),
+                    )),
+              const SizedBox(height: 24),
+              if (widget.footer != null) widget.footer!,
+            ],
+          )),
       // PD4: sticky CTA
       bottomNavigationBar: SafeArea(
         top: false,
@@ -157,6 +236,10 @@ class PropertyDetailScreen extends StatelessWidget {
           ),
           child: FilledButton.icon(
             onPressed: () async {
+              if (widget.onRequestConnected != null) {
+                widget.onRequestConnected!();
+                return;
+              }
               final created = await Navigator.of(context).push<DemoBooking>(
                 MaterialPageRoute(builder: (_) => const NewBookingScreen()),
               );
@@ -233,17 +316,32 @@ class PropertyDetailScreen extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Text(
+            property.address.isEmpty
+                ? 'Address not recorded'
+                : property.address,
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Cleaning window: ${property.cleaningWindowStart.format(context)}–${property.cleaningWindowEnd.format(context)}',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
-              _statBlock('Total bookings', '${bookings.length}'),
+              _statBlock('Total bookings',
+                  '${widget.totalBookings ?? bookings.length}'),
               const SizedBox(width: 8),
               _statBlock(
                 'Last cleaned',
-                bookings.isEmpty
-                    ? '-'
-                    : DateFormat('d MMM y')
-                        .format(bookings.first.scheduledStart),
+                widget.connected
+                    ? 'Not available'
+                    : bookings.isEmpty
+                        ? '-'
+                        : DateFormat('d MMM y')
+                            .format(bookings.first.scheduledStart),
               ),
             ],
           ),

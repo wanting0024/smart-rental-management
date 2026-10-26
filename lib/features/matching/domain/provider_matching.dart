@@ -167,15 +167,8 @@ class ProviderMatchingService {
     DemoProvider provider,
     ProviderMatchRequest request,
   ) {
-    if (provider.availability != 'Full match') return false;
-    if (!_sameDate(request.requestedStart, request.requestedEnd)) return false;
-    final requestedStart = _minutesSinceMidnight(request.requestedStart);
-    final requestedEnd = _minutesSinceMidnight(request.requestedEnd);
-    final providerStart = provider.workingHoursStart.hour * 60 +
-        provider.workingHoursStart.minute;
-    final providerEnd =
-        provider.workingHoursEnd.hour * 60 + provider.workingHoursEnd.minute;
-    return requestedStart >= providerStart && requestedEnd <= providerEnd;
+    return provider.availabilitySchedule
+        .covers(request.requestedStart, request.requestedEnd);
   }
 
   bool _hasActiveBookingConflict(
@@ -247,10 +240,4 @@ class ProviderMatchingService {
     if (byWorkload != 0) return byWorkload;
     return a.name.compareTo(b.name);
   }
-
-  static bool _sameDate(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
-  static int _minutesSinceMidnight(DateTime value) =>
-      value.hour * 60 + value.minute;
 }

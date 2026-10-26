@@ -13,6 +13,9 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
+import '../services/backend/notification_binding.dart';
+import '../services/backend/notification_snapshot.dart';
+import '../widgets/snapshot_refresh_notice.dart';
 
 class NotificationItem {
   const NotificationItem({
@@ -24,6 +27,7 @@ class NotificationItem {
     required this.color,
     this.read = false,
     this.actionable = false,
+    this.bookingId,
   });
   final String id;
   final IconData icon;
@@ -33,11 +37,15 @@ class NotificationItem {
   final Color color;
   final bool read;
   final bool actionable;
+  final String? bookingId;
 }
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key, this.role = 'Owner'});
+  const NotificationsScreen(
+      {super.key, this.role = 'Owner', this.binding, this.onOpenBooking});
   final String role; // 'Owner' or 'Provider'
+  final NotificationBinding? binding;
+  final Future<void> Function(String)? onOpenBooking;
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -46,11 +54,12 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   late List<NotificationItem> _items;
   String _filter = 'all'; // all, unread, action
+  bool _opening = false;
 
   @override
   void initState() {
     super.initState();
-    _items = _seed();
+    _items = widget.binding == null ? _seed() : [];
   }
 
   List<NotificationItem> _seed() {
@@ -167,6 +176,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   List<NotificationItem> get _filtered {
+    if (widget.binding != null)
+      return widget.binding!.snapshot?.items.map(_project).toList() ?? [];
     switch (_filter) {
       case 'unread':
         return _items.where((n) => !n.read).toList();
@@ -177,7 +188,58 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  void _markAllRead() {
+  NotificationItem _project(BookingNotification n) {
+    final (icon, color, title) = switch (n.status) {
+      'Pending' => (
+          Icons.notifications_active,
+          AppColors.statusRequested,
+          widget.role == 'Provider'
+              ? 'New job request'
+              : 'Booking request updated'
+        ),
+      'Accepted' => (
+          Icons.event_available,
+          AppColors.statusAccepted,
+          'Booking accepted'
+        ),
+      'In Progress' => (
+          Icons.play_circle,
+          AppColors.statusInProgress,
+          'Cleaning started'
+        ),
+      'Completed' => (
+          Icons.check_circle,
+          AppColors.statusCompleted,
+          'Booking completed'
+        ),
+      'Declined' => (
+          Icons.cancel_outlined,
+          AppColors.error,
+          'Booking declined'
+        ),
+      _ => (Icons.cancel, AppColors.error, 'Booking cancelled')
+    };
+    return NotificationItem(
+        id: n.id,
+        bookingId: n.bookingId,
+        icon: icon,
+        color: color,
+        title: title,
+        subtitle: '${n.unit}, ${n.building} · ${n.service}',
+        timestamp: n.timestamp,
+        read: n.read,
+        actionable: n.actionable);
+  }
+
+  Future<void> _markAllRead() async {
+    final binding = widget.binding;
+    if (binding != null) {
+      final saved = await binding.read(all: true);
+      if (mounted && saved)
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Current notifications marked as read')));
+      return;
+    }
     setState(() {
       _items = _items
           .map((n) => NotificationItem(
@@ -200,7 +262,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  void _handleTap(NotificationItem n) {
+  Future<void> _handleTap(NotificationItem n) async {
+    final binding = widget.binding;
+    if (binding != null) {
+      if (_opening ||
+          binding.busy ||
+          binding.sessionEnded ||
+          widget.onOpenBooking == null) return;
+      setState(() => _opening = true);
+      try {
+        if (!n.read) await binding.read(id: n.id);
+        if (mounted && !binding.sessionEnded && binding.error == null)
+          await widget.onOpenBooking!(n.bookingId!);
+      } catch (_) {
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content:
+                  Text('Could not open booking. Pull down and try again.')));
+      } finally {
+        if (mounted) setState(() => _opening = false);
+      }
+      return;
+    }
     setState(() {
       _items = _items.map((x) {
         if (x.id != n.id) return x;
@@ -229,70 +312,175 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final binding = widget.binding;
+    return binding == null
+        ? _buildScreen(context)
+        : AnimatedBuilder(
+            animation: binding, builder: (_, __) => _buildScreen(context));
+  }
+
+  Widget _buildScreen(BuildContext context) {
+    final binding = widget.binding;
     final sem = SemanticColors.of(context);
-    final unreadCount = _items.where((n) => !n.read).length;
+    final unreadCount = binding?.snapshot?.unread ??
+        (binding == null ? _items.where((n) => !n.read).length : 0);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
           if (unreadCount > 0)
-            TextButton(
-              onPressed: _markAllRead,
-              child: const Text('Mark all read'),
+            IconButton(
+              tooltip: 'Mark all read',
+              onPressed: binding != null &&
+                      (binding.loading || binding.busy || binding.loadingMore)
+                  ? null
+                  : _markAllRead,
+              icon: const Icon(Icons.done_all),
             ),
           const SizedBox(width: 8),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
+          preferredSize: Size.fromHeight(48 +
+              (MediaQuery.textScalerOf(context).scale(1) - 1).clamp(0, 2) * 24),
           child: Container(
             color: sem.surface,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              children: [
-                _filterChip('all', 'All', _items.length, sem),
-                const SizedBox(width: 8),
-                _filterChip('unread', 'Unread', unreadCount, sem),
-                const SizedBox(width: 8),
-                _filterChip(
-                  'action',
-                  'Needs action',
-                  _items.where((n) => n.actionable).length,
-                  sem,
-                ),
-              ],
-            ),
+            child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _filterChip(
+                        'all',
+                        'All',
+                        binding?.snapshot?.total ??
+                            (binding == null ? _items.length : 0),
+                        sem),
+                    const SizedBox(width: 8),
+                    _filterChip('unread', 'Unread', unreadCount, sem),
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      'action',
+                      'Needs action',
+                      binding?.snapshot?.actions ??
+                          (binding == null
+                              ? _items.where((n) => n.actionable).length
+                              : 0),
+                      sem,
+                    ),
+                  ],
+                )),
           ),
         ),
       ),
-      body: _filtered.isEmpty
-          ? const EmptyState(
-              icon: Icons.notifications_none,
-              title: 'No notifications',
-              subtitle: 'You are all caught up.',
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: _filtered.length,
-              separatorBuilder: (_, __) => Divider(
-                height: 1,
-                indent: 64,
-                color: sem.border,
-              ),
-              itemBuilder: (ctx, i) => _NotificationTile(
-                item: _filtered[i],
-                isDark: isDark,
-                onTap: () => _handleTap(_filtered[i]),
-              ),
-            ),
+      body: binding != null
+          ? _connectedBody(binding, isDark)
+          : _filtered.isEmpty
+              ? const EmptyState(
+                  icon: Icons.notifications_none,
+                  title: 'No notifications',
+                  subtitle: 'You are all caught up.',
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: _filtered.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    indent: 64,
+                    color: sem.border,
+                  ),
+                  itemBuilder: (ctx, i) => _NotificationTile(
+                    item: _filtered[i],
+                    isDark: isDark,
+                    onTap: () => _handleTap(_filtered[i]),
+                  ),
+                ),
     );
+  }
+
+  Widget _connectedBody(NotificationBinding binding, bool isDark) {
+    final items = _filtered;
+    final unavailable = binding.error != null || binding.sessionEnded;
+    final state = unavailable
+        ? EmptyState(
+            icon: Icons.cloud_off,
+            title: binding.sessionEnded
+                ? 'Sign in again'
+                : 'Could not load notifications',
+            subtitle: binding.sessionEnded
+                ? 'Your account session changed.'
+                : 'Pull down to retry. No sample notifications are shown.')
+        : binding.snapshot == null && binding.loading
+            ? const Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator()))
+            : EmptyState(
+                icon: Icons.notifications_none,
+                title: 'No notifications',
+                subtitle: binding.filter == NotificationFilter.all
+                    ? 'Booking updates will appear here.'
+                    : binding.filter == NotificationFilter.unread
+                        ? 'No unread notifications.'
+                        : 'No notifications currently need action.');
+    return RefreshIndicator(
+        onRefresh: binding.refresh,
+        child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                      'Booking updates inside the app. Device push notifications are not enabled.',
+                      style: TextStyle(fontSize: 12))),
+              SnapshotRefreshNotice(
+                  refreshing: binding.loading,
+                  failed: binding.refreshError != null,
+                  onRetry: binding.refresh),
+              if (binding.writeError != null)
+                const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                        'Could not confirm read status. Pull down to check saved status before retrying.')),
+              if (binding.liveError != null)
+                const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                        'Live updates interrupted. Pull down to check current notifications.')),
+              if (unavailable || items.isEmpty)
+                state
+              else
+                ...items.map((n) => Column(children: [
+                      _NotificationTile(
+                          item: n, isDark: isDark, onTap: () => _handleTap(n)),
+                      const Divider(height: 1, indent: 64)
+                    ])),
+              if (binding.moreError != null)
+                const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('Could not load older notifications.')),
+              if (binding.snapshot?.next != null)
+                TextButton(
+                    onPressed:
+                        binding.loadingMore || binding.loading || binding.busy
+                            ? null
+                            : binding.loadMore,
+                    child: Text(binding.loadingMore
+                        ? 'Loading older notifications…'
+                        : 'Load older notifications')),
+            ]));
   }
 
   // NS2: themed filter chip
   Widget _filterChip(String id, String label, int count, SemanticColors sem) {
     final active = _filter == id;
     return InkWell(
-      onTap: () => setState(() => _filter = id),
+      onTap: widget.binding?.busy == true
+          ? null
+          : () {
+              setState(() => _filter = id);
+              widget.binding?.select(NotificationFilter.values.byName(id));
+            },
       borderRadius: BorderRadius.circular(999),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

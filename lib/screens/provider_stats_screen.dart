@@ -21,11 +21,24 @@ import '../widgets/empty_state.dart';
 import '../widgets/section_header.dart';
 
 class ProviderStatsScreen extends StatelessWidget {
-  const ProviderStatsScreen({super.key, this.providerName = 'Provider A'});
+  const ProviderStatsScreen(
+      {super.key,
+      this.providerName = 'Provider A',
+      this.snapshot,
+      this.onRefresh,
+      this.notice});
   final String providerName;
+  final Map<String, dynamic>? snapshot;
+  final Future<void> Function()? onRefresh;
+  final Widget? notice;
 
   @override
   Widget build(BuildContext context) {
+    if (snapshot != null)
+      return _buildBody(
+          ctx: context,
+          allForProvider: const [],
+          sem: SemanticColors.of(context));
     final bookingStore = AppProviders.of(context).bookingStore;
     final reviewStore = AppProviders.of(context).reviewStore;
     final sem = SemanticColors.of(context);
@@ -61,95 +74,146 @@ class ProviderStatsScreen extends StatelessWidget {
     required List<DemoBooking> allForProvider,
     required SemanticColors sem,
   }) {
-    final reviewStore = AppProviders.of(ctx).reviewStore;
-    final total = allForProvider.length;
-    final accepted = allForProvider
-        .where(
-          (b) =>
-              b.status == BookingStatus.accepted ||
-              b.status == BookingStatus.inProgress ||
-              b.status == BookingStatus.completed,
-        )
-        .length;
-    final completed =
+    final reviewStore =
+        snapshot == null ? AppProviders.of(ctx).reviewStore : null;
+    final total = snapshot?['total'] as int? ?? allForProvider.length;
+    final accepted = snapshot?['accepted'] as int? ??
+        allForProvider
+            .where(
+              (b) =>
+                  b.status == BookingStatus.accepted ||
+                  b.status == BookingStatus.inProgress ||
+                  b.status == BookingStatus.completed,
+            )
+            .length;
+    final completed = snapshot?['completed'] as int? ??
         allForProvider.where((b) => b.status == BookingStatus.completed).length;
-    final cancelled = allForProvider
-        .where(
-          (b) =>
-              b.status == BookingStatus.cancelled ||
-              b.status == BookingStatus.declined,
-        )
-        .length;
-    final acceptanceRate = total == 0 ? 0.0 : accepted / total;
-    final completionRate = accepted == 0 ? 0.0 : completed / accepted;
+    final cancelled = snapshot?['closed_other'] as int? ??
+        allForProvider
+            .where(
+              (b) =>
+                  b.status == BookingStatus.cancelled ||
+                  b.status == BookingStatus.declined,
+            )
+            .length;
+    final acceptanceRate = snapshot == null
+        ? (total == 0 ? 0.0 : accepted / total)
+        : (snapshot!['decisions'] as int) == 0
+            ? null
+            : (snapshot!['accepted_decisions'] as int) /
+                (snapshot!['decisions'] as int);
+    final completionRate =
+        accepted == 0 ? (snapshot == null ? 0.0 : null) : completed / accepted;
 
     // Mock values (Sprint 2 will compute from real timestamp data)
-    const avgResponseMin = 12;
-    const repeatRate = 0.78;
+    final avgResponseMin = snapshot == null
+        ? 12
+        : (snapshot!['response_minutes'] as num?)?.round();
+    final repeatRate = snapshot == null
+        ? 0.78
+        : completed == 0
+            ? null
+            : (snapshot!['repeat_jobs'] as num) / completed;
 
     // ---- Weekly trend: 8 weeks total so we can show "vs previous 4" delta ----
     final now = DateTime.now();
-    final weeklyData = List.generate(8, (w) {
-      final weekStart = now.subtract(Duration(days: (7 - w) * 7 + 6));
-      final weekEnd = weekStart.add(const Duration(days: 7));
-      final weekJobs = allForProvider.where((b) {
-        return b.scheduledStart
-                .isAfter(weekStart.subtract(const Duration(days: 1))) &&
-            b.scheduledStart.isBefore(weekEnd);
-      }).length;
-      return _WeekPoint(
-        label: 'W${8 - w}',
-        jobs: weekJobs,
-        isCurrentPeriod: w >= 4, // last 4 weeks = current period
-      );
-    });
+    final today = DateTime(now.year, now.month, now.day);
+    final currentWeekStart = today.subtract(Duration(days: now.weekday - 1));
+    final weeklyData = snapshot != null
+        ? List.generate(
+            8,
+            (w) => _WeekPoint(
+                label: w == 7 ? 'This wk' : '${7 - w}w ago',
+                jobs: ((snapshot!['weeks'] as List)[w] as Map)['jobs'] as int,
+                isCurrentPeriod: w >= 4))
+        : List.generate(8, (w) {
+            final weekStart =
+                currentWeekStart.subtract(Duration(days: (7 - w) * 7));
+            final weekEnd = weekStart.add(const Duration(days: 7));
+            final weekJobs = allForProvider.where((b) {
+              return b.status == BookingStatus.completed &&
+                  !b.scheduledStart.isBefore(weekStart) &&
+                  b.scheduledStart.isBefore(weekEnd);
+            }).length;
+            return _WeekPoint(
+              label: 'W${8 - w}',
+              jobs: weekJobs,
+              isCurrentPeriod: w >= 4, // last 4 weeks = current period
+            );
+          });
     final currentPeriodJobs = weeklyData
         .where((w) => w.isCurrentPeriod)
         .fold<int>(0, (a, w) => a + w.jobs);
     final previousPeriodJobs = weeklyData
         .where((w) => !w.isCurrentPeriod)
         .fold<int>(0, (a, w) => a + w.jobs);
-    final trendDelta = _computeDelta(currentPeriodJobs, previousPeriodJobs);
+    final trendDelta = snapshot != null && previousPeriodJobs == 0
+        ? null
+        : _computeDelta(currentPeriodJobs, previousPeriodJobs);
     final visibleWeeks =
         weeklyData.skip(4).toList(); // show only current 4 weeks
     final maxWeekJobs =
         visibleWeeks.map((w) => w.jobs).fold<int>(0, (m, v) => v > m ? v : m);
 
     // ---- Rating distribution ----
-    final ratingDist = reviewStore.distributionFor(providerName);
+    final ratingDist = snapshot == null
+        ? reviewStore!.distributionFor(providerName)
+        : {
+            for (final entry in (snapshot!['ratings'] as Map).entries)
+              int.parse(entry.key as String): entry.value as int
+          };
     final totalReviews = ratingDist.values.fold<int>(0, (a, b) => a + b);
-    final avgRating = reviewStore.averageFor(providerName);
+    final avgRating = snapshot == null
+        ? reviewStore!.averageFor(providerName)
+        : totalReviews == 0
+            ? 0.0
+            : ratingDist.entries
+                    .fold<int>(0, (sum, e) => sum + e.key * e.value) /
+                totalReviews;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('My stats'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share_outlined),
-            tooltip: 'Share report',
-            onPressed: () {
-              ScaffoldMessenger.of(ctx).showSnackBar(
-                const SnackBar(
-                  content: Text('Share report — Sprint 2 will PDF this'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-          ),
+          if (snapshot == null)
+            IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: 'Share report',
+              onPressed: () {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(
+                    content: Text('Share report — Sprint 2 will PDF this'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+            ),
           const SizedBox(width: 8),
         ],
       ),
       // P7: Pull-to-refresh
       body: RefreshIndicator(
         onRefresh: () async {
+          if (onRefresh != null) {
+            await onRefresh!();
+            return;
+          }
           await Future<void>.delayed(const Duration(milliseconds: 600));
           Haptics.light();
         },
         child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           children: [
+            if (notice != null) notice!,
+            if (snapshot != null)
+              const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Text(
+                      'Acceptance: accepted / decided requests. Completion: completed / ever accepted. Response: time to first accept or decline. Repeat: completed jobs beyond each owner’s first. Missing values show —.')),
             // P1 + P2: Hero with 4 metrics + trend pill
             _buildHeroCard(
+              ctx,
               acceptanceRate,
               completionRate,
               avgResponseMin,
@@ -183,50 +247,84 @@ class ProviderStatsScreen extends StatelessWidget {
                           ),
                         ),
                         // P2: Trend pill
-                        _TrendPill(delta: trendDelta),
+                        trendDelta == null
+                            ? const Text('No baseline',
+                                style: TextStyle(fontSize: 11))
+                            : _TrendPill(delta: trendDelta),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // P6: Taller bar chart
+                    // Reserve a flexible plot area so labels never consume
+                    // space allocated to the tallest bar on narrow screens.
                     SizedBox(
-                      height: 140,
+                      height: 156,
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: visibleWeeks.map((w) {
-                          final h = maxWeekJobs == 0
-                              ? 0.0
-                              : (w.jobs / maxWeekJobs) * 100;
+                          final fraction =
+                              maxWeekJobs == 0 ? 0.0 : w.jobs / maxWeekJobs;
                           return Expanded(
                             child: Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 6),
                               child: Column(
-                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  Text(
-                                    '${w.jobs}',
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      color: Color(0xFF6B7280),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    height: h + 8,
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.primary,
-                                      borderRadius: BorderRadius.vertical(
-                                        top: Radius.circular(4),
-                                      ),
+                                  Expanded(
+                                    child: LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final labelHeight =
+                                            MediaQuery.textScalerOf(context)
+                                                .scale(16);
+                                        final maxBarHeight = (constraints
+                                                    .maxHeight -
+                                                labelHeight -
+                                                4)
+                                            .clamp(0.0, constraints.maxHeight);
+                                        final barHeight =
+                                            maxBarHeight * fraction;
+                                        return Stack(
+                                          alignment: Alignment.bottomCenter,
+                                          children: [
+                                            Positioned(
+                                              bottom: barHeight + 4,
+                                              child: Text(
+                                                '${w.jobs}',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: sem.textSecondary,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                            if (w.jobs > 0)
+                                              Positioned(
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                height: barHeight,
+                                                child: DecoratedBox(
+                                                  decoration: BoxDecoration(
+                                                    color: Theme.of(ctx)
+                                                        .colorScheme
+                                                        .primary,
+                                                    borderRadius:
+                                                        const BorderRadius
+                                                            .vertical(
+                                                      top: Radius.circular(4),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     w.label,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 10,
-                                      color: Color(0xFF9CA3AF),
+                                      color: sem.textTertiary,
                                     ),
                                   ),
                                 ],
@@ -257,7 +355,9 @@ class ProviderStatsScreen extends StatelessWidget {
                       children: [
                         // P5: Theme-aware
                         Text(
-                          avgRating.toStringAsFixed(1),
+                          snapshot != null && totalReviews == 0
+                              ? '—'
+                              : avgRating.toStringAsFixed(1),
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.w700,
@@ -302,9 +402,9 @@ class ProviderStatsScreen extends StatelessWidget {
                                   width: 12,
                                   child: Text(
                                     '$star',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 10,
-                                      color: Color(0xFF9CA3AF),
+                                      color: sem.textTertiary,
                                     ),
                                   ),
                                 ),
@@ -318,8 +418,8 @@ class ProviderStatsScreen extends StatelessWidget {
                                       value: pct,
                                       minHeight: 5,
                                       backgroundColor: sem.border,
-                                      valueColor: const AlwaysStoppedAnimation(
-                                        AppColors.primary,
+                                      valueColor: AlwaysStoppedAnimation(
+                                        Theme.of(ctx).colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -327,9 +427,9 @@ class ProviderStatsScreen extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   '$count',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 10,
-                                    color: Color(0xFF9CA3AF),
+                                    color: sem.textTertiary,
                                   ),
                                 ),
                               ],
@@ -352,15 +452,18 @@ class ProviderStatsScreen extends StatelessWidget {
             Card(
               child: Column(
                 children: [
-                  _statRow('Total bookings', '$total', Icons.list_alt, sem),
                   _statRow(
+                      ctx, 'Total bookings', '$total', Icons.list_alt, sem),
+                  _statRow(
+                    ctx,
                     'Accepted',
                     '$accepted',
                     Icons.check_circle_outline,
                     sem,
-                    color: AppColors.primary,
+                    color: Theme.of(ctx).colorScheme.primary,
                   ),
                   _statRow(
+                    ctx,
                     'Completed',
                     '$completed',
                     Icons.task_alt,
@@ -368,7 +471,8 @@ class ProviderStatsScreen extends StatelessWidget {
                     color: AppColors.statusCompleted,
                   ),
                   _statRow(
-                    'Cancelled',
+                    ctx,
+                    snapshot == null ? 'Cancelled' : 'Cancelled / declined',
                     '$cancelled',
                     Icons.cancel_outlined,
                     sem,
@@ -392,21 +496,22 @@ class ProviderStatsScreen extends StatelessWidget {
   }
 
   Widget _buildHeroCard(
-    double acc,
-    double comp,
-    int respMin,
-    double rep,
-    double trendDelta,
+    BuildContext context,
+    double? acc,
+    double? comp,
+    int? respMin,
+    double? rep,
+    double? trendDelta,
     SemanticColors sem,
   ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: AppTheme.heroGradient(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
+            color: sem.shadow,
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -428,7 +533,7 @@ class ProviderStatsScreen extends StatelessWidget {
                     const Icon(Icons.insights, color: Colors.white, size: 22),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -441,8 +546,8 @@ class ProviderStatsScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Last 30 days',
-                      style: TextStyle(
+                      snapshot == null ? 'Last 30 days' : 'All time',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -452,28 +557,74 @@ class ProviderStatsScreen extends StatelessWidget {
                 ),
               ),
               // P2: Trend pill in hero too
-              _HeroTrendPill(delta: trendDelta),
+              if (trendDelta != null) _HeroTrendPill(delta: trendDelta),
             ],
           ),
           const SizedBox(height: 16),
           // P1: 4 metrics
-          Row(
-            children: [
-              Expanded(
-                  child: _heroStat('Acceptance',
-                      '${(acc * 100).toStringAsFixed(0)}%', 'rate')),
-              const SizedBox(width: 6),
-              Expanded(
-                  child: _heroStat('Completion',
-                      '${(comp * 100).toStringAsFixed(0)}%', 'rate')),
-              const SizedBox(width: 6),
-              Expanded(child: _heroStat('Response', '${respMin}m', 'avg')),
-              const SizedBox(width: 6),
-              Expanded(
-                  child: _heroStat(
-                      'Repeat', '${(rep * 100).toStringAsFixed(0)}%', 'rate')),
-            ],
-          ),
+          if (snapshot != null)
+            LayoutBuilder(builder: (context, size) {
+              final columns = size.maxWidth < 360 ||
+                      MediaQuery.textScalerOf(context).scale(1) > 1.3
+                  ? 2
+                  : 4;
+              final values = [
+                (
+                  'Acceptance',
+                  acc == null ? '—' : '${(acc * 100).toStringAsFixed(0)}%',
+                  'rate'
+                ),
+                (
+                  'Completion',
+                  comp == null ? '—' : '${(comp * 100).toStringAsFixed(0)}%',
+                  'rate'
+                ),
+                ('Response', respMin == null ? '—' : '${respMin}m', 'avg'),
+                (
+                  'Repeat',
+                  rep == null ? '—' : '${(rep * 100).toStringAsFixed(0)}%',
+                  'rate'
+                )
+              ];
+              return Wrap(spacing: 8, runSpacing: 8, children: [
+                for (final value in values)
+                  SizedBox(
+                      width: (size.maxWidth - 8 * (columns - 1)) / columns,
+                      child: _heroStat(value.$1, value.$2, value.$3))
+              ]);
+            })
+          else
+            Row(
+              children: [
+                Expanded(
+                    child: _heroStat(
+                        'Acceptance',
+                        acc == null
+                            ? '—'
+                            : '${(acc * 100).toStringAsFixed(0)}%',
+                        'rate')),
+                const SizedBox(width: 6),
+                Expanded(
+                    child: _heroStat(
+                        'Completion',
+                        comp == null
+                            ? '—'
+                            : '${(comp * 100).toStringAsFixed(0)}%',
+                        'rate')),
+                const SizedBox(width: 6),
+                Expanded(
+                    child: _heroStat('Response',
+                        respMin == null ? '—' : '${respMin}m', 'avg')),
+                const SizedBox(width: 6),
+                Expanded(
+                    child: _heroStat(
+                        'Repeat',
+                        rep == null
+                            ? '—'
+                            : '${(rep * 100).toStringAsFixed(0)}%',
+                        'rate')),
+              ],
+            ),
         ],
       ),
     );
@@ -520,12 +671,18 @@ class ProviderStatsScreen extends StatelessWidget {
   }
 
   Widget _statRow(
+    BuildContext context,
     String label,
     String value,
     IconData icon,
     SemanticColors sem, {
     Color? color,
   }) {
+    final accent = color == null
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).brightness == Brightness.dark
+            ? Color.lerp(color, Colors.white, 0.4)!
+            : color;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
@@ -534,10 +691,10 @@ class ProviderStatsScreen extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: (color ?? AppColors.primary).withOpacity(0.12),
+              color: accent.withOpacity(0.12),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 16, color: color ?? AppColors.primary),
+            child: Icon(icon, size: 16, color: accent),
           ),
           const SizedBox(width: 12),
           Expanded(

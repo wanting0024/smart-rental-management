@@ -7,48 +7,84 @@
 //   AB3 Subtitle text uses sem.textSecondary
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../content/prototype_legal_drafts.dart';
 import '../theme/app_theme.dart';
+import '../services/prototype_support_store.dart';
+import 'prototype_support_screen.dart';
+import 'prototype_legal_draft_screen.dart';
 
 class AboutScreen extends StatefulWidget {
-  const AboutScreen({super.key});
+  const AboutScreen(
+      {super.key,
+      this.environmentLabel,
+      this.prototypeSupport,
+      this.supportEmail = const String.fromEnvironment('SUPPORT_EMAIL')});
+  final String? environmentLabel;
+  final String supportEmail;
+  final PrototypeSupportStore? prototypeSupport;
 
   @override
   State<AboutScreen> createState() => _AboutScreenState();
 }
 
 class _AboutScreenState extends State<AboutScreen> {
+  bool get _prototype =>
+      _draftsAvailable && widget.prototypeSupport?.available == true;
+  bool get _draftsAvailable => canPreviewLegalDrafts(widget.environmentLabel,
+      localPreview: widget.prototypeSupport?.available == true);
   final _expandedFAQs = <int>{};
 
   static const _faqs = [
     {
-      'q': 'How does the MCDA matching work?',
+      'q': 'How are providers selected for a booking?',
       'a':
-          'The system first removes providers who fail service, full-interval availability, rental-window, or booking-conflict checks. It then ranks only eligible providers using equal weights for route distance, rating, and current workload.',
+          'Booking search checks approval, cleaning service, the complete requested time interval, the property cleaning window and conflicting confirmed jobs. A Pending request does not reserve a slot. Availability and the saved quote are checked again by the server when a request is submitted or accepted.',
     },
     {
       'q': 'Can I cancel a booking after accepting?',
       'a':
-          'Yes, but you\'ll be asked to pick a reason. Frequent cancellations affect your reliability score.',
+          'The Owner can cancel a Pending request. Either participant can cancel an Accepted booking before work starts, with a reason. Once work is In Progress, normal cancellation is not offered. Booking details show the actions currently allowed; no automatic refund or cancellation fee is promised.',
     },
     {
-      'q': 'When does a recurring booking stop?',
+      'q': 'Are recurring bookings available?',
       'a':
-          'Recurring bookings continue until you cancel or pause them. You can pause via the booking detail page.',
+          'Recurring bookings are not connected. Each request is for one specific start and end time. Do not assume that another appointment has been created automatically.',
     },
     {
-      'q': 'How are payouts calculated?',
+      'q': 'What do the Earnings amounts mean?',
       'a':
-          'Hourly rate × duration, minus a 15% platform fee. Payouts are processed weekly to your registered bank account.',
+          'Completed job value uses the quote saved with each completed booking and its completion date in Malaysia time (MYT). Last 30 days is a rolling range, This month starts on the first day of the current month, and All time includes all dated completions. Platform fees, payments and payouts are not connected; these figures do not confirm money received.',
     },
     {
-      'q': 'Can I change my service area?',
+      'q': 'Where do I change my services and working hours?',
       'a':
-          'Yes — go to Profile > Edit profile > Working hours. Your service radius is auto-computed from your listed address.',
+          'Providers can edit their area, private service origin, contact preference and rates in Edit profile. Use Services & availability to manage cleaning services, weekly slots and blocked dates. Slots must be at least two hours, and confirmed jobs remain protected against incompatible changes.',
     },
     {
-      'q': 'How do I dispute a review?',
+      'q': 'How do message read status and badges work?',
       'a':
-          'Open the review in your reviews page and tap "Report". Our team will review within 48 hours.',
+          'Only received messages actually displayed in the active chat are marked read for your account. Opening the list does not clear a thread, and your own sent messages do not count as unread. Read status survives sign-in; no peer Seen indicator is shown. Foreground badges quietly recheck about every 30 seconds, not instantly through device push. Closed booking history remains readable, but new messages require Accepted or In Progress.',
+    },
+    {
+      'q': 'Can I change the requested time?',
+      'a':
+          'The Owner can revise a Pending request within the supported same-duration rules. The server rechecks the property window and conflicts. A different duration needs a new priced request. Accepted bookings cannot use the Pending revision action.',
+    },
+    {
+      'q': 'What if a save or upload loses connection?',
+      'a':
+          'A timeout does not prove that a write failed or succeeded. Reopen or refresh the booking or conversation to check the saved result before retrying. Do not create another request just because a response was lost. Cached content may stay visible while a refresh fails; it is not confirmation of a new save.',
+    },
+    {
+      'q': 'Does signing out delete my data?',
+      'a':
+          'No. Signing out clears the App session and account-scoped memory, not cloud bookings, photos or messages. Test data in Staging is real stored data. Self-service account deletion and export are not complete. Simulated support is different: its memory-only tickets clear on sign-out, account change or App restart, and are never sent to a real team.',
+    },
+    {
+      'q': 'How do notifications work?',
+      'a':
+          'Notifications show real booking updates from the other participant. Tap an item to open the booking. Read status is saved to your account, and Needs action follows the current booking state. Pull down to refresh. Phone push notifications, payment alerts and review alerts are not enabled.',
     },
   ];
 
@@ -104,9 +140,13 @@ class _AboutScreenState extends State<AboutScreen> {
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'v0.1.0 · Sprint 0',
-                    style: TextStyle(
+                  child: Text(
+                    widget.environmentLabel == null
+                        ? 'App information'
+                        : widget.environmentLabel == 'staging'
+                            ? 'Staging environment'
+                            : 'Connected environment',
+                    style: const TextStyle(
                         color: Colors.white,
                         fontSize: 11,
                         fontWeight: FontWeight.w500),
@@ -121,17 +161,45 @@ class _AboutScreenState extends State<AboutScreen> {
           Card(
             child: Column(
               children: [
-                _tile(context, Icons.help_outline, 'Help center',
-                    'Browse articles and guides', null),
+                _tile(
+                    context,
+                    Icons.help_outline,
+                    'Help center',
+                    'Booking, availability and earnings guides',
+                    () => _article(
+                        'Help center',
+                        _faqs
+                            .map((f) => '${f['q']}\n\n${f['a']}')
+                            .join('\n\n————\n\n'))),
                 _divider(sem),
-                _tile(context, Icons.chat_bubble_outline, 'Contact support',
-                    'We respond within 24h', null),
+                _tile(
+                    context,
+                    Icons.chat_bubble_outline,
+                    'Contact support',
+                    _prototype
+                        ? 'Create and track simulated test requests'
+                        : widget.supportEmail.isEmpty
+                            ? 'Support contact not configured'
+                            : widget.supportEmail,
+                    _contact),
                 _divider(sem),
-                _tile(context, Icons.description_outlined, 'Terms of service',
-                    null, null),
+                _tile(
+                    context,
+                    Icons.description_outlined,
+                    'Terms of service',
+                    _draftsAvailable
+                        ? 'User guide · Draft, not published'
+                        : 'Not published yet',
+                    () => _legal(LegalDraftKind.terms)),
                 _divider(sem),
-                _tile(context, Icons.privacy_tip_outlined, 'Privacy policy',
-                    null, null),
+                _tile(
+                    context,
+                    Icons.privacy_tip_outlined,
+                    'Privacy policy',
+                    _draftsAvailable
+                        ? 'User guide · Draft, not published'
+                        : 'Not published yet',
+                    () => _legal(LegalDraftKind.privacy)),
               ],
             ),
           ),
@@ -191,15 +259,64 @@ class _AboutScreenState extends State<AboutScreen> {
         size: 12,
         color: sem.textTertiary,
       ),
-      onTap: onTap ??
-          () {
-            ScaffoldMessenger.of(ctx).showSnackBar(
-              SnackBar(
-                  content: Text('$title - Sprint 1 will add this'),
-                  behavior: SnackBarBehavior.floating),
-            );
-          },
+      onTap: onTap,
     );
+  }
+
+  void _article(String title, String content) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => Scaffold(
+              appBar: AppBar(title: Text(title)),
+              body: ListView(padding: const EdgeInsets.all(20), children: [
+                SelectableText(content, style: const TextStyle(height: 1.6))
+              ]))));
+
+  void _legal(LegalDraftKind kind) {
+    final draft = PrototypeLegalDraft.forKind(kind);
+    if (!_draftsAvailable) {
+      _article(draft.title, draft.notice);
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => PrototypeLegalDraftScreen(
+            kind: kind,
+            environmentLabel: widget.environmentLabel,
+            localPreview: widget.prototypeSupport?.available == true)));
+  }
+
+  Future<void> _contact() async {
+    if (_prototype) {
+      await Navigator.of(context).push<void>(MaterialPageRoute(
+          builder: (_) =>
+              PrototypeSupportScreen(store: widget.prototypeSupport!)));
+      return;
+    }
+    final email = widget.supportEmail.trim();
+    await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+                scrollable: true,
+                title: const Text('Contact support'),
+                content: SelectableText(email.isEmpty
+                    ? 'A support contact has not been configured. No support request has been sent.'
+                    : 'Email $email with the issue, approximate time and booking reference if relevant. Never send your password, verification code or private access keys. No response time is guaranteed.'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Close')),
+                  if (email.isNotEmpty)
+                    TextButton(
+                        onPressed: () async {
+                          await Clipboard.setData(ClipboardData(text: email));
+                          if (ctx.mounted) Navigator.of(ctx).pop();
+                          if (mounted)
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Support email copied. Send your message from your email app.')));
+                        },
+                        child: const Text('Copy email'))
+                ]));
   }
 
   Widget _divider(SemanticColors sem) =>

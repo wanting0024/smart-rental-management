@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../models/demo_data.dart';
+import '../theme/app_theme.dart';
 import 'status_chip.dart';
 
 class BookingCard extends StatelessWidget {
@@ -11,7 +12,20 @@ class BookingCard extends StatelessWidget {
   final VoidCallback onTap;
 
   String _fmtDate(DateTime d) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     return '${months[d.month - 1]} ${d.day}';
   }
 
@@ -23,6 +37,7 @@ class BookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sem = SemanticColors.of(context);
     return Card(
       child: InkWell(
         onTap: onTap,
@@ -38,45 +53,57 @@ class BookingCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       booking.property,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: sem.textPrimary,
+                      ),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (booking.isMultiDay)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: _MultiDayBadge(days: booking.totalDays),
-                    ),
-                  if (booking.isRecurring)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: _RecurringBadge(pattern: booking.recurrencePattern!),
-                    ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right,
+                      size: 20, color: sem.textTertiary),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
                   StatusChip(status: booking.status),
+                  if (booking.isRecurring)
+                    _RecurringBadge(pattern: booking.recurrencePattern!),
+                  if (booking.isMultiDay)
+                    _MultiDayBadge(days: booking.totalDays),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
                 booking.serviceType,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: sem.textPrimary,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.schedule, size: 14, color: Color(0xFF6B7280)),
+                  Icon(Icons.schedule, size: 14, color: sem.textSecondary),
                   const SizedBox(width: 6),
                   Text(
                     _fmtDate(booking.scheduledStart),
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    style: TextStyle(fontSize: 12, color: sem.textSecondary),
                   ),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
                       _timeRange(booking.scheduledStart, booking.scheduledEnd),
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                      style: TextStyle(fontSize: 12, color: sem.textSecondary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -87,12 +114,13 @@ class BookingCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.person, size: 14, color: Color(0xFF6B7280)),
+                    Icon(Icons.person, size: 14, color: sem.textSecondary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         booking.providerName!,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        style:
+                            TextStyle(fontSize: 12, color: sem.textSecondary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -114,21 +142,27 @@ class _RecurringBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sem = SemanticColors.of(context);
+    final accent = Theme.of(context).colorScheme.primary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFFE0F2F1),
+        color: sem.primarySurface,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFF80CBC4)),
+        border: Border.all(color: sem.primaryBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.repeat, size: 10, color: Color(0xFF00796B)),
+          Icon(Icons.repeat, size: 10, color: accent),
           const SizedBox(width: 3),
           Text(
             pattern.shortLabel,
-            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF00796B), letterSpacing: 0.2),
+            style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                color: accent,
+                letterSpacing: 0.2),
           ),
         ],
       ),
@@ -142,21 +176,27 @@ class _MultiDayBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sem = SemanticColors.of(context);
+    final accent = Theme.of(context).colorScheme.primary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEF2FF),
+        color: sem.primarySurface,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFA5B4FC)),
+        border: Border.all(color: sem.primaryBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.calendar_view_week, size: 10, color: Color(0xFF4338CA)),
+          Icon(Icons.calendar_view_week, size: 10, color: accent),
           const SizedBox(width: 3),
           Text(
             '$days days',
-            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF4338CA), letterSpacing: 0.2),
+            style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                color: accent,
+                letterSpacing: 0.2),
           ),
         ],
       ),

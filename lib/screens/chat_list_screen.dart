@@ -13,7 +13,9 @@
 // Round 14 fix: wrap the body in AnimatedBuilder so the list rebuilds
 // when a new message is sent (was reading store.conversations directly).
 
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../main.dart';
 import '../models/message.dart';
@@ -21,9 +23,21 @@ import '../services/user_session.dart';
 import '../theme/app_theme.dart';
 import '../utils/haptics.dart';
 import 'chat_screen.dart';
+import '../services/backend/conversation_binding.dart';
+import '../widgets/connected_state_panel.dart';
+import '../widgets/snapshot_refresh_notice.dart';
+import '../widgets/message_unread_scope.dart';
 
 class ChatListScreen extends StatefulWidget {
-  const ChatListScreen({super.key});
+  const ChatListScreen(
+      {super.key,
+      this.binding,
+      this.onOpenConversation,
+      this.isProvider = false})
+      : assert(binding == null || onOpenConversation != null);
+  final ConversationBinding? binding;
+  final Future<void> Function(String bookingId)? onOpenConversation;
+  final bool isProvider;
 
   @override
   State<ChatListScreen> createState() => _ChatListScreenState();
@@ -33,15 +47,40 @@ class _ChatListScreenState extends State<ChatListScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
   bool _unreadOnly = false;
+  Timer? _searchTimer;
+  bool _opening = false;
 
   @override
   void dispose() {
+    _searchTimer?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final binding = widget.binding;
+    if (binding != null) {
+      return AnimatedBuilder(
+          animation: binding,
+          builder: (context, _) {
+            final rows = binding.feed.items
+                .map((c) => c.present(binding.userId))
+                .toList();
+            return _buildScaffold(
+                ctx: context,
+                me: binding.userId,
+                isProvider: widget.isProvider,
+                all: rows,
+                filtered: rows,
+                pinnedTop: const [],
+                rest: rows,
+                totalUnread: MessageUnreadScope.maybeOf(context)?.count ??
+                    binding.unreadTotal ??
+                    0,
+                connectedBody: _connectedList(binding));
+          });
+    }
     final session = UserSessionAccess.of(context);
     final me = session.displayName.isEmpty ? 'Owner' : session.displayName;
     final isProvider = session.role == UserRole.provider;
@@ -59,13 +98,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
         final filtered = all.where((c) {
           if (_unreadOnly && c.unreadCount == 0) return false;
           if (_searchQuery.isEmpty) return true;
-          final counterpart = c.participantA == me ? c.participantB : c.participantA;
+          final counterpart =
+              c.participantA == me ? c.participantB : c.participantA;
           return counterpart.toLowerCase().contains(_searchQuery.toLowerCase());
         }).toList();
 
         // CL5: Pinned conversations float to top (first 2 by lastTimestamp).
         // (Demo only — no real pin storage; uses mock logic.)
-        final pinned = [...filtered]..sort((a, b) => b.lastTimestamp.compareTo(a.lastTimestamp));
+        final pinned = [...filtered]
+          ..sort((a, b) => b.lastTimestamp.compareTo(a.lastTimestamp));
         final pinnedTop = pinned.take(2).toList();
         final rest = pinned.skip(2).toList();
 
@@ -94,12 +135,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
     required List<Conversation> pinnedTop,
     required List<Conversation> rest,
     required int totalUnread,
+    Widget? connectedBody,
   }) {
     return Scaffold(
       appBar: AppBar(
         title: Row(
           children: [
-            const Text('Messages'),
+            const Flexible(child: Text('Messages',maxLines:1,overflow:TextOverflow.ellipsis)),
             if (totalUnread > 0) ...[
               const SizedBox(width: 8),
               _UnreadBadge(count: totalUnread),
@@ -107,27 +149,31 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ],
         ),
         actions: [
-          // CL4: Unread-only filter chip
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            child: FilterChip(
-              selected: _unreadOnly,
-              label: const Text('Unread'),
-              avatar: Icon(
-                _unreadOnly ? Icons.mark_email_read : Icons.mark_email_unread,
-                size: 16,
-                color: _unreadOnly ? Colors.white : AppColors.primary,
+          if (widget.binding == null || widget.binding!.loadUnread != null)
+            // CL4: Unread-only filter chip
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: FilterChip(
+                selected: _unreadOnly,
+                label: const Text('Unread'),
+                avatar: Icon(
+                  _unreadOnly ? Icons.mark_email_read : Icons.mark_email_unread,
+                  size: 16,
+                  color: _unreadOnly ? Colors.white : AppColors.primary,
+                ),
+                selectedColor: AppColors.primary,
+                showCheckmark: false,
+                labelStyle: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _unreadOnly ? Colors.white : AppColors.primary,
+                ),
+                onSelected: (v) {
+                  widget.binding?.setUnreadOnly(v);
+                  setState(() => _unreadOnly = v);
+                },
               ),
-              selectedColor: AppColors.primary,
-              showCheckmark: false,
-              labelStyle: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: _unreadOnly ? Colors.white : AppColors.primary,
-              ),
-              onSelected: (v) => setState(() => _unreadOnly = v),
             ),
-          ),
         ],
       ),
       body: Column(
@@ -137,9 +183,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
               controller: _searchCtrl,
-              onChanged: (v) => setState(() => _searchQuery = v),
+              maxLength: widget.binding == null ? null : 80,
+              inputFormatters: widget.binding == null
+                  ? null
+                  : [
+                      TextInputFormatter.withFunction((oldValue, newValue) =>
+                          newValue.text.runes.length <= 80
+                              ? newValue
+                              : oldValue),
+                    ],
+              onChanged: _search,
               decoration: InputDecoration(
-                hintText: 'Search conversations...',
+                hintText: widget.binding == null
+                    ? 'Search conversations...'
+                    : 'Search name, unit or service…',
+                counterText: '',
                 hintStyle: TextStyle(
                   fontSize: 13,
                   color: SemanticColors.of(context).textTertiary,
@@ -152,57 +210,171 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     color: SemanticColors.of(context).textSecondary,
                   ),
                 ),
-                prefixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                prefixIconConstraints:
+                    const BoxConstraints(minWidth: 32, minHeight: 32),
                 suffixIcon: _searchQuery.isEmpty
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.close, size: 16),
                         onPressed: () {
                           _searchCtrl.clear();
-                          setState(() => _searchQuery = '');
+                          _search('');
                         },
                       ),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
               ),
             ),
           ),
           Expanded(
-            child: filtered.isEmpty
-                ? _EmptyChat(
-                    isFiltered: _searchQuery.isNotEmpty || _unreadOnly,
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: pinnedTop.length + rest.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(height: 1, indent: 76),
-                    itemBuilder: (ctx, i) {
-                      final isPinned = i < pinnedTop.length;
-                      final c = isPinned ? pinnedTop[i] : rest[i - pinnedTop.length];
-                      final counterpart =
-                          c.participantA == me ? c.participantB : c.participantA;
-                      return _ConversationTile(
-                        conversation: c,
-                        counterpart: counterpart,
-                        isProvider: isProvider,
-                        isPinned: isPinned,
-                        onTap: () {
-                          Haptics.selection();
-                          Navigator.of(ctx).push(MaterialPageRoute(
-                            builder: (_) => ChatScreen(
-                              conversationId: c.id,
-                              counterpart: counterpart,
-                            ),
-                          ));
+            child: connectedBody ??
+                (filtered.isEmpty
+                    ? _EmptyChat(
+                        isFiltered: _searchQuery.isNotEmpty || _unreadOnly,
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: pinnedTop.length + rest.length,
+                        separatorBuilder: (_, __) =>
+                            const Divider(height: 1, indent: 76),
+                        itemBuilder: (ctx, i) {
+                          final isPinned = i < pinnedTop.length;
+                          final c = isPinned
+                              ? pinnedTop[i]
+                              : rest[i - pinnedTop.length];
+                          final counterpart = c.participantA == me
+                              ? c.participantB
+                              : c.participantA;
+                          return _ConversationTile(
+                            conversation: c,
+                            counterpart: counterpart,
+                            isProvider: isProvider,
+                            isPinned: isPinned,
+                            onTap: () {
+                              Haptics.selection();
+                              Navigator.of(ctx).push(MaterialPageRoute(
+                                builder: (_) => ChatScreen(
+                                  conversationId: c.id,
+                                  counterpart: counterpart,
+                                ),
+                              ));
+                            },
+                          );
                         },
-                      );
-                    },
-                  ),
+                      )),
           ),
         ],
       ),
     );
+  }
+
+  void _search(String query) {
+    _searchTimer?.cancel();
+    _searchTimer = null;
+    setState(() => _searchQuery = query);
+    if (widget.binding == null) return;
+    if (query.trim().isEmpty) {
+      widget.binding!.setSearch('');
+    } else {
+      _searchTimer = Timer(const Duration(milliseconds: 350), () {
+        _searchTimer = null;
+        if (mounted) {
+          widget.binding!.setSearch(query);
+          setState(() {});
+        }
+      });
+    }
+  }
+
+  Future<void> _open(String id) async {
+    if (_opening || widget.binding!.feed.sessionEnded) return;
+    setState(() => _opening = true);
+    try {
+      await widget.onOpenConversation!(id);
+    } catch (_) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Could not open this conversation. Please try again.')));
+    } finally {
+      if (mounted) {
+        setState(() => _opening = false);
+        final feed = widget.binding!.feed;
+        if (feed.active && !feed.loading) await feed.refresh();
+      }
+    }
+  }
+
+  Widget _connectedList(ConversationBinding binding) {
+    final feed = binding.feed;
+    return LayoutBuilder(builder: (context, size) {
+      final rows = feed.items;
+      Widget? state;
+      if (feed.sessionEnded) {
+        state = const ConnectedStatePanel(
+            state: ConnectedViewState.error,
+            title: 'Session ended',
+            message: 'Sign in again to view your conversations.');
+      } else if (_searchTimer != null || (feed.loading && !feed.hasSnapshot)) {
+        state = const ConnectedStatePanel(
+            state: ConnectedViewState.loading,
+            title: 'Loading conversations',
+            message: 'Getting your booking conversations.');
+      } else if (feed.error != null) {
+        state = ConnectedStatePanel(
+            state: ConnectedViewState.error,
+            title: 'Could not load conversations',
+            message: 'Check your connection and try again.',
+            actionLabel: 'Retry',
+            onAction: feed.refresh);
+      } else if (rows.isEmpty) {
+        state = SingleChildScrollView(
+            child: _EmptyChat(
+                isFiltered: binding.search.isNotEmpty || binding.unreadOnly,
+                connected: true));
+      }
+      return RefreshIndicator(
+          onRefresh: feed.refresh,
+          child: ListView(
+              key: ValueKey(
+                  'conversations:${binding.search}:${binding.unreadOnly}'),
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SnapshotRefreshNotice(
+                    refreshing: feed.refreshing,
+                    failed: feed.refreshError != null,
+                    onRetry: feed.refresh),
+                if (state != null)
+                  SizedBox(height: size.maxHeight, child: state)
+                else ...[
+                  for (final row in rows) ...[
+                    _ConversationTile(
+                        conversation: row.present(binding.userId),
+                        counterpart: row.counterpart,
+                        isProvider: widget.isProvider,
+                        isPinned: false,
+                        onTap: () => _open(row.bookingId)),
+                    const Divider(height: 1, indent: 76),
+                  ],
+                  if (feed.moreError != null)
+                    const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text(
+                            'Could not show more conversations. You can still view the conversations already shown.')),
+                  if (feed.hasMore)
+                    Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: OutlinedButton(
+                            onPressed: feed.loadingMore ? null : feed.loadMore,
+                            child: Text(feed.loadingMore
+                                ? 'Loading…'
+                                : feed.moreError != null
+                                    ? 'Retry loading more'
+                                    : 'Load more conversations'))),
+                ],
+              ]));
+    });
   }
 }
 
@@ -218,7 +390,7 @@ class _UnreadBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
-        '$count',
+        count > 99 ? '99+' : '$count',
         style: const TextStyle(
           color: Colors.white,
           fontSize: 10,
@@ -245,9 +417,10 @@ class _ConversationTile extends StatelessWidget {
 
   String _initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts[0].substring(0, 1).toUpperCase();
-    return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+    if (name.trim().isEmpty) return '?';
+    if (parts.length == 1) return parts[0].characters.first.toUpperCase();
+    return (parts[0].characters.first + parts[1].characters.first)
+        .toUpperCase();
   }
 
   String _formatTime(DateTime d) {
@@ -275,14 +448,18 @@ class _ConversationTile extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: isProvider ? AppColors.primarySurface : AppColors.secondarySurface,
+                color: isProvider
+                    ? AppColors.primarySurface
+                    : AppColors.secondarySurface,
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(
                   _initials(counterpart),
                   style: TextStyle(
-                    color: isProvider ? AppColors.primary : AppColors.secondaryDark,
+                    color: isProvider
+                        ? AppColors.primary
+                        : AppColors.secondaryDark,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -329,9 +506,8 @@ class _ConversationTile extends StatelessWidget {
                         _formatTime(conversation.lastTimestamp),
                         style: TextStyle(
                           fontSize: 11,
-                          color: hasUnread
-                              ? AppColors.primary
-                              : sem.textTertiary,
+                          color:
+                              hasUnread ? AppColors.primary : sem.textTertiary,
                           fontWeight:
                               hasUnread ? FontWeight.w600 : FontWeight.w400,
                         ),
@@ -355,12 +531,10 @@ class _ConversationTile extends StatelessWidget {
                               : conversation.lastMessage,
                           style: TextStyle(
                             fontSize: 12,
-                            color: hasUnread
-                                ? sem.textPrimary
-                                : sem.textSecondary,
-                            fontWeight: hasUnread
-                                ? FontWeight.w600
-                                : FontWeight.w400,
+                            color:
+                                hasUnread ? sem.textPrimary : sem.textSecondary,
+                            fontWeight:
+                                hasUnread ? FontWeight.w600 : FontWeight.w400,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -399,8 +573,9 @@ class _ConversationTile extends StatelessWidget {
 }
 
 class _EmptyChat extends StatelessWidget {
-  const _EmptyChat({this.isFiltered = false});
+  const _EmptyChat({this.isFiltered = false, this.connected = false});
   final bool isFiltered;
+  final bool connected;
 
   @override
   Widget build(BuildContext context) {
@@ -409,6 +584,7 @@ class _EmptyChat extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(40),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
@@ -419,7 +595,9 @@ class _EmptyChat extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isFiltered ? Icons.filter_alt_off_outlined : Icons.chat_bubble_outline,
+                isFiltered
+                    ? Icons.filter_alt_off_outlined
+                    : Icons.chat_bubble_outline,
                 size: 32,
                 color: AppColors.primary,
               ),
@@ -437,7 +615,9 @@ class _EmptyChat extends StatelessWidget {
             Text(
               isFiltered
                   ? 'Try a different search or filter.'
-                  : 'Open a booking and tap "Message" to start a chat.',
+                  : connected
+                      ? 'Conversations appear once a booking is accepted. Previous chats remain available after the booking ends.'
+                      : 'Open a booking and tap "Message" to start a chat.',
               style: TextStyle(fontSize: 13, color: sem.textSecondary),
               textAlign: TextAlign.center,
             ),

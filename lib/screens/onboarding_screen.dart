@@ -41,7 +41,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Track progress and evidence',
       body:
           'Follow the booking from Pending to Completed and review the provider’s before-and-after photos and completion remarks.',
-      accent: AppColors.warning,
+      accent: AppColors.primaryLight,
     ),
   ];
 
@@ -65,7 +65,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Record completion evidence',
       body:
           'Update job progress and submit before-and-after photos with completion remarks before marking work Completed.',
-      accent: AppColors.warning,
+      accent: AppColors.primaryLight,
     ),
   ];
 

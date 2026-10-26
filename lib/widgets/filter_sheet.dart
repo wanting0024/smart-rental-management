@@ -61,7 +61,7 @@ class _FilterSheetState extends State<FilterSheet> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.tune, size: 18, color: AppColors.primary),
+                  Icon(Icons.tune, size: 18, color: AppTheme.accent(context)),
                   const SizedBox(width: 8),
                   Text('Filter & sort',
                       style: TextStyle(
@@ -108,21 +108,18 @@ class _FilterSheetState extends State<FilterSheet> {
                       margin: const EdgeInsets.only(bottom: 4),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _sort == m
-                            ? AppColors.primarySurface
-                            : Colors.transparent,
+                        color: _sort == m ? sem.surfaceAlt : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                            color: _sort == m
-                                ? AppColors.primaryBorder
-                                : Colors.transparent),
+                            color:
+                                _sort == m ? sem.border : Colors.transparent),
                       ),
                       child: Row(
                         children: [
                           Icon(_iconFor(m),
                               size: 16,
                               color: _sort == m
-                                  ? AppColors.primary
+                                  ? AppTheme.accent(context)
                                   : sem.textSecondary),
                           const SizedBox(width: 10),
                           Text(_labelFor(m),
@@ -134,8 +131,8 @@ class _FilterSheetState extends State<FilterSheet> {
                                       : FontWeight.w500)),
                           const Spacer(),
                           if (_sort == m)
-                            const Icon(Icons.check,
-                                size: 16, color: AppColors.primary),
+                            Icon(Icons.check,
+                                size: 16, color: AppTheme.accent(context)),
                         ],
                       ),
                     ),
@@ -218,23 +215,24 @@ class _FilterSheetState extends State<FilterSheet> {
       required BookingStatus? value,
       required bool isSelected,
       Color? color}) {
-    final c = color ?? AppColors.primary;
+    final sem = SemanticColors.of(context);
+    final c = color ?? AppTheme.accent(context);
     return InkWell(
       onTap: () => setState(() => _status = value),
       borderRadius: BorderRadius.circular(999),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? c : AppColors.primarySurface,
+          color: isSelected ? c : sem.surfaceAlt,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: isSelected ? c : AppColors.primaryBorder),
+          border: Border.all(color: isSelected ? c : sem.border),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : (color ?? AppColors.primary),
+            color: isSelected ? Colors.white : sem.textPrimary,
           ),
         ),
       ),

@@ -1,0 +1,8 @@
+{
+  "name": "rental-backend-developer-cli",
+  "private": true,
+  "description": "Pinned developer-only Supabase CLI; not Flutter assets or deployed server code.",
+  "devDependencies": {
+    "supabase": "2.121.0"
+  }
+}

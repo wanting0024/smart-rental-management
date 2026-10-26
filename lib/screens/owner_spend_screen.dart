@@ -18,13 +18,33 @@ import '../widgets/empty_state.dart';
 import '../widgets/section_header.dart';
 
 class OwnerSpendScreen extends StatelessWidget {
-  const OwnerSpendScreen({super.key, required this.bookings});
+  const OwnerSpendScreen(
+      {super.key,
+      required this.bookings,
+      this.providers,
+      this.connectedSummary,
+      this.periodLabel = 'All time',
+      this.onSelectPeriod,
+      this.onRefresh,
+      this.footer,
+      this.unpriced = 0,
+      this.undated = 0,
+      this.onOpenBooking});
   final List<DemoBooking> bookings;
+  final List<DemoProvider>? providers;
+  final SpendSummary? connectedSummary;
+  final String periodLabel;
+  final ValueChanged<String>? onSelectPeriod;
+  final Future<void> Function()? onRefresh;
+  final Widget? footer;
+  final int unpriced, undated;
+  final ValueChanged<String>? onOpenBooking;
 
   @override
   Widget build(BuildContext context) {
     final sem = SemanticColors.of(context);
-    final summary = spendFor(bookings);
+    final summary =
+        connectedSummary ?? spendFor(bookings, providers: providers);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Spending'),
@@ -34,43 +54,80 @@ class OwnerSpendScreen extends StatelessWidget {
             onPressed: () => _showFilterSheet(context),
             tooltip: 'Filter by month',
           ),
-          IconButton(
-            icon: Icon(Icons.file_download_outlined, color: sem.textSecondary),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Export PDF · Sprint 1 feature'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-            tooltip: 'Export statement',
-          ),
+          if (connectedSummary == null)
+            IconButton(
+              icon:
+                  Icon(Icons.file_download_outlined, color: sem.textSecondary),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Export PDF · Sprint 1 feature'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              tooltip: 'Export statement',
+            ),
           const SizedBox(width: 8),
         ],
       ),
-      body: summary.jobsFunded == 0
-          ? const EmptyState(
-              icon: Icons.payments_outlined,
-              title: 'No spending yet',
-              subtitle:
-                  'Funded jobs will appear here once providers mark them complete.',
-            )
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildHero(context, summary),
-                const SizedBox(height: 16),
-                _buildMonthOverMonth(context, summary),
-                const SizedBox(height: 16),
-                _buildByProvider(context, summary),
-                const SizedBox(height: 24),
-                const SectionHeader(title: 'Spending history'),
-                const SizedBox(height: 8),
-                ...summary.records.map((r) => _SpendTile(record: r)),
-                const SizedBox(height: 24),
-              ],
-            ),
+      body: connectedSummary != null
+          ? RefreshIndicator(
+              onRefresh: onRefresh!,
+              child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _buildHero(context, summary),
+                    const SizedBox(height: 12),
+                    const Text(
+                        'Completed job value from saved booking quotes. Not a payment or money received.'),
+                    if (unpriced > 0)
+                      Text(
+                          '$unpriced completed jobs have no saved price. Their amounts are unavailable, not zero.'),
+                    if (undated > 0)
+                      Text(
+                          '$undated completed jobs have no completion timestamp and are excluded from dated reports.'),
+                    const SizedBox(height: 16),
+                    _buildMonthOverMonth(context, summary),
+                    const SizedBox(height: 16),
+                    _buildByProvider(context, summary),
+                    const SizedBox(height: 16),
+                    const SectionHeader(title: 'Completed booking history'),
+                    if (summary.records.isEmpty)
+                      const EmptyState(
+                          icon: Icons.payments_outlined,
+                          title: 'No completed jobs in this period',
+                          subtitle:
+                              'Completed bookings with a recorded completion date appear here.'),
+                    for (final record in summary.records)
+                      _SpendTile(
+                          record: record,
+                          onTap: () => onOpenBooking?.call(record.bookingId)),
+                    if (footer != null) footer!,
+                  ]))
+          : summary.jobsFunded == 0
+              ? const EmptyState(
+                  icon: Icons.payments_outlined,
+                  title: 'No spending yet',
+                  subtitle:
+                      'Funded jobs will appear here once providers mark them complete.',
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _buildHero(context, summary),
+                    const SizedBox(height: 16),
+                    _buildMonthOverMonth(context, summary),
+                    const SizedBox(height: 16),
+                    _buildByProvider(context, summary),
+                    const SizedBox(height: 24),
+                    const SectionHeader(title: 'Spending history'),
+                    const SizedBox(height: 8),
+                    ...summary.records.map((r) => _SpendTile(record: r)),
+                    const SizedBox(height: 24),
+                  ],
+                ),
     );
   }
 
@@ -108,21 +165,26 @@ class OwnerSpendScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Total spent',
-                      style: TextStyle(
+                      connectedSummary == null
+                          ? 'Total spent'
+                          : 'Completed job value',
+                      style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
-                      'Across all properties · all time',
-                      style: TextStyle(color: Colors.white70, fontSize: 11),
+                      connectedSummary == null
+                          ? 'Across all properties · all time'
+                          : periodLabel,
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 11),
                     ),
                   ],
                 ),
@@ -132,6 +194,7 @@ class OwnerSpendScreen extends StatelessWidget {
           const SizedBox(height: 16),
           AnimatedCounter(
             value: s.totalSpent,
+            decimals: connectedSummary == null ? 0 : 2,
             prefix: 'RM ',
             style: const TextStyle(
               color: Colors.white,
@@ -145,10 +208,11 @@ class OwnerSpendScreen extends StatelessWidget {
             children: [
               const Icon(Icons.trending_up, size: 14, color: Colors.white70),
               const SizedBox(width: 4),
-              Text(
+              Expanded(
+                  child: Text(
                 '${s.jobsFunded} jobs  ·  avg RM ${s.avgPerJob.toStringAsFixed(0)}/job',
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
+              )),
             ],
           ),
         ],
@@ -161,7 +225,8 @@ class OwnerSpendScreen extends StatelessWidget {
     final maxV = s.thisMonth > s.lastMonth ? s.thisMonth : s.lastMonth;
     final thisWidth = maxV == 0 ? 0.0 : s.thisMonth / maxV;
     final lastWidth = maxV == 0 ? 0.0 : s.lastMonth / maxV;
-    final delta = s.lastMonth == 0 ? 0.0 : (s.thisMonth - s.lastMonth) / s.lastMonth;
+    final delta =
+        s.lastMonth == 0 ? 0.0 : (s.thisMonth - s.lastMonth) / s.lastMonth;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -170,7 +235,8 @@ class OwnerSpendScreen extends StatelessWidget {
           children: [
             const SectionHeader(title: 'Month over month'),
             const SizedBox(height: 16),
-            _monthBar('This month', s.thisMonth, thisWidth, AppColors.warning, sem),
+            _monthBar(
+                'This month', s.thisMonth, thisWidth, AppColors.warning, sem),
             const SizedBox(height: 12),
             _monthBar(
               'Last month',
@@ -180,7 +246,10 @@ class OwnerSpendScreen extends StatelessWidget {
               sem,
             ),
             const SizedBox(height: 12),
-            _deltaPill(delta, sem),
+            connectedSummary != null && s.lastMonth == 0 && s.thisMonth > 0
+                ? const Text(
+                    'No previous-month baseline for a percentage comparison.')
+                : _deltaPill(delta, sem),
           ],
         ),
       ),
@@ -289,7 +358,11 @@ class OwnerSpendScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionHeader(title: 'Top providers', subtitle: 'By total spend'),
+            SectionHeader(
+                title: 'Top providers',
+                subtitle: connectedSummary == null
+                    ? 'By total spend'
+                    : 'Top 10 · completed quote value'),
             const SizedBox(height: 12),
             ...s.byProvider.map((e) {
               final width = maxV == 0 ? 0.0 : e.value / maxV;
@@ -347,6 +420,25 @@ class OwnerSpendScreen extends StatelessWidget {
   }
 
   void _showFilterSheet(BuildContext context) {
+    if (onSelectPeriod != null) {
+      showModalBottomSheet<void>(
+          context: context,
+          builder: (ctx) => SafeArea(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                for (final entry in const {
+                  'last30': 'Last 30 days',
+                  'thisMonth': 'This month',
+                  'allTime': 'All time'
+                }.entries)
+                  ListTile(
+                      title: Text(entry.value),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        onSelectPeriod!(entry.key);
+                      })
+              ])));
+      return;
+    }
     final sem = SemanticColors.of(context);
     showModalBottomSheet(
       context: context,
@@ -409,15 +501,50 @@ class OwnerSpendScreen extends StatelessWidget {
 }
 
 class _SpendTile extends StatelessWidget {
-  const _SpendTile({required this.record});
+  const _SpendTile({required this.record, this.onTap});
   final SpendRecord record;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final sem = SemanticColors.of(context);
+    if (onTap != null &&
+        (MediaQuery.sizeOf(context).width < 380 ||
+            MediaQuery.textScalerOf(context).scale(1) > 1.3)) {
+      return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(record.serviceLabel,
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: sem.textPrimary)),
+                        const SizedBox(height: 4),
+                        Text('${record.property} · ${record.providerName}',
+                            style: TextStyle(
+                                color: sem.textSecondary, fontSize: 12)),
+                        const SizedBox(height: 8),
+                        Wrap(spacing: 12, runSpacing: 4, children: [
+                          Text(
+                              record.amountAvailable
+                                  ? 'RM ${record.cost.toStringAsFixed(2)}'
+                                  : 'Amount unavailable',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.warning)),
+                          Text(DateFormat('d MMM y').format(record.date)),
+                        ]),
+                      ]))));
+    }
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        onTap: onTap,
         leading: Container(
           width: 36,
           height: 36,
@@ -450,7 +577,9 @@ class _SpendTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              'RM ${record.cost.toStringAsFixed(0)}',
+              record.amountAvailable
+                  ? 'RM ${record.cost.toStringAsFixed(2)}'
+                  : 'Amount unavailable',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,

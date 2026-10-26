@@ -3,14 +3,19 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rental_app_demo/models/demo_data.dart';
+import 'package:rental_app_demo/services/booking_store.dart';
+import 'package:rental_app_demo/services/provider_store.dart';
 
 void main() {
   group('EarningsRecord', () {
-    test('computeGross uses RM 80/h base rate', () {
-      // 2 hours = RM 160
-      expect(EarningsRecord.computeGross(const Duration(hours: 2)), closeTo(160, 0.01));
-      // 3 hours = RM 240
-      expect(EarningsRecord.computeGross(const Duration(hours: 3)), closeTo(240, 0.01));
+    test('computeGross uses the supplied provider hourly rate', () {
+      expect(
+          EarningsRecord.computeGross(const Duration(hours: 2), hourlyRate: 80),
+          closeTo(160, 0.01));
+      expect(
+          EarningsRecord.computeGross(const Duration(minutes: 90),
+              hourlyRate: 120),
+          closeTo(180, 0.01));
     });
 
     test('computeFee is 15% of gross', () {
@@ -20,6 +25,52 @@ void main() {
   });
 
   group('earningsFor()', () {
+    test('uses provider rate for earnings and matching owner spend', () {
+      final booking = DemoBooking(
+        id: 'legacy-completed',
+        property: DemoProperty.all.first.display,
+        serviceType: 'Standard cleaning',
+        providerName: 'Provider C',
+        scheduledStart: DateTime(2030, 7, 17, 10),
+        scheduledEnd: DateTime(2030, 7, 17, 12),
+        status: BookingStatus.completed,
+        specialInstructions: null,
+      );
+      final providers = DemoProvider.seeded()
+          .map((p) => p.name == 'Provider C' ? p.copyWith(hourlyRate: 125) : p)
+          .toList();
+      final earnings =
+          earningsFor('Provider C', [booking], providers: providers);
+      final spend = spendFor([booking], providers: providers);
+      expect(earnings.records.single.gross, 250);
+      expect(spend.records.single.cost, 250);
+    });
+
+    test('booking rate snapshot survives a later provider rate edit', () {
+      final providerStore = ProviderStore();
+      final bookings = BookingStore(providerStore: providerStore);
+      final request = bookings.add(
+        property: DemoProperty.all.first.display,
+        serviceType: 'Standard cleaning',
+        scheduledStart: DateTime(2030, 7, 17, 10),
+        scheduledEnd: DateTime(2030, 7, 17, 12),
+        providerName: 'Provider A',
+      );
+      expect(request.hourlyRateAtBooking, 80);
+      providerStore
+          .update(providerStore.byId('p-a')!.copyWith(hourlyRate: 150));
+      expect(bookings.byId(request.id)!.hourlyRateAtBooking, 80);
+      final completed = request.copyWith(status: BookingStatus.completed);
+      expect(
+        earningsFor('Provider A', [completed],
+                providers: providerStore.providers)
+            .records
+            .single
+            .gross,
+        160,
+      );
+    });
+
     test('returns zero summary for a provider with no completed jobs', () {
       final s = earningsFor('Unknown Provider', DemoBooking.all());
       expect(s.jobsCompleted, 0);
@@ -66,7 +117,8 @@ void main() {
     test('byProvider is sorted descending', () {
       final s = spendFor(DemoBooking.all());
       for (int i = 0; i < s.byProvider.length - 1; i++) {
-        expect(s.byProvider[i].value, greaterThanOrEqualTo(s.byProvider[i + 1].value));
+        expect(s.byProvider[i].value,
+            greaterThanOrEqualTo(s.byProvider[i + 1].value));
       }
     });
 

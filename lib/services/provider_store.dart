@@ -6,6 +6,7 @@
 
 import 'package:flutter/foundation.dart';
 import '../features/matching/domain/provider_matching.dart';
+import '../features/availability/domain/provider_availability.dart';
 import '../models/demo_data.dart';
 
 class ProviderStore extends ChangeNotifier {
@@ -84,6 +85,32 @@ class ProviderStore extends ChangeNotifier {
         : p.availability == 'Partial match'
             ? 'No slot'
             : 'Full match';
-    update(p.copyWith(availability: next));
+    update(p.copyWith(
+      availability: next,
+      availabilitySchedule: next == 'Full match'
+          ? ProviderAvailabilitySchedule.daily
+          : next == 'Partial match'
+              ? ProviderAvailabilitySchedule.partialDaily
+              : ProviderAvailabilitySchedule.closed,
+    ));
+  }
+
+  void setWeeklySlots(
+      String providerId, int weekday, List<AvailabilitySlot> slots) {
+    final provider = byId(providerId);
+    if (provider == null) return;
+    update(provider.copyWith(
+      availabilitySchedule:
+          provider.availabilitySchedule.withDaySlots(weekday, slots),
+    ));
+  }
+
+  void setUnavailableDate(String providerId, DateTime date, bool unavailable) {
+    final provider = byId(providerId);
+    if (provider == null) return;
+    update(provider.copyWith(
+      availabilitySchedule: provider.availabilitySchedule
+          .withUnavailableDate(date, unavailable: unavailable),
+    ));
   }
 }

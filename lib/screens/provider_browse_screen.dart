@@ -1,350 +1,371 @@
-// lib/screens/provider_browse_screen.dart
-// Provider Browse screen. Providers must pass all mandatory eligibility checks
-// before they are ranked by distance, rating, and current workload.
-//
-// Round 9 polish (PB1-PB6):
-//   PB1 Sort selector (Score / Distance / Rating / Price) — default Score
-//   PB2 Service-type filter chip row (All / Standard / Deep / Window / etc.)
-//   PB3 Theme colors throughout (sem.* + AppColors.*)
-//   PB4 Empty state when filtered list is empty
-//   PB5 Better header with legend chip showing MCDA weights
-//   PB6 SectionHeader widget for consistency
-
 import 'package:flutter/material.dart';
-import '../features/matching/domain/provider_matching.dart';
+
 import '../main.dart';
 import '../models/demo_data.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/provider_card.dart';
 
-/// Sort mode for the provider list.
-enum _ProviderSort {
-  score('Best match'),
-  distance('Nearest'),
+// General browsing never implies that a provider is eligible for a specific
+// booking. Request-specific hard filtering and ranking live in results screen.
+enum _DirectorySort {
   rating('Top rated'),
-  price('Lowest price');
+  price('Lowest hourly rate'),
+  name('Name');
 
-  const _ProviderSort(this.label);
+  const _DirectorySort(this.label);
   final String label;
 }
 
 class ProviderBrowseScreen extends StatefulWidget {
-  const ProviderBrowseScreen({super.key, this.onViewProfile, this.onAssign});
+  const ProviderBrowseScreen({
+    super.key,
+    this.onViewProfile,
+    this.onAssign,
+    this.onCreateRequest,
+  });
+
   final void Function(DemoProvider)? onViewProfile;
   final void Function(DemoProvider)? onAssign;
+  final VoidCallback? onCreateRequest;
 
   @override
   State<ProviderBrowseScreen> createState() => _ProviderBrowseScreenState();
 }
 
 class _ProviderBrowseScreenState extends State<ProviderBrowseScreen> {
-  _ProviderSort _sort = _ProviderSort.score;
-  String _serviceType = 'standard';
+  _DirectorySort _sort = _DirectorySort.rating;
+  String _serviceType = 'all';
 
   @override
   Widget build(BuildContext context) {
-    final providers = AppProviders.of(context);
+    final app = AppProviders.of(context);
     return AnimatedBuilder(
-      animation: Listenable.merge([
-        providers.providerStore,
-        providers.bookingStore,
-      ]),
-      builder: (context, _) => _buildContent(context, providers),
+      animation: app.providerStore,
+      builder: (context, _) => _buildContent(context, app),
     );
   }
 
-  Widget _buildContent(BuildContext context, AppProviders providers) {
+  Widget _buildContent(BuildContext context, AppProviders app) {
     final sem = SemanticColors.of(context);
-    final requestedStart = DateTime(2026, 7, 20, 10);
-    final request = ProviderMatchRequest(
-      serviceType: _serviceType,
-      requestedStart: requestedStart,
-      requestedEnd: requestedStart.add(const Duration(hours: 2)),
-      rentalWindowStart: DateTime(2026, 7, 20, 8),
-      rentalWindowEnd: DateTime(2026, 7, 20, 18),
-    );
-    final result = providers.providerStore.matchProviders(
-      request: request,
-      bookings: providers.bookingStore.bookings,
-    );
-    final sorted = [...result.rankedProviders];
+    final visible = app.providerStore.providers
+        .where((p) =>
+            _serviceType == 'all' || p.serviceTypes.contains(_serviceType))
+        .toList();
     switch (_sort) {
-      case _ProviderSort.score:
-        sorted.sort((a, b) => b.score.compareTo(a.score));
-        break;
-      case _ProviderSort.distance:
-        sorted.sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
-        break;
-      case _ProviderSort.rating:
-        sorted.sort((a, b) => b.rating.compareTo(a.rating));
-        break;
-      case _ProviderSort.price:
-        sorted.sort((a, b) => a.hourlyRate.compareTo(b.hourlyRate));
-        break;
+      case _DirectorySort.rating:
+        visible.sort((a, b) {
+          final byRating = b.rating.compareTo(a.rating);
+          return byRating != 0 ? byRating : a.name.compareTo(b.name);
+        });
+      case _DirectorySort.price:
+        visible.sort((a, b) {
+          final byPrice = a.hourlyRate.compareTo(b.hourlyRate);
+          return byPrice != 0 ? byPrice : a.name.compareTo(b.name);
+        });
+      case _DirectorySort.name:
+        visible.sort((a, b) => a.name.compareTo(b.name));
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      key: const Key('provider-directory'),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
       children: [
-        // PB5: Better header with MCDA legend chip
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.primarySurface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.primaryBorder),
+            color: sem.primarySurface,
+            border: Border.all(color: sem.primaryBorder),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.auto_awesome,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Recommended for your request',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: sem.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          'Unit A-12 · Mon 20 Jul 10:00–12:00 · '
-                          '${_serviceLabel(_serviceType)}',
-                          style:
-                              TextStyle(fontSize: 11, color: sem.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
               Text(
-                'Eligibility first · service · full interval · rental window · no conflict',
+                'Find a cleaning provider',
                 style: TextStyle(
-                  fontSize: 10,
-                  color: AppColors.primaryDark,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: sem.textPrimary,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 5),
               Text(
-                'Ranking · distance 1/3 · rating 1/3 · current workload 1/3',
+                'Compare services, ratings and rates. Choose a time when you make a request.',
                 style: TextStyle(
-                  fontSize: 10,
-                  color: AppColors.primaryDark,
-                  fontWeight: FontWeight.w500,
-                ),
+                    fontSize: 13, height: 1.4, color: sem.textSecondary),
               ),
+              if (widget.onCreateRequest != null) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: widget.onCreateRequest,
+                    icon: const Icon(Icons.event_available_outlined),
+                    label: const Text('Find available providers'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         Text(
-          'Requested service',
+          'Service type',
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 15,
             fontWeight: FontWeight.w700,
             color: sem.textPrimary,
           ),
         ),
-        const SizedBox(height: 8),
-        _buildServiceTypeFilter(sem),
-        const SizedBox(height: 12),
-        _buildSortBar(sem, sorted.length),
-        if (result.excludedProviders.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.filter_alt_outlined,
-                  size: 14, color: sem.textSecondary),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  '${result.excludedProviders.length} provider${result.excludedProviders.length == 1 ? '' : 's'} '
-                  'excluded by mandatory checks before scoring.',
-                  style: TextStyle(fontSize: 11, color: sem.textSecondary),
+        const SizedBox(height: 10),
+        _serviceFilters(sem),
+        const SizedBox(height: 22),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${visible.length} provider${visible.length == 1 ? '' : 's'}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: sem.textPrimary,
                 ),
               ),
-            ],
-          ),
-        ],
-        const SizedBox(height: 12),
-        if (sorted.isEmpty)
-          const EmptyState(
+            ),
+            PopupMenuButton<_DirectorySort>(
+              key: const Key('directory-sort'),
+              initialValue: _sort,
+              position: PopupMenuPosition.under,
+              onSelected: (value) => setState(() => _sort = value),
+              itemBuilder: (_) => [
+                for (final choice in _DirectorySort.values)
+                  PopupMenuItem(value: choice, child: Text(choice.label)),
+              ],
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: sem.surface,
+                  border: Border.all(color: sem.border),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.sort, size: 18, color: sem.textSecondary),
+                    const SizedBox(width: 5),
+                    Text(
+                      _sort.label,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: sem.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(Icons.arrow_drop_down,
+                        size: 18, color: sem.textSecondary),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Profiles shown here are not yet checked for your date or rental unit.',
+          style: TextStyle(fontSize: 12, color: sem.textSecondary),
+        ),
+        const SizedBox(height: 14),
+        if (visible.isEmpty)
+          EmptyState(
             icon: Icons.person_search_outlined,
-            title: 'No eligible provider',
-            subtitle:
-                'No provider passed every mandatory check for this request.',
+            title: 'No provider for this service',
+            subtitle: 'Try another service type.',
+            action: OutlinedButton(
+              onPressed: () => setState(() => _serviceType = 'all'),
+              child: const Text('Show all providers'),
+            ),
           )
         else
-          for (var i = 0; i < sorted.length; i++) ...[
-            ProviderCard(
-              provider: sorted[i],
-              rank: i + 1,
-              onViewProfile: () => _handleViewProfile(context, sorted[i]),
-              onAssign: () => _handleAssign(context, sorted[i]),
+          for (final provider in visible) ...[
+            _DirectoryProviderCard(
+              provider: provider,
+              onViewProfile: () => _handleViewProfile(context, provider),
+              onAssign: widget.onAssign == null
+                  ? null
+                  : () => widget.onAssign!(provider),
             ),
             const SizedBox(height: 12),
           ],
+        Text(
+          'Provider details are demo data. Availability and equal-weight matching are checked for the selected request.',
+          style: TextStyle(fontSize: 11, height: 1.4, color: sem.textSecondary),
+        ),
       ],
     );
   }
 
-  Widget _buildServiceTypeFilter(SemanticColors sem) {
-    final entries = <(String, String)>[
-      for (final s in ServiceTypeOption.all) (s.id, s.label),
+  Widget _serviceFilters(SemanticColors sem) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final selectedColor =
+        isDark ? AppColors.primaryLighter : AppColors.primary;
+    final options = <(String, String)>[
+      ('all', 'All services'),
+      for (final service in ServiceTypeOption.all)
+        (service.id, service.label),
     ];
-    return SizedBox(
-      height: 36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: entries.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
-        itemBuilder: (ctx, i) {
-          final (value, label) = entries[i];
-          final selected = _serviceType == value;
-          return InkWell(
-            onTap: () => setState(() => _serviceType = value),
-            borderRadius: BorderRadius.circular(999),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.primary : sem.surface,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: selected ? AppColors.primary : sem.border,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: selected ? Colors.white : sem.textPrimary,
-                  ),
-                ),
-              ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final (id, label) in options)
+          ChoiceChip(
+            key: Key('service-filter-$id'),
+            label: Text(label),
+            selected: _serviceType == id,
+            onSelected: (_) => setState(() => _serviceType = id),
+            selectedColor: selectedColor,
+            backgroundColor: sem.surface,
+            side: BorderSide(
+              color: _serviceType == id ? selectedColor : sem.border,
             ),
-          );
-        },
-      ),
+            labelStyle: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: _serviceType == id
+                  ? (isDark ? AppColors.primaryDark : Colors.white)
+                  : sem.textPrimary,
+            ),
+            showCheckmark: false,
+          ),
+      ],
     );
   }
 
-  String _serviceLabel(String serviceId) {
-    for (final service in ServiceTypeOption.all) {
-      if (service.id == serviceId) return service.label;
+  void _handleViewProfile(BuildContext context, DemoProvider provider) {
+    if (widget.onViewProfile != null) {
+      widget.onViewProfile!(provider);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('View ${provider.name} profile')),
+      );
     }
-    return serviceId;
   }
+}
 
-  Widget _buildSortBar(SemanticColors sem, int resultCount) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            '$resultCount provider${resultCount == 1 ? '' : 's'}',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: sem.textPrimary,
-            ),
-          ),
-        ),
-        PopupMenuButton<_ProviderSort>(
-          initialValue: _sort,
-          onSelected: (v) => setState(() => _sort = v),
-          position: PopupMenuPosition.under,
-          itemBuilder: (ctx) => _ProviderSort.values
-              .map((s) => PopupMenuItem(
-                    value: s,
-                    child: Row(
-                      children: [
-                        if (_sort == s)
-                          const Icon(Icons.check, size: 16)
-                        else
-                          const SizedBox(width: 16),
-                        const SizedBox(width: 8),
-                        Text(s.label),
-                      ],
-                    ),
-                  ))
-              .toList(),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: sem.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: sem.border),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+class _DirectoryProviderCard extends StatelessWidget {
+  const _DirectoryProviderCard({
+    required this.provider,
+    required this.onViewProfile,
+    this.onAssign,
+  });
+
+  final DemoProvider provider;
+  final VoidCallback onViewProfile;
+  final VoidCallback? onAssign;
+
+  @override
+  Widget build(BuildContext context) {
+    final sem = SemanticColors.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Icon(Icons.sort, size: 14, color: sem.textSecondary),
+                CircleAvatar(
+                  backgroundColor: sem.primarySurface,
+                  child: Icon(Icons.person_outline,
+                      color: Theme.of(context).colorScheme.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    provider.name,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: sem.textPrimary,
+                    ),
+                  ),
+                ),
+                Text(
+                  'RM ${provider.hourlyRate.toStringAsFixed(0)}/hr',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: sem.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.star_rounded,
+                    size: 20, color: Color(0xFFE59A24)),
                 const SizedBox(width: 4),
                 Text(
-                  _sort.label,
+                  '${provider.rating.toStringAsFixed(1)} / 5',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: sem.textPrimary,
                   ),
                 ),
-                const SizedBox(width: 2),
-                Icon(Icons.arrow_drop_down, size: 16, color: sem.textSecondary),
               ],
             ),
-          ),
+            const SizedBox(height: 12),
+            Text(
+              'Services offered',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: sem.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              provider.serviceTypes.map(_serviceName).join(' · '),
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                color: sem.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onViewProfile,
+                icon: const Icon(Icons.person_outline, size: 18),
+                label: const Text('View profile'),
+              ),
+            ),
+            if (onAssign != null) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: onAssign,
+                  child: const Text('Select provider'),
+                ),
+              ),
+            ],
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  void _handleViewProfile(BuildContext context, DemoProvider p) {
-    if (widget.onViewProfile != null) {
-      widget.onViewProfile!(p);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('View ${p.name} profile'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+  String _serviceName(String id) {
+    for (final service in ServiceTypeOption.all) {
+      if (service.id == id) return service.label;
     }
-  }
-
-  void _handleAssign(BuildContext context, DemoProvider p) {
-    if (widget.onAssign != null) {
-      widget.onAssign!(p);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${p.name} assigned (demo)'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    return id;
   }
 }

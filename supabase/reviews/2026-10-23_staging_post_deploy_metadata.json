@@ -1,0 +1,2122 @@
+{
+  "relations": [
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "app_private",
+      "table": "activity_limit"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "app_private",
+      "table": "evidence_validation"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "app_deployment_environment"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "booking"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "booking_evidence"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "booking_message"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "booking_review"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "booking_status_history"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "evidence_upload"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "property"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "provider_capability"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "provider_profile"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "provider_unavailable_date"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "provider_weekly_slot"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "service_type"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "test_data_run"
+    },
+    {
+      "owner": "postgres",
+      "rls": true,
+      "schema": "public",
+      "table": "user_account"
+    }
+  ],
+  "table_privileges": [
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "app_private",
+      "select": false,
+      "special_privileges": false,
+      "table": "activity_limit",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "app_private",
+      "select": false,
+      "special_privileges": false,
+      "table": "evidence_validation",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "app_deployment_environment",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "booking",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "booking_evidence",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "booking_message",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "booking_review",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "booking_status_history",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "evidence_upload",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "property",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "provider_capability",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "provider_profile",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "provider_unavailable_date",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "provider_weekly_slot",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "service_type",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "test_data_run",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "anon",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "user_account",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "app_private",
+      "select": false,
+      "special_privileges": false,
+      "table": "activity_limit",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "app_private",
+      "select": false,
+      "special_privileges": false,
+      "table": "evidence_validation",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "app_deployment_environment",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": true,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "booking",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "booking_evidence",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "booking_message",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "booking_review",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "booking_status_history",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "evidence_upload",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": true,
+      "any_update_column": true,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "property",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "provider_capability",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": true,
+      "any_update_column": true,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "provider_profile",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": true,
+      "any_update_column": false,
+      "delete": true,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "provider_unavailable_date",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": true,
+      "any_update_column": true,
+      "delete": true,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "provider_weekly_slot",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "service_type",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "test_data_run",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": true,
+      "any_update_column": true,
+      "delete": false,
+      "insert": false,
+      "role": "authenticated",
+      "schema": "public",
+      "select": true,
+      "special_privileges": false,
+      "table": "user_account",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "app_private",
+      "select": false,
+      "special_privileges": false,
+      "table": "activity_limit",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "app_private",
+      "select": false,
+      "special_privileges": false,
+      "table": "evidence_validation",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "app_deployment_environment",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "booking",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "booking_evidence",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "booking_message",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "booking_review",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "booking_status_history",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "evidence_upload",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "property",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "provider_capability",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "provider_profile",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "provider_unavailable_date",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "provider_weekly_slot",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "service_type",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "test_data_run",
+      "truncate": false,
+      "update": false
+    },
+    {
+      "any_insert_column": false,
+      "any_update_column": false,
+      "delete": false,
+      "insert": false,
+      "role": "service_role",
+      "schema": "public",
+      "select": false,
+      "special_privileges": false,
+      "table": "user_account",
+      "truncate": false,
+      "update": false
+    }
+  ],
+  "column_grants": [
+    {
+      "column": "instructions",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "booking"
+    },
+    {
+      "column": "address",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "address",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "bedrooms",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "bedrooms",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "building_name",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "building_name",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "cleaning_window_end",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "cleaning_window_end",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "cleaning_window_start",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "cleaning_window_start",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "owner_id",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "size_sqft",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "size_sqft",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "unit_name",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "unit_name",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "property"
+    },
+    {
+      "column": "bio",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "bio",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "daily_rate",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "daily_rate",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "hourly_rate",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "hourly_rate",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "provider_id",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "service_area",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "service_area",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "service_origin_address",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "service_origin_address",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "provider_profile"
+    },
+    {
+      "column": "provider_id",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_unavailable_date"
+    },
+    {
+      "column": "unavailable_on",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_unavailable_date"
+    },
+    {
+      "column": "end_time",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_weekly_slot"
+    },
+    {
+      "column": "end_time",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "provider_weekly_slot"
+    },
+    {
+      "column": "provider_id",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_weekly_slot"
+    },
+    {
+      "column": "start_time",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_weekly_slot"
+    },
+    {
+      "column": "start_time",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "provider_weekly_slot"
+    },
+    {
+      "column": "weekday",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "provider_weekly_slot"
+    },
+    {
+      "column": "weekday",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "provider_weekly_slot"
+    },
+    {
+      "column": "contact_number",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "user_account"
+    },
+    {
+      "column": "contact_number",
+      "privilege": "UPDATE",
+      "role": "authenticated",
+      "table": "user_account"
+    },
+    {
+      "column": "email",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "user_account"
+    },
+    {
+      "column": "role",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "user_account"
+    },
+    {
+      "column": "user_id",
+      "privilege": "INSERT",
+      "role": "authenticated",
+      "table": "user_account"
+    }
+  ],
+  "functions": [
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "begin_evidence_upload_v17",
+      "owner": "postgres",
+      "schema": "app_private",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "app_private.begin_evidence_upload_v17(uuid,uuid,text,text,integer,text,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "check_activity_budget",
+      "owner": "postgres",
+      "schema": "app_private",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "app_private.check_activity_budget(uuid,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "require_verified_completion",
+      "owner": "postgres",
+      "schema": "app_private",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "app_private.require_verified_completion()"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "accept_pending_booking",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "accept_pending_booking(uuid)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "attach_evidence_upload",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "attach_evidence_upload(uuid,uuid)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "begin_evidence_upload",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "begin_evidence_upload(uuid,uuid,text,text,integer,text,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "booking_cards_by_ids",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "booking_cards_by_ids(uuid[])"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "can_delete_evidence_object",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "can_delete_evidence_object(text)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "can_read_evidence_object",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "can_read_evidence_object(text)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "can_upload_evidence_object",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "can_upload_evidence_object(text)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "check_confirmed_after_availability_change",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "check_confirmed_after_availability_change()"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "claim_evidence_cleanup",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "claim_evidence_cleanup(uuid)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "claim_evidence_cleanup_batch",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "claim_evidence_cleanup_batch()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "claim_evidence_validation",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "claim_evidence_validation(uuid,uuid,uuid)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "create_pending_booking",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "create_pending_booking(uuid,uuid,uuid,uuid,timestamp with time zone,timestamp with time zone,numeric,text,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "fail_evidence_validation",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "fail_evidence_validation(uuid,uuid,boolean)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "find_eligible_providers",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "find_eligible_providers(uuid,uuid,timestamp with time zone,timestamp with time zone)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "finish_evidence_cleanup",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "finish_evidence_cleanup(uuid,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "finish_evidence_cleanup_batch",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "finish_evidence_cleanup_batch(uuid,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "finish_evidence_validation",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "finish_evidence_validation(uuid,uuid,text,text,integer,integer,integer,text)"
+    },
+    {
+      "anon": true,
+      "authenticated": true,
+      "definer": true,
+      "name": "get_app_environment",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "get_app_environment()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": false,
+      "name": "guard_account_client_update",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "guard_account_client_update()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": false,
+      "name": "guard_booking_client_update",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "guard_booking_client_update()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": false,
+      "name": "guard_booking_quote_change",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "guard_booking_quote_change()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": false,
+      "name": "guard_booking_request_id_change",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "guard_booking_request_id_change()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": false,
+      "name": "guard_property_client_update",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "guard_property_client_update()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": false,
+      "name": "guard_provider_profile_client_write",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "guard_provider_profile_client_write()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "inspect_test_run",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "inspect_test_run(text,uuid)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "list_approved_provider_directory",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "list_approved_provider_directory()"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "list_booking_contexts",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "list_booking_contexts()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "list_evidence_cleanup_batch",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "list_evidence_cleanup_batch()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "lock_evidence_booking",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "lock_evidence_booking(uuid)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "lock_property_window_change",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "lock_property_window_change()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": false,
+      "name": "lock_provider_availability_change",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "lock_provider_availability_change()"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "owner_dashboard_summary",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "owner_dashboard_summary()"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": false,
+      "name": "pack_cursor_page",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "pack_cursor_page(jsonb,integer,text,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "page_booking_history",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "page_booking_history(uuid,integer,timestamp with time zone,uuid)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "page_booking_messages",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "page_booking_messages(uuid,integer,timestamp with time zone,uuid)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "page_my_bookings",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "page_my_bookings(integer,timestamp with time zone,uuid)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "preview_test_fixture",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "preview_test_fixture(text,uuid,uuid,uuid,date)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "record_initial_booking_status",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "record_initial_booking_status()"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "replace_provider_capabilities",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "replace_provider_capabilities(uuid[])"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "require_test_environment",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "require_test_environment(text)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "revise_pending_booking",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "revise_pending_booking(uuid,timestamp with time zone,timestamp with time zone,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "save_booking_review",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "save_booking_review(uuid,integer,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "save_evidence_remarks",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "save_evidence_remarks(uuid,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "seed_test_fixture",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": true,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "seed_test_fixture(text,uuid,uuid,uuid,date)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "send_booking_message",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "send_booking_message(uuid,uuid,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": true,
+      "definer": true,
+      "name": "transition_booking",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "transition_booking(uuid,booking_status_enum,text)"
+    },
+    {
+      "anon": false,
+      "authenticated": false,
+      "definer": true,
+      "name": "validate_provider_weekly_slot",
+      "owner": "postgres",
+      "schema": "public",
+      "service_role": false,
+      "settings": [
+        "search_path=\"\""
+      ],
+      "signature": "validate_provider_weekly_slot()"
+    }
+  ],
+  "policies": [
+    {
+      "check": "(( SELECT auth.uid() AS uid) = owner_id)",
+      "command": "UPDATE",
+      "policy": "booking_owner_update",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "booking",
+      "using": "(( SELECT auth.uid() AS uid) = owner_id)"
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "booking_participant_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "booking",
+      "using": "((( SELECT auth.uid() AS uid) = owner_id) OR (( SELECT auth.uid() AS uid) = provider_id))"
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "evidence_participant_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "booking_evidence",
+      "using": "(EXISTS ( SELECT 1\n   FROM booking b\n  WHERE ((b.booking_id = booking_evidence.booking_id) AND ((b.owner_id = ( SELECT auth.uid() AS uid)) OR (b.provider_id = ( SELECT auth.uid() AS uid))))))"
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "booking_message_participant_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "booking_message",
+      "using": "(EXISTS ( SELECT 1\n   FROM booking b\n  WHERE ((b.booking_id = booking_message.booking_id) AND ((b.owner_id = ( SELECT auth.uid() AS uid)) OR (b.provider_id = ( SELECT auth.uid() AS uid))))))"
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "booking_review_participant_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "booking_review",
+      "using": "((owner_id = ( SELECT auth.uid() AS uid)) OR (provider_id = ( SELECT auth.uid() AS uid)))"
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "booking_history_participant_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "booking_status_history",
+      "using": "(EXISTS ( SELECT 1\n   FROM booking b\n  WHERE ((b.booking_id = booking_status_history.booking_id) AND ((b.owner_id = ( SELECT auth.uid() AS uid)) OR (b.provider_id = ( SELECT auth.uid() AS uid))))))"
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "evidence_upload_provider_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "evidence_upload",
+      "using": "(provider_id = ( SELECT auth.uid() AS uid))"
+    },
+    {
+      "check": "((( SELECT auth.uid() AS uid) = owner_id) AND (EXISTS ( SELECT 1\n   FROM user_account a\n  WHERE ((a.user_id = property.owner_id) AND (a.role = 'owner'::account_role_enum)))))",
+      "command": "INSERT",
+      "policy": "property_owner_insert",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "property",
+      "using": null
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "property_owner_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "property",
+      "using": "(( SELECT auth.uid() AS uid) = owner_id)"
+    },
+    {
+      "check": "(( SELECT auth.uid() AS uid) = owner_id)",
+      "command": "UPDATE",
+      "policy": "property_owner_update",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "property",
+      "using": "(( SELECT auth.uid() AS uid) = owner_id)"
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "capability_self_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_capability",
+      "using": "(( SELECT auth.uid() AS uid) = provider_id)"
+    },
+    {
+      "check": "((( SELECT auth.uid() AS uid) = provider_id) AND (EXISTS ( SELECT 1\n   FROM user_account a\n  WHERE ((a.user_id = provider_profile.provider_id) AND (a.role = 'provider'::account_role_enum)))))",
+      "command": "INSERT",
+      "policy": "provider_profile_insert",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_profile",
+      "using": null
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "provider_profile_self_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_profile",
+      "using": "(( SELECT auth.uid() AS uid) = provider_id)"
+    },
+    {
+      "check": "(( SELECT auth.uid() AS uid) = provider_id)",
+      "command": "UPDATE",
+      "policy": "provider_profile_update",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_profile",
+      "using": "(( SELECT auth.uid() AS uid) = provider_id)"
+    },
+    {
+      "check": null,
+      "command": "DELETE",
+      "policy": "unavailable_date_delete",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_unavailable_date",
+      "using": "(( SELECT auth.uid() AS uid) = provider_id)"
+    },
+    {
+      "check": "(( SELECT auth.uid() AS uid) = provider_id)",
+      "command": "INSERT",
+      "policy": "unavailable_date_insert",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_unavailable_date",
+      "using": null
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "unavailable_date_self_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_unavailable_date",
+      "using": "(( SELECT auth.uid() AS uid) = provider_id)"
+    },
+    {
+      "check": null,
+      "command": "DELETE",
+      "policy": "weekly_slot_delete",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_weekly_slot",
+      "using": "(( SELECT auth.uid() AS uid) = provider_id)"
+    },
+    {
+      "check": "(( SELECT auth.uid() AS uid) = provider_id)",
+      "command": "INSERT",
+      "policy": "weekly_slot_insert",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_weekly_slot",
+      "using": null
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "weekly_slot_self_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_weekly_slot",
+      "using": "(( SELECT auth.uid() AS uid) = provider_id)"
+    },
+    {
+      "check": "(( SELECT auth.uid() AS uid) = provider_id)",
+      "command": "UPDATE",
+      "policy": "weekly_slot_update",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "provider_weekly_slot",
+      "using": "(( SELECT auth.uid() AS uid) = provider_id)"
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "service_type_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "service_type",
+      "using": "true"
+    },
+    {
+      "check": "((( SELECT auth.uid() AS uid) = user_id) AND (lower(email) = lower(COALESCE((auth.jwt() ->> 'email'::text), ''::text))))",
+      "command": "INSERT",
+      "policy": "account_self_insert",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "user_account",
+      "using": null
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "account_self_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "user_account",
+      "using": "(( SELECT auth.uid() AS uid) = user_id)"
+    },
+    {
+      "check": "(( SELECT auth.uid() AS uid) = user_id)",
+      "command": "UPDATE",
+      "policy": "account_self_update",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "public",
+      "table": "user_account",
+      "using": "(( SELECT auth.uid() AS uid) = user_id)"
+    },
+    {
+      "check": null,
+      "command": "DELETE",
+      "policy": "evidence_obsolete_delete",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "storage",
+      "table": "objects",
+      "using": "((bucket_id = 'cleaning-evidence'::text) AND can_delete_evidence_object(name))"
+    },
+    {
+      "check": null,
+      "command": "SELECT",
+      "policy": "evidence_private_read",
+      "roles": [
+        "authenticated"
+      ],
+      "schema": "storage",
+      "table": "objects",
+      "using": "((bucket_id = 'cleaning-evidence'::text) AND can_read_evidence_object(name))"
+    }
+  ],
+  "postgres_default_acls": [
+    {
+      "acl": "{postgres=rwU/postgres}",
+      "object_type": "S",
+      "schema": "public"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "object_type": "f",
+      "schema": "public"
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "object_type": "r",
+      "schema": "public"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "object_type": "f",
+      "schema": "GLOBAL"
+    }
+  ],
+  "schema_roles": [
+    {
+      "bypassrls": false,
+      "create_public": false,
+      "private_usage": false,
+      "role": "anon",
+      "superuser": false
+    },
+    {
+      "bypassrls": false,
+      "create_public": false,
+      "private_usage": false,
+      "role": "authenticated",
+      "superuser": false
+    },
+    {
+      "bypassrls": true,
+      "create_public": false,
+      "private_usage": false,
+      "role": "service_role",
+      "superuser": false
+    }
+  ],
+  "realtime": [
+    {
+      "schema": "public",
+      "table": "booking"
+    },
+    {
+      "schema": "public",
+      "table": "booking_message"
+    },
+    {
+      "schema": "public",
+      "table": "booking_status_history"
+    }
+  ],
+  "evidence_bucket": [
+    {
+      "id": "cleaning-evidence",
+      "mime_types": [
+        "image/jpeg",
+        "image/png"
+      ],
+      "public": false,
+      "size_limit": 5242880
+    }
+  ],
+  "environment_marker": {
+    "environment": "unassigned",
+    "project_ref": null
+  },
+  "history": [
+    {
+      "name": "core_booking",
+      "version": "202609270001"
+    },
+    {
+      "name": "lifecycle_evidence_realtime",
+      "version": "202609270002"
+    },
+    {
+      "name": "cancel_before_start",
+      "version": "202610170003"
+    },
+    {
+      "name": "provider_setup",
+      "version": "202610170004"
+    },
+    {
+      "name": "provider_data_visibility",
+      "version": "202610220005"
+    },
+    {
+      "name": "secure_booking_creation",
+      "version": "202610220006"
+    },
+    {
+      "name": "property_window_lock_visibility",
+      "version": "202610220007"
+    },
+    {
+      "name": "eligible_provider_search",
+      "version": "202610220008"
+    },
+    {
+      "name": "booking_quote_snapshot",
+      "version": "202610220009"
+    },
+    {
+      "name": "booking_messages",
+      "version": "202610220010"
+    },
+    {
+      "name": "booking_reviews",
+      "version": "202610220011"
+    },
+    {
+      "name": "booking_contexts",
+      "version": "202610220012"
+    },
+    {
+      "name": "deployment_environment",
+      "version": "202610220013"
+    },
+    {
+      "name": "evidence_upload_lifecycle",
+      "version": "202610220014"
+    },
+    {
+      "name": "cursor_pagination",
+      "version": "202610220015"
+    },
+    {
+      "name": "test_data_management",
+      "version": "202610220016"
+    },
+    {
+      "name": "booking_communication_limits",
+      "version": "202610230017"
+    },
+    {
+      "name": "verified_evidence",
+      "version": "202610230018"
+    },
+    {
+      "name": "explicit_app_privileges",
+      "version": "202610230019"
+    }
+  ]
+}

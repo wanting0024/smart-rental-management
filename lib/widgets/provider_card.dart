@@ -1,6 +1,7 @@
 // lib/widgets/provider_card.dart
 import 'package:flutter/material.dart';
 import '../models/demo_data.dart';
+import '../theme/app_theme.dart';
 
 class ProviderCard extends StatelessWidget {
   const ProviderCard({
@@ -9,14 +10,18 @@ class ProviderCard extends StatelessWidget {
     required this.rank,
     this.onViewProfile,
     this.onAssign,
+    this.actionLabel = 'Assign',
   });
   final DemoProvider provider;
   final int rank;
   final VoidCallback? onViewProfile;
   final VoidCallback? onAssign;
+  final String actionLabel;
 
   @override
   Widget build(BuildContext context) {
+    final sem = SemanticColors.of(context);
+    final accent = Theme.of(context).colorScheme.primary;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -26,11 +31,11 @@ class ProviderCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: const Color(0xFFF1F8F4),
+                  backgroundColor: sem.primarySurface,
                   child: Text(
                     '#$rank',
-                    style: const TextStyle(
-                        color: Color(0xFF2E7D32),
+                    style: TextStyle(
+                        color: accent,
                         fontWeight: FontWeight.w700,
                         fontSize: 13),
                   ),
@@ -47,9 +52,11 @@ class ProviderCard extends StatelessWidget {
                       ),
                       Text(
                         'Eligible for the full requested interval',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF2E7D32),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF7DD6B5)
+                              : const Color(0xFF2E7D32),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -60,13 +67,13 @@ class ProviderCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F8F4),
+                    color: sem.primarySurface,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '${(provider.score * 100).round()}%',
-                    style: const TextStyle(
-                      color: Color(0xFF2E7D32),
+                    style: TextStyle(
+                      color: accent,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
@@ -110,14 +117,16 @@ class ProviderCard extends StatelessWidget {
                     label: const Text('View profile'),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: onAssign,
-                    icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Assign'),
+                if (onAssign != null) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: onAssign,
+                      icon: const Icon(Icons.check, size: 16),
+                      label: Text(actionLabel),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ],
@@ -135,21 +144,26 @@ class _Tag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayColor = Theme.of(context).brightness == Brightness.dark
+        ? Color.lerp(color, Colors.white, 0.35)!
+        : color;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: displayColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: displayColor.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
+          Icon(icon, size: 12, color: displayColor),
           const SizedBox(width: 4),
           Text(label,
               style: TextStyle(
-                  color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+                  color: displayColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600)),
         ],
       ),
     );

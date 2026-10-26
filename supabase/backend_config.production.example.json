@@ -1,0 +1,8 @@
+{
+  "APP_ENV": "production",
+  "SUPABASE_PROJECT_REF": "replace_with_production_project_ref",
+  "SUPABASE_URL": "https://your-production-project.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_replace_me",
+  "ALLOW_PRODUCTION_BACKEND": true,
+  "AUTH_RECOVERY_REDIRECT_URL": "https://replace-with-your-app-domain.invalid/auth/recovery"
+}

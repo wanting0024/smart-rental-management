@@ -1,6 +1,6 @@
 // lib/screens/owner_home_screen.dart
-// Owner-side shell. Subscribes to BookingStore for real-time updates
-// from the provider side. Tabs: Dashboard / Schedule / Properties / Browse / Spend.
+// Owner-side shell. Connected mode listens only to server workspace projections;
+// local preview mode retains its existing BookingStore-based navigation.
 //
 // Round 9 polish (OH1-OH7):
 //   OH1 Theme colors (AppColors.primary + sem.*) instead of hardcoded hex
@@ -15,15 +15,23 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../models/demo_data.dart';
 import '../services/booking_store.dart';
+import '../services/backend/workspace_binding.dart';
+import '../widgets/snapshot_refresh_notice.dart';
 import '../services/user_session.dart';
 import '../theme/app_theme.dart';
 import '../utils/haptics.dart';
-import '../widgets/app_bottom_nav.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/message_unread_scope.dart';
+import '../services/backend/owner_navigation_repository.dart';
+import 'owner_records_view.dart';
 import '../widgets/booking_card.dart';
 import '../widgets/coach_mark.dart';
 import '../widgets/filter_sheet.dart';
 import '../widgets/section_header.dart';
+import '../widgets/workspace_actions.dart';
+import '../widgets/owner_workspace_navigation.dart';
+import 'owner_workspace_dashboard.dart';
+import 'owner_booking_feed.dart';
+import '../services/backend/supabase_booking_repository.dart';
 import 'about_screen.dart';
 import 'booking_detail_screen.dart';
 import 'chat_list_screen.dart';
@@ -31,13 +39,18 @@ import 'new_booking_screen.dart';
 import 'notifications_screen.dart';
 import 'owner_spend_screen.dart';
 import 'property_list_screen.dart';
+import 'property_form_screen.dart';
 import 'provider_browse_screen.dart';
 import 'provider_inbox_screen.dart';
 import 'provider_profile_screen.dart';
 import 'schedule_screen.dart';
 
 class OwnerHomeScreen extends StatefulWidget {
-  const OwnerHomeScreen({super.key});
+  const OwnerHomeScreen({super.key, this.binding, this.actions});
+
+  /// The caller owns the binding's refresh, activity and disposal lifecycle.
+  final WorkspaceBinding? binding;
+  final WorkspaceActions? actions;
 
   @override
   State<OwnerHomeScreen> createState() => _OwnerHomeScreenState();
@@ -48,6 +61,12 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
   FilterResult _filter = FilterResult.empty;
+  final _navigationKey = GlobalKey();
+  final _followKey = GlobalKey<OwnerBookingFeedState>();
+  final _pendingKey = GlobalKey<OwnerBookingFeedState>();
+  OwnerBookingGroup? _statusGroup;
+  BuildContext get _navigationContext =>
+      _navigationKey.currentContext ?? context;
 
   @override
   void dispose() {
@@ -56,11 +75,98 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
   }
 
   void _switchTab(String id) {
+    if (widget.binding != null && id != 'home' && id != 'bookings') {
+      _onDrawerNav(id);
+      return;
+    }
     Haptics.selection();
     setState(() => _tab = id);
   }
 
   void _onDrawerNav(String routeId) {
+    final statusGroup = switch (routeId) {
+      'bookings-pending' => OwnerBookingGroup.pending,
+      'bookings-ongoing' => OwnerBookingGroup.active,
+      'bookings-completed' => OwnerBookingGroup.completed,
+      _ => null,
+    };
+    if (statusGroup != null) {
+      if (widget.binding != null) {
+        _connectedAction(
+            (actions) =>
+                actions.bookingsByStatus(_navigationContext, statusGroup),
+            refresh: false);
+      } else {
+        setState(() {
+          _statusGroup = statusGroup;
+          _filter = FilterResult.empty;
+          _searchQuery = '';
+          _searchCtrl.clear();
+          _tab = 'bookings';
+        });
+      }
+      return;
+    }
+    if (routeId == 'bookings') _statusGroup = null;
+    if (widget.binding != null) {
+      switch (routeId) {
+        case 'home':
+        case 'bookings':
+          _switchTab(routeId);
+          return;
+        case 'properties':
+          _connectedAction((actions) => actions.properties(_navigationContext));
+          return;
+        case 'add-property':
+          _connectedAction((actions) => actions.addProperty(context));
+          return;
+        case 'profile':
+          _connectedAction((actions) => actions.profile(_navigationContext));
+          return;
+        case 'spend':
+          _connectedAction((actions) => actions.spending(context),
+              refresh: false);
+          return;
+        case 'schedule':
+          _connectedAction((actions) => actions.schedule(context));
+          return;
+        case 'browse':
+          _connectedAction((actions) => actions.browse(_navigationContext));
+          return;
+        case 'theme':
+          context
+              .getInheritedWidgetOfExactType<AppProviders>()
+              ?.onToggleTheme();
+          return;
+        case 'notifications':
+          _connectedAction((actions) => actions.notifications(context),
+              refresh: false);
+          return;
+        case 'messages':
+          _connectedAction((actions) => actions.messages(context),
+              refresh: false);
+          return;
+        case 'about':
+          _connectedAction((actions) => actions.about(context), refresh: false);
+          return;
+        case 'sign-out':
+          _connectedAction((actions) => actions.signOut(context),
+              refresh: false);
+          return;
+        default:
+          _unavailable({
+                'schedule': 'Schedule',
+                'notifications': 'Notifications',
+                'profile': 'Profile',
+                'messages': 'Messages',
+                'spend': 'Spending',
+                'about': 'About',
+                'switch-role': 'Role switching',
+              }[routeId] ??
+              routeId);
+          return;
+      }
+    }
     switch (routeId) {
       case 'home':
         _switchTab('home');
@@ -74,6 +180,9 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
       case 'browse':
         _switchTab('browse');
         break;
+      case 'bookings':
+        _switchTab('bookings');
+        break;
       case 'notifications':
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => const NotificationsScreen(role: 'Owner'),
@@ -81,8 +190,15 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
         break;
       case 'profile':
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) =>
-              _OwnerProfileScreen(onOpenBookings: () => _switchTab('home')),
+          builder: (_) => OwnerDestinationFrame(
+              activeId: 'profile',
+              onChange: (id) async {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                if (mounted) _switchTab(id);
+              },
+              child: OwnerProfileScreen(
+                  onOpenBookings: () => _switchTab('home'),
+                  onAction: _localProfileAction)),
         ));
         break;
       case 'messages':
@@ -92,12 +208,15 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
       case 'spend':
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => OwnerSpendScreen(
-              bookings: AppProviders.of(context).bookingStore.bookings),
+            bookings: AppProviders.of(context).bookingStore.bookings,
+            providers: AppProviders.of(context).providerStore.providers,
+          ),
         ));
         break;
       case 'about':
-        Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const AboutScreen()));
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => AboutScreen(
+                prototypeSupport: AppProviders.of(context).prototypeSupport)));
         break;
       case 'switch-role':
         _openProviderView();
@@ -106,36 +225,56 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
   }
 
   void _openNewBooking() async {
+    if (widget.binding != null) {
+      await _connectedAction((actions) => actions.request(context));
+      return;
+    }
     Haptics.light();
     final created = await Navigator.of(context).push<DemoBooking>(
-      MaterialPageRoute(builder: (_) => NewBookingScreen()),
+      MaterialPageRoute(builder: (_) => const NewBookingScreen()),
     );
     if (created != null && mounted) {
-      AppProviders.of(context).bookingStore.add(
-            property: created.property,
-            serviceType: created.serviceType,
-            scheduledStart: created.scheduledStart,
-            scheduledEnd: created.scheduledEnd,
-            providerName: created.providerName,
-            specialInstructions: created.specialInstructions,
-          );
       Haptics.medium();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Request submitted for ${created.property}'),
+          content: Text('Pending request sent to ${created.providerName}'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
-          action: SnackBarAction(
-            label: 'View',
-            textColor: Colors.white,
-            onPressed: () => _switchTab('schedule'),
-          ),
+        ),
+      );
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => BookingDetailScreen(booking: created),
         ),
       );
     }
   }
 
+  void _localProfileAction(String title) {
+    switch (title) {
+      case 'Appearance':
+        AppProviders.of(context).onToggleTheme();
+      case 'Schedule':
+        Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => ScheduleScreen(
+                bookings: AppProviders.of(context).bookingStore.bookings)));
+      case 'Spending':
+        _onDrawerNav('spend');
+      case 'Notifications':
+        _onDrawerNav('notifications');
+      case 'About & help':
+        _onDrawerNav('about');
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$title is available in the connected workspace.')));
+    }
+  }
+
   void _openProviderView() {
+    if (widget.binding != null) {
+      _unavailable('Role switching');
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ProviderInboxScreen(
@@ -147,8 +286,10 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
 
   void _openFilter() async {
     Haptics.light();
-    final store = AppProviders.of(context).bookingStore;
-    final all = store.bookings;
+    final binding = widget.binding;
+    final all = binding == null
+        ? AppProviders.of(context).bookingStore.bookings
+        : _serverBookings(binding);
     final properties = all.map((b) => b.property).toSet().toList()..sort();
     final result = await showModalBottomSheet<FilterResult>(
       context: context,
@@ -159,15 +300,230 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
       ),
       builder: (ctx) => FilterSheet(initial: _filter, properties: properties),
     );
-    if (result != null) setState(() => _filter = result);
+    if (result != null && mounted) setState(() => _filter = result);
+  }
+
+  void _unavailable(String label) {
+    final actions = widget.actions;
+    if (actions != null) {
+      actions.unavailable(context, label);
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('$label is not connected yet.'),
+    ));
+  }
+
+  Future<void> _connectedAction(
+    Future<void> Function(WorkspaceActions) action, {
+    bool refresh = true,
+  }) async {
+    final actions = widget.actions;
+    if (actions == null) {
+      _unavailable('This action');
+      return;
+    }
+    final binding = widget.binding;
+    try {
+      await action(actions);
+      if (refresh && mounted && identical(binding, widget.binding)) {
+        await binding?.refresh();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not complete this action. Please try again.'),
+        ));
+      }
+    }
+  }
+
+  // Projection failures must be checked before accessing the display models.
+  List<DemoBooking> _serverBookings(WorkspaceBinding binding) =>
+      binding.error != null ? const [] : binding.bookings;
+
+  void _openBooking(DemoBooking booking) {
+    if (widget.binding != null) {
+      _connectedAction((actions) => actions.booking(context, booking.id));
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => BookingDetailScreen(booking: booking),
+    ));
+  }
+
+  Widget _connectionStatus(WorkspaceBinding binding) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (binding.loading) const LinearProgressIndicator(),
+          SnapshotRefreshNotice(
+              refreshing: binding.refreshing,
+              failed: binding.refreshError != null,
+              onRetry: binding.refresh),
+          if (binding.error != null)
+            _retryNotice(
+                'Could not refresh your workspace. Displayed data may be out of date.',
+                () => binding.refresh()),
+          if (binding.liveError != null)
+            _retryNotice('Live updates are interrupted. Pull down to refresh.',
+                binding.retryLive),
+        ],
+      );
+
+  Widget _retryNotice(String message, VoidCallback onRetry) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(children: [
+          Expanded(child: Text(message)),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ]),
+      );
+
+  Widget _pagination(WorkspaceBinding binding, int loadedCount) =>
+      Column(children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            '$loadedCount booking${loadedCount == 1 ? '' : 's'} shown'
+            '${binding.hasMore ? ' · More available' : ''}.',
+            style: TextStyle(color: SemanticColors.of(context).textSecondary),
+          ),
+        ),
+        if (binding.moreError != null)
+          _retryNotice(
+              'Could not load more bookings.', () => binding.loadMore()),
+        if (binding.hasMore || binding.loadingMore)
+          TextButton.icon(
+            onPressed: binding.loadingMore || binding.loading
+                ? null
+                : () => binding.loadMore(),
+            icon: binding.loadingMore
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.expand_more),
+            label: Text(binding.loadingMore ? 'Loading more…' : 'Load more'),
+          ),
+      ]);
+
+  Widget _dashboard(List<DemoBooking> bookings, int? propertyCount) {
+    final binding = widget.binding;
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        surfaceTintColor: Theme.of(context).colorScheme.surface,
+        elevation: 0,
+        title: Text('Owner Dashboard',
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 17,
+                fontWeight: FontWeight.w800)),
+        actions: [
+          IconButton(
+            tooltip: 'Messages',
+            icon: MessageUnreadBadge(
+                child: const Icon(Icons.chat_bubble_outline)),
+            onPressed: () => _onDrawerNav('messages'),
+          ),
+          IconButton(
+            tooltip: 'Notifications',
+            icon: Icon(Icons.notifications_none,
+                color: Theme.of(context).colorScheme.onSurface),
+            onPressed: () => _onDrawerNav('notifications'),
+          ),
+        ],
+      ),
+      body: OwnerWorkspaceDashboard(
+        bookings: bookings,
+        propertyCount: propertyCount,
+        connected: binding != null,
+        ownerSummary: binding?.ownerSummary,
+        loading: binding?.loading ?? false,
+        bookingsUnavailable: binding?.error != null,
+        bookingsPartial: binding?.hasMore ?? false,
+        connectionStatus: binding == null ? null : _connectionStatus(binding),
+        pagination: binding != null && binding.backend == null
+            ? _pagination(binding, bookings.length)
+            : null,
+        bookingFollow: binding?.backend == null
+            ? null
+            : OwnerBookingFeed(
+                key: _followKey,
+                backend: binding!.backend!,
+                group: OwnerBookingGroup.upcoming,
+                inline: true,
+                onBooking: _openBooking),
+        pendingBookings: binding?.backend == null
+            ? null
+            : OwnerBookingFeed(
+                key: _pendingKey,
+                backend: binding!.backend!,
+                group: OwnerBookingGroup.pending,
+                inline: true,
+                onBooking: _openBooking),
+        onRefresh: binding == null
+            ? null
+            : () async {
+                await Future.wait([
+                  binding.refresh(),
+                  if (_followKey.currentState != null)
+                    _followKey.currentState!.refresh(),
+                  if (_pendingKey.currentState != null)
+                    _pendingKey.currentState!.refresh(),
+                ]);
+              },
+        onRequest: _openNewBooking,
+        onNavigate: _onDrawerNav,
+        onBooking: _openBooking,
+      ),
+      bottomNavigationBar:
+          OwnerWorkspaceNav(activeId: _tab, onChange: _onDrawerNav),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    return OwnerRootNavigation(
+        select: (id) {
+          if (mounted) _switchTab(id);
+        },
+        child: PopScope(
+            canPop: _tab == 'home',
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop && mounted) _switchTab('home');
+            },
+            child: Builder(key: _navigationKey, builder: _buildWorkspace)));
+  }
+
+  Widget _buildWorkspace(BuildContext context) {
+    final binding = widget.binding;
+    if (binding != null) {
+      return AnimatedBuilder(
+        animation: binding,
+        builder: (ctx, _) {
+          final bookings = _serverBookings(binding);
+          return _tab == 'home'
+              ? _dashboard(bookings, binding.ownerSummary?.propertyCount)
+              : Scaffold(
+                  appBar: AppBar(
+                      leading: BackButton(onPressed: () => _switchTab('home')),
+                      title: const Text('Bookings')),
+                  body: _buildHomeTab(ctx, bookings),
+                  bottomNavigationBar:
+                      OwnerWorkspaceNav(activeId: _tab, onChange: _onDrawerNav),
+                );
+        },
+      );
+    }
     final store = AppProviders.of(context).bookingStore;
+    final propertyStore = AppProviders.of(context).propertyStore;
     return AnimatedBuilder(
-      animation: store,
+      animation: Listenable.merge([store, propertyStore]),
       builder: (ctx, _) {
+        if (_tab == 'home') {
+          return _dashboard(store.bookings, propertyStore.properties.length);
+        }
         final body = _buildBody(ctx, store);
         final withCoach = _tab == 'home'
             ? CoachMarkOverlay(
@@ -204,7 +560,6 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
               )
             : body;
         return Scaffold(
-          drawer: AppDrawer(role: 'Owner', onNavigate: _onDrawerNav),
           appBar: _buildAppBar(ctx),
           body: withCoach,
           floatingActionButton: _tab == 'home'
@@ -215,21 +570,8 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                   label: const Text('New request'),
                 )
               : null,
-          bottomNavigationBar: AppBottomNav(
-            activeId: _tab,
-            onChange: _switchTab,
-            tabs: const [
-              NavTab(id: 'home', icon: Icons.dashboard, label: 'Home'),
-              NavTab(
-                  id: 'schedule',
-                  icon: Icons.calendar_today,
-                  label: 'Schedule'),
-              NavTab(
-                  id: 'properties', icon: Icons.apartment, label: 'Properties'),
-              NavTab(id: 'browse', icon: Icons.person_search, label: 'Browse'),
-              NavTab(id: 'spend', icon: Icons.payments, label: 'Spend'),
-            ],
-          ),
+          bottomNavigationBar:
+              OwnerWorkspaceNav(activeId: _tab, onChange: _onDrawerNav),
         );
       },
     );
@@ -253,19 +595,30 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
       case 'spend':
         title = 'Spending';
         break;
+      case 'bookings':
+        title = 'Bookings';
+        break;
       default:
         title = 'Owner';
     }
-    final isDark = AppProviders.of(context).isDark;
     return AppBar(
+      leading: _tab == 'home'
+          ? null
+          : BackButton(onPressed: () => _switchTab('home')),
       title: Text(title),
       actions: [
-        IconButton(
-          icon: Icon(
-              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-          onPressed: () => AppProviders.of(context).onToggleTheme(),
-          tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
-        ),
+        if (_tab == 'properties')
+          IconButton(
+            tooltip: 'Add property',
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              final app = AppProviders.of(context);
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => PropertyFormScreen(
+                      store: app.propertyStore,
+                      bookings: app.bookingStore.bookings)));
+            },
+          ),
         IconButton(
           icon: Stack(
             clipBehavior: Clip.none,
@@ -299,7 +652,7 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
   Widget _buildBody(BuildContext context, BookingStore store) {
     switch (_tab) {
       case 'home':
-        return _buildHomeTab(context, store);
+        return _buildHomeTab(context, store.bookings);
       case 'schedule':
         return _embeddedSchedule(store);
       case 'properties':
@@ -307,9 +660,14 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
       case 'browse':
         return _embeddedBrowse();
       case 'spend':
-        return OwnerSpendScreen(bookings: store.bookings);
+        return OwnerSpendScreen(
+          bookings: store.bookings,
+          providers: AppProviders.of(context).providerStore.providers,
+        );
+      case 'bookings':
+        return _buildHomeTab(context, store.bookings);
       default:
-        return _buildHomeTab(context, store);
+        return _buildHomeTab(context, store.bookings);
     }
   }
 
@@ -318,64 +676,30 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
   }
 
   Widget _embeddedBrowse() {
-    final sem = SemanticColors.of(context);
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          color: sem.surfaceAlt,
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.auto_awesome,
-                    size: 18, color: AppColors.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Auto-matched providers',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: sem.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      'Eligibility filters first · then equal-weight ranking',
-                      style: TextStyle(fontSize: 11, color: sem.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ProviderBrowseScreen(
-            onViewProfile: (p) => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (_) => ProviderProfileScreen(provider: p)),
-            ),
-          ),
-        ),
-      ],
+    return ProviderBrowseScreen(
+      onViewProfile: (p) => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ProviderProfileScreen(provider: p)),
+      ),
     );
   }
 
-  Widget _buildHomeTab(BuildContext context, BookingStore store) {
+  Widget _buildHomeTab(BuildContext context, List<DemoBooking> allBookings) {
+    final backend = widget.binding?.backend;
+    if (backend != null)
+      return OwnerRecordsView(
+          providers: false,
+          openFeed: OwnerNavigationRepository(backend).open,
+          onBooking: (id) => _connectedAction(
+              (actions) => actions.booking(_navigationContext, id)));
     final sem = SemanticColors.of(context);
-    final allBookings = store.bookings;
+    final binding = widget.binding;
+    final hasActiveFilter =
+        _filter.statusFilter != null || _filter.propertyFilter != null;
     final filtered = applyFilter(
       allBookings
+          .where((b) =>
+              _statusGroup == null ||
+              _statusGroup!.statuses.contains(b.status.label))
           .where((b) =>
               _searchQuery.isEmpty ||
               b.property.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -392,6 +716,10 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
     );
     return RefreshIndicator(
       onRefresh: () async {
+        if (binding != null) {
+          await binding.refresh();
+          return;
+        }
         Haptics.light();
         await Future.delayed(const Duration(milliseconds: 600));
         if (!context.mounted) return;
@@ -403,9 +731,16 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
         );
       },
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          _SummaryHeader(bookings: allBookings),
+          if (binding == null)
+            _SummaryHeader(bookings: allBookings)
+          else ...[
+            _connectionStatus(binding),
+            const Text(
+                'Search and filters apply to bookings shown below. Show more to include older bookings.'),
+          ],
           const SizedBox(height: 16),
           // OH5: search + filter with theme tokens
           Row(
@@ -453,10 +788,12 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
               const SizedBox(width: 8),
               // OH6: theme-tinted filter button
               Material(
-                color: sem.surface,
+                color: hasActiveFilter ? sem.primarySurface : sem.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(color: sem.border),
+                  side: BorderSide(
+                    color: hasActiveFilter ? sem.primaryBorder : sem.border,
+                  ),
                 ),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
@@ -466,9 +803,12 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        Icon(Icons.tune, size: 20, color: sem.textSecondary),
-                        if (_filter.statusFilter != null ||
-                            _filter.propertyFilter != null)
+                        Icon(Icons.tune,
+                            size: 20,
+                            color: hasActiveFilter
+                                ? Theme.of(context).colorScheme.primary
+                                : sem.textSecondary),
+                        if (hasActiveFilter)
                           const Positioned(
                             top: -2,
                             right: -2,
@@ -486,9 +826,11 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
             children: [
               Expanded(
                 child: Text(
-                  _searchQuery.isEmpty
-                      ? '${filtered.length} booking${filtered.length == 1 ? '' : 's'}'
-                      : '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
+                  binding != null
+                      ? '${filtered.length} result${filtered.length == 1 ? '' : 's'} shown'
+                      : _searchQuery.isEmpty
+                          ? '${filtered.length} booking${filtered.length == 1 ? '' : 's'}'
+                          : '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -496,12 +838,6 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                   ),
                 ),
               ),
-              if (_searchQuery.isEmpty)
-                TextButton.icon(
-                  onPressed: () => _switchTab('browse'),
-                  icon: const Icon(Icons.person_search, size: 18),
-                  label: const Text('Browse'),
-                ),
             ],
           ),
           const SizedBox(height: 8),
@@ -512,7 +848,14 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                 children: [
                   Icon(Icons.search_off, size: 48, color: sem.textTertiary),
                   const SizedBox(height: 8),
-                  Text('No matches',
+                  Text(
+                      binding != null && binding.loading
+                          ? 'Loading bookings…'
+                          : binding != null &&
+                                  binding.error != null &&
+                                  allBookings.isEmpty
+                              ? 'Bookings unavailable. Retry above.'
+                              : 'No matches',
                       style: TextStyle(fontSize: 14, color: sem.textSecondary)),
                 ],
               ),
@@ -522,12 +865,10 @@ class _OwnerHomeScreenState extends State<OwnerHomeScreen> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: BookingCard(
                     booking: b,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => BookingDetailScreen(booking: b)),
-                    ),
+                    onTap: () => _openBooking(b),
                   ),
                 )),
+          if (binding != null) _pagination(binding, allBookings.length),
           const SizedBox(height: 80),
         ],
       ),
@@ -543,8 +884,8 @@ class _FilterDot extends StatelessWidget {
     return Container(
       width: 8,
       height: 8,
-      decoration: const BoxDecoration(
-        color: AppColors.primary,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
         shape: BoxShape.circle,
       ),
     );
@@ -578,11 +919,11 @@ class _SummaryHeader extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         // OH4: use AppTheme gradient
-        gradient: AppTheme.primaryGradient,
+        gradient: AppTheme.heroGradient(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.25),
+            color: SemanticColors.of(context).shadow,
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -669,24 +1010,16 @@ class _SummaryHeader extends StatelessWidget {
             Row(
               children: [
                 _StatCard(label: 'Total', value: '$total'),
-                const SizedBox(width: 6),
-                _StatCard(
-                  label: 'Active',
-                  value: '$inProgress',
-                  color: AppColors.statusInProgress,
-                ),
-                const SizedBox(width: 6),
-                _StatCard(
-                  label: 'Accepted',
-                  value: '$accepted',
-                  color: AppColors.statusAccepted,
-                ),
-                const SizedBox(width: 6),
-                _StatCard(
-                  label: 'Done',
-                  value: '$completed',
-                  color: AppColors.statusCompleted,
-                ),
+                const SizedBox(width: 8),
+                _StatCard(label: 'Active', value: '$inProgress'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _StatCard(label: 'Accepted', value: '$accepted'),
+                const SizedBox(width: 8),
+                _StatCard(label: 'Done', value: '$completed'),
               ],
             ),
             const SizedBox(height: 12),
@@ -702,17 +1035,18 @@ class _SummaryHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.notifications_active,
                           size: 14, color: Colors.white),
                       const SizedBox(width: 6),
-                      Text(
-                        '$pending pending request${pending == 1 ? '' : 's'} awaiting provider response',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          '$pending pending request${pending == 1 ? '' : 's'} awaiting provider response',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -733,10 +1067,9 @@ class _SummaryHeader extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value, this.color});
+  const _StatCard({required this.label, required this.value});
   final String label;
   final String value;
-  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -755,7 +1088,7 @@ class _StatCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: color ?? Colors.white,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 2),
@@ -779,107 +1112,153 @@ class _StatCard extends StatelessWidget {
 // Owner Profile mini-screen (drawer destination)
 // ====================================================================
 
-class _OwnerProfileScreen extends StatelessWidget {
-  const _OwnerProfileScreen({required this.onOpenBookings});
+class OwnerProfileScreen extends StatelessWidget {
+  const OwnerProfileScreen(
+      {super.key,
+      required this.onOpenBookings,
+      this.snapshot,
+      this.onAction,
+      this.onRefresh,
+      this.notice});
   final VoidCallback onOpenBookings;
+  final Map<String, dynamic>? snapshot;
+  final ValueChanged<String>? onAction;
+  final Future<void> Function()? onRefresh;
+  final Widget? notice;
 
   @override
   Widget build(BuildContext context) {
     // OH2: dynamic name
-    final session = UserSessionAccess.of(context);
-    final name = session.displayName.isEmpty ? 'Owner' : session.displayName;
+    final session = snapshot == null ? UserSessionAccess.of(context) : null;
+    final name = snapshot != null
+        ? (snapshot!['display_name'] as String? ?? 'Property Owner')
+        : session!.displayName.isEmpty
+            ? 'Owner'
+            : session.displayName;
     final initials = _initialsOf(name);
     return Scaffold(
       appBar: AppBar(title: const Text('Profile & settings')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(
-                        color: Colors.white.withOpacity(0.4), width: 2),
-                  ),
-                  child: Center(
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
+      body: RefreshIndicator(
+          onRefresh: onRefresh ?? () async {},
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (notice != null) notice!,
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.heroGradient(context),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(32),
+                        border: Border.all(
+                            color: Colors.white.withOpacity(0.4), width: 2),
+                      ),
+                      child: Center(
+                        child: Text(
+                          initials,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Owner · 5 properties',
-                        style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
-                            fontSize: 13),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            snapshot == null
+                                ? 'Owner · 5 properties'
+                                : 'Owner · ${snapshot!['property_count']} properties',
+                            style: TextStyle(
+                                color: Colors.white.withOpacity(0.85),
+                                fontSize: 13),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          const SectionHeader(title: 'Account'),
-          _tile(context, Icons.person_outline, 'Edit profile',
-              'Name, email, phone'),
-          _tile(context, Icons.lock_outline, 'Change password',
-              'Last changed 30 days ago'),
-          _tile(context, Icons.verified_user_outlined, 'Verification',
-              'NRIC verified'),
-          const SizedBox(height: 16),
-          const SectionHeader(title: 'Preferences'),
-          _tile(context, Icons.notifications_outlined, 'Notifications',
-              'Push, email, SMS'),
-          _tile(context, Icons.language, 'Language', 'English (Malaysia)'),
-          _tile(context, Icons.dark_mode_outlined, 'Appearance', 'Light mode'),
-          const SizedBox(height: 16),
-          const SectionHeader(title: 'Properties'),
-          _tile(
-            context,
-            Icons.apartment,
-            'Manage properties',
-            '5 properties managed',
-            onTap: onOpenBookings,
-          ),
-          const SizedBox(height: 16),
-          const SectionHeader(title: 'About'),
-          _tile(
-              context, Icons.info_outline, 'App version', 'v0.1.0 · Sprint 0'),
-          _tile(context, Icons.description_outlined, 'Terms of service', null),
-          _tile(context, Icons.privacy_tip_outlined, 'Privacy policy', null),
-          const SizedBox(height: 32),
-        ],
-      ),
+              ),
+              const SizedBox(height: 24),
+              const SectionHeader(title: 'Account'),
+              _tile(
+                  context,
+                  Icons.person_outline,
+                  'Edit profile',
+                  snapshot == null
+                      ? 'Name, email, phone'
+                      : 'Name and contact number'),
+              if (snapshot != null)
+                _tile(context, Icons.email_outlined, 'Email',
+                    snapshot!['email'] as String),
+              _tile(
+                  context,
+                  Icons.lock_outline,
+                  'Change password',
+                  snapshot == null
+                      ? 'Last changed 30 days ago'
+                      : 'Password recovery information'),
+              _tile(
+                  context,
+                  Icons.verified_user_outlined,
+                  'Verification',
+                  snapshot == null
+                      ? 'NRIC verified'
+                      : 'Identity verification is not implemented'),
+              const SizedBox(height: 16),
+              const SectionHeader(title: 'Preferences'),
+              _tile(
+                  context,
+                  Icons.notifications_outlined,
+                  'Notifications',
+                  snapshot == null
+                      ? 'Push, email, SMS'
+                      : 'In-app booking updates'),
+              _tile(context, Icons.language, 'Language', 'English (Malaysia)'),
+              _tile(
+                  context,
+                  Icons.dark_mode_outlined,
+                  'Appearance',
+                  Theme.of(context).brightness == Brightness.dark
+                      ? 'Dark mode'
+                      : 'Light mode'),
+              const SizedBox(height: 16),
+              const SectionHeader(title: 'Activity & reports'),
+              _tile(context, Icons.calendar_month_outlined, 'Schedule',
+                  'View your cleaning appointments'),
+              _tile(context, Icons.payments_outlined, 'Spending',
+                  'Review completed booking costs'),
+              const SizedBox(height: 16),
+              const SectionHeader(title: 'Help'),
+              _tile(context, Icons.info_outline, 'About & help',
+                  'Support, terms, privacy and app information'),
+              if (snapshot != null)
+                _tile(context, Icons.logout, 'Sign out', null),
+              const SizedBox(height: 32),
+            ],
+          )),
     );
   }
 
@@ -905,10 +1284,10 @@ class _OwnerProfileScreen extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: AppColors.primarySurface,
+            color: sem.primarySurface,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 18, color: AppColors.primary),
+          child: Icon(icon, size: 18, color: Theme.of(ctx).colorScheme.primary),
         ),
         title: Text(
           title,
@@ -926,6 +1305,10 @@ class _OwnerProfileScreen extends StatelessWidget {
             Icon(Icons.arrow_forward_ios, size: 12, color: sem.textTertiary),
         onTap: onTap ??
             () {
+              if (onAction != null) {
+                onAction!(title);
+                return;
+              }
               ScaffoldMessenger.of(ctx).showSnackBar(
                 SnackBar(
                   content: Text('$title · Sprint 1 feature'),

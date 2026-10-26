@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Owner & Provider - Usability session recorder</title>
+<link rel="stylesheet" href="styles.css">
+<script defer src="logic.js"></script>
+<script defer src="recorder.js"></script>
+<body>
+<header><div class="wrap"><p class="eyebrow">SMART RENTAL / DEVELOPER TOOLS</p><h1>Usability session recorder</h1><p>Observe real Owner and Provider tasks. Keep dry runs separate from user evidence.</p></div></header>
+<main class="wrap">
+  <div class="notice">Preparation complete · No participant results are supplied. This tool records observations; it does not connect to Supabase or verify an app operation automatically.</div>
+  <section class="card" aria-labelledby="setup-title">
+    <h2 id="setup-title">1. Set up the session</h2>
+    <div class="grid">
+      <label>Role<select id="role"><option>Owner</option><option>Provider</option></select></label>
+      <label>Test mode<select id="mode"><option value="LOCAL_UI_REVIEW">Local UI review / limited evidence</option><option value="CONNECTED_SESSION">Connected session / verified accounts</option></select></label>
+      <label>Participant code<input id="participant" placeholder="P01 (no names or emails)" maxlength="5" autocomplete="off"></label>
+      <label>Device / OS<input id="device" placeholder="e.g. Pixel 7 / Android 15"></label>
+      <label>App build / commit<input id="build" placeholder="Record the exact tested build"></label>
+      <label>Network<input id="network" placeholder="e.g. Wi-Fi, documented connection"></label>
+    </div>
+    <label class="check"><input id="observed" type="checkbox">This is an actual observed usability session with a person, not a facilitator dry run.</label>
+    <label class="check"><input id="verified" type="checkbox">The connected build, separate accounts, migrations and task fixtures have been verified for this session.</label>
+    <label class="check"><input id="first-booking" type="checkbox">This Owner has never attempted the app's booking task before.</label>
+    <p class="small" id="mode-note">Local reviews cannot establish the five-minute booking requirement or cross-account persistence.</p>
+    <p class="small">使用提示：只读出任务目标，不告诉使用者按钮在哪里。若提供帮助，请记录次数。请使用测试物业及不含个人资料的照片。</p>
+  </section>
+  <section class="card" aria-labelledby="task-title">
+    <h2 id="task-title">2. Observe one task</h2>
+    <label>Task<select id="task"></select></label>
+    <div class="scenario"><p class="eyebrow" id="requirement"></p><h3 id="task-name"></h3><p id="prompt"></p></div>
+    <details id="moderator-details"><summary>Facilitator setup and expected result — keep hidden from the participant</summary><p><strong>Before starting:</strong> <span id="setup"></span></p><p><strong>Observe:</strong> <span id="check"></span></p></details>
+    <label class="check"><input id="ready" type="checkbox">This task's prerequisites and test data are ready.</label>
+    <div class="timer-row"><output id="timer" aria-label="Elapsed time" aria-live="off">00:00</output><div class="actions"><button id="start">Start task</button><button id="stop" class="secondary" disabled>Stop timer</button></div></div>
+    <p class="small">Start as the task is presented; stop at an acknowledged result or when the attempt ends. No silent pauses. For O02, use Home with the unit prepared by O01 and record this precondition in your report.</p>
+    <div class="grid">
+      <label>Outcome<select id="outcome"><option value="">Choose after observing</option><option value="INDEPENDENT">Completed independently</option><option value="ASSISTED">Completed with guidance</option><option value="FAILED">Did not complete</option><option value="BLOCKED">Blocked by environment / missing feature</option></select></label>
+      <label>External guidance count<input id="guidance" type="number" min="0" step="1" value="0"></label>
+      <label>Task ease (optional, ask afterwards)<select id="ease"><option value="">Not answered</option><option value="1">1 - Very difficult</option><option value="2">2 - Difficult</option><option value="3">3 - Neutral</option><option value="4">4 - Easy</option><option value="5">5 - Very easy</option></select></label>
+      <label>Evidence / issue reference<input id="evidence" placeholder="e.g. UX-001 / screenshot filename"></label>
+    </div>
+    <label class="check"><input id="confirmed" type="checkbox">For O02: I observed server-confirmed Pending status for the intended valid booking.</label>
+    <label>What happened / where they hesitated / exact feedback<textarea id="notes" rows="4" placeholder="Record what the person did and said. Describe any guidance, interruption or blocker."></textarea></label>
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+    <div class="actions"><button id="save" disabled>Save observed attempt</button><button id="reset" class="secondary">Reset task draft</button></div>
+  </section>
+  <section class="card" aria-labelledby="records-title">
+    <div class="section-heading"><h2 id="records-title">3. Review and export</h2><span class="badge" id="count">0 saved attempts</span></div>
+    <p class="small">Only finished attempts appear below. A blocked task is not a pass. Dry runs and local UI reviews are excluded from the NFR3.2 judgement. The ease question is a project-specific question, not SUS.</p>
+    <div class="table-scroll"><table><thead><tr><th>Source</th><th>Task</th><th>Time</th><th>Outcome</th><th>NFR3.2</th></tr></thead><tbody id="records"></tbody></table></div>
+    <div class="actions"><button id="csv" class="secondary" disabled>Download CSV</button><button id="json" class="secondary" disabled>Download JSON</button></div>
+    <p class="small">Records stay in this browser when local storage is available. Export before changing computers or clearing browser data. Store participant identities and consent separately; do not enter passwords or personal contact details here.</p>
+  </section>
+  <section class="card muted"><h2>Not ready for a full user-validation claim</h2><p>Hosted Supabase deployment, real Auth/Storage/Realtime and separate-account testing still need verification. The current connected flow also lacks complete weighted provider ranking, dynamic alternatives, payments, push notifications and the report's full schedule/profile experience. Plan those tasks separately after implementation; see <a href="README.md">the session guide</a>.</p></section>
+</main>
+<footer class="wrap">Developer observation tool · No survey findings or completed usability sessions are pre-generated.</footer>
+</body>
+</html>

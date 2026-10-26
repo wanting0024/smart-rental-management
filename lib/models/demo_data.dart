@@ -4,6 +4,7 @@
 // supabase/seed/0001_demo_data.sql and the tutor example table.
 
 import 'package:flutter/material.dart';
+import '../features/availability/domain/provider_availability.dart';
 import '../features/bookings/domain/booking_status.dart';
 
 export '../features/bookings/domain/booking_status.dart';
@@ -40,11 +41,17 @@ class DemoProvider {
         'Professional cleaning service. Trusted by 50+ property owners in KL.',
     this.workingHoursStart = const TimeOfDay(hour: 8, minute: 0),
     this.workingHoursEnd = const TimeOfDay(hour: 18, minute: 0),
+    ProviderAvailabilitySchedule? availabilitySchedule,
     this.hourlyRate = 80.0,
     this.isVerified = true,
     this.avatarColorIndex = 0,
     this.showPhoneToOwners = true,
-  });
+  }) : availabilitySchedule = availabilitySchedule ??
+            (availability == 'Full match'
+                ? ProviderAvailabilitySchedule.daily
+                : availability == 'Partial match'
+                    ? ProviderAvailabilitySchedule.partialDaily
+                    : ProviderAvailabilitySchedule.closed);
   final String id;
   final String name;
   final List<String> serviceTypes;
@@ -65,6 +72,7 @@ class DemoProvider {
   final String bio;
   final TimeOfDay workingHoursStart;
   final TimeOfDay workingHoursEnd;
+  final ProviderAvailabilitySchedule availabilitySchedule;
   final double hourlyRate;
   final bool isVerified;
   final int avatarColorIndex;
@@ -88,6 +96,7 @@ class DemoProvider {
     String? bio,
     TimeOfDay? workingHoursStart,
     TimeOfDay? workingHoursEnd,
+    ProviderAvailabilitySchedule? availabilitySchedule,
     double? hourlyRate,
     bool? isVerified,
     int? avatarColorIndex,
@@ -118,6 +127,7 @@ class DemoProvider {
       bio: bio ?? this.bio,
       workingHoursStart: workingHoursStart ?? this.workingHoursStart,
       workingHoursEnd: workingHoursEnd ?? this.workingHoursEnd,
+      availabilitySchedule: availabilitySchedule ?? this.availabilitySchedule,
       hourlyRate: hourlyRate ?? this.hourlyRate,
       isVerified: isVerified ?? this.isVerified,
       avatarColorIndex: avatarColorIndex ?? this.avatarColorIndex,
@@ -170,6 +180,7 @@ class DemoBooking {
     required this.property,
     required this.serviceType,
     required this.providerName,
+    this.hourlyRateAtBooking,
     required this.scheduledStart,
     required this.scheduledEnd,
     required this.status,
@@ -194,6 +205,10 @@ class DemoBooking {
   final String property;
   final String serviceType;
   final String? providerName;
+
+  /// Agreed demo rate captured when the request is created, so later profile
+  /// edits do not recalculate an existing booking's amount.
+  final double? hourlyRateAtBooking;
   final DateTime scheduledStart;
   final DateTime scheduledEnd;
   final BookingStatus status;
@@ -242,6 +257,7 @@ class DemoBooking {
   /// for transactional updates that preserve unrelated fields.
   DemoBooking copyWith({
     String? providerName,
+    double? hourlyRateAtBooking,
     DateTime? scheduledStart,
     DateTime? scheduledEnd,
     BookingStatus? status,
@@ -270,6 +286,7 @@ class DemoBooking {
       property: property,
       serviceType: serviceType,
       providerName: providerName ?? this.providerName,
+      hourlyRateAtBooking: hourlyRateAtBooking ?? this.hourlyRateAtBooking,
       scheduledStart: scheduledStart ?? this.scheduledStart,
       scheduledEnd: scheduledEnd ?? this.scheduledEnd,
       status: status ?? this.status,
@@ -352,33 +369,82 @@ class DemoBooking {
           isRecurring: true,
           recurrencePattern: RecurrencePattern.weekly,
         ),
-      ];
+      ].map((booking) => booking.copyWith(hourlyRateAtBooking: 80)).toList();
 }
 
 /// Properties the owner manages. Used by New Booking form.
 class DemoProperty {
   const DemoProperty(
-      {required this.unit,
+      {this.id = '',
+      required this.unit,
       required this.tower,
       required this.bedrooms,
-      required this.sizeSqft});
+      required this.sizeSqft,
+      this.address = '',
+      this.cleaningWindowStart = const TimeOfDay(hour: 8, minute: 0),
+      this.cleaningWindowEnd = const TimeOfDay(hour: 18, minute: 0)});
+  final String id;
   final String unit;
   final String tower;
   final int bedrooms;
   final int sizeSqft;
+  final String address;
+  // Local preview fixture until rental-unit availability is persisted.
+  final TimeOfDay cleaningWindowStart;
+  final TimeOfDay cleaningWindowEnd;
   String get display => 'Unit $unit, $tower';
+
+  DemoProperty copyWith({
+    String? unit,
+    String? tower,
+    int? bedrooms,
+    int? sizeSqft,
+    String? address,
+    TimeOfDay? cleaningWindowStart,
+    TimeOfDay? cleaningWindowEnd,
+  }) =>
+      DemoProperty(
+        id: id,
+        unit: unit ?? this.unit,
+        tower: tower ?? this.tower,
+        bedrooms: bedrooms ?? this.bedrooms,
+        sizeSqft: sizeSqft ?? this.sizeSqft,
+        address: address ?? this.address,
+        cleaningWindowStart: cleaningWindowStart ?? this.cleaningWindowStart,
+        cleaningWindowEnd: cleaningWindowEnd ?? this.cleaningWindowEnd,
+      );
 
   static const List<DemoProperty> all = [
     DemoProperty(
-        unit: 'A-12', tower: 'Menara Suria', bedrooms: 3, sizeSqft: 980),
+        id: 'prop-a12',
+        unit: 'A-12',
+        tower: 'Menara Suria',
+        bedrooms: 3,
+        sizeSqft: 980),
     DemoProperty(
-        unit: 'B-08', tower: 'Menara Suria', bedrooms: 2, sizeSqft: 760),
+        id: 'prop-b08',
+        unit: 'B-08',
+        tower: 'Menara Suria',
+        bedrooms: 2,
+        sizeSqft: 760),
     DemoProperty(
-        unit: 'C-21', tower: 'Menara Suria', bedrooms: 4, sizeSqft: 1200),
+        id: 'prop-c21',
+        unit: 'C-21',
+        tower: 'Menara Suria',
+        bedrooms: 4,
+        sizeSqft: 1200),
     DemoProperty(
-        unit: 'D-03', tower: 'Menara Suria', bedrooms: 2, sizeSqft: 720),
+        id: 'prop-d03',
+        unit: 'D-03',
+        tower: 'Menara Suria',
+        bedrooms: 2,
+        sizeSqft: 720),
     DemoProperty(
-        unit: 'E-15', tower: 'Vista Bayu', bedrooms: 3, sizeSqft: 1050),
+        id: 'prop-e15',
+        unit: 'E-15',
+        tower: 'Vista Bayu',
+        bedrooms: 3,
+        sizeSqft: 1050),
   ];
 }
 
@@ -469,6 +535,8 @@ class EarningsRecord {
     required this.net,
     required this.serviceLabel,
     required this.property,
+    this.amountAvailable = true,
+    this.settlementAvailable = true,
   });
   final String bookingId;
   final DateTime date;
@@ -478,10 +546,12 @@ class EarningsRecord {
   final double net;
   final String serviceLabel;
   final String property;
+  final bool amountAvailable;
+  final bool settlementAvailable;
 
-  static double computeGross(Duration duration) {
+  static double computeGross(Duration duration, {required double hourlyRate}) {
     final hours = duration.inMinutes / 60.0;
-    return 80 * hours; // base RM 80/h
+    return hourlyRate * hours;
   }
 
   static double computeFee(double gross) => gross * 0.15; // 15% platform fee
@@ -496,6 +566,7 @@ class SpendRecord {
     required this.serviceLabel,
     required this.property,
     required this.providerName,
+    this.amountAvailable = true,
   });
   final String bookingId;
   final DateTime date;
@@ -503,6 +574,7 @@ class SpendRecord {
   final String serviceLabel;
   final String property;
   final String providerName;
+  final bool amountAvailable;
 }
 
 /// Provider-specific earnings aggregation.
@@ -546,7 +618,21 @@ class SpendSummary {
 }
 
 /// Compute earnings for a specific provider from a list of bookings.
-EarningsSummary earningsFor(String providerName, List<DemoBooking> bookings) {
+double _rateForBooking(DemoBooking booking, Iterable<DemoProvider> providers) {
+  final rate = booking.hourlyRateAtBooking ??
+      providers
+          .where((provider) => provider.name == booking.providerName)
+          .firstOrNull
+          ?.hourlyRate;
+  if (rate == null || rate <= 0) {
+    throw StateError('Hourly rate unavailable for booking ${booking.id}');
+  }
+  return rate;
+}
+
+EarningsSummary earningsFor(String providerName, List<DemoBooking> bookings,
+    {Iterable<DemoProvider>? providers}) {
+  final rateProviders = providers ?? DemoProvider.seeded();
   final completed = bookings
       .where((b) =>
           b.providerName == providerName && b.status == BookingStatus.completed)
@@ -555,7 +641,10 @@ EarningsSummary earningsFor(String providerName, List<DemoBooking> bookings) {
 
   final records = completed.map((b) {
     final duration = b.scheduledEnd.difference(b.scheduledStart);
-    final gross = EarningsRecord.computeGross(duration);
+    final gross = EarningsRecord.computeGross(
+      duration,
+      hourlyRate: _rateForBooking(b, rateProviders),
+    );
     final fee = EarningsRecord.computeFee(gross);
     return EarningsRecord(
       bookingId: b.id,
@@ -570,7 +659,7 @@ EarningsSummary earningsFor(String providerName, List<DemoBooking> bookings) {
   }).toList();
 
   final now = DateTime.now();
-  final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+  final startOfWeek = DateTime(now.year, now.month, now.day - now.weekday + 1);
   final startOfMonth = DateTime(now.year, now.month, 1);
 
   double weekly = 0, monthly = 0, total = 0;
@@ -596,7 +685,9 @@ EarningsSummary earningsFor(String providerName, List<DemoBooking> bookings) {
 }
 
 /// Compute owner's spend aggregation from a list of bookings.
-SpendSummary spendFor(List<DemoBooking> bookings) {
+SpendSummary spendFor(List<DemoBooking> bookings,
+    {Iterable<DemoProvider>? providers}) {
+  final rateProviders = providers ?? DemoProvider.seeded();
   final completed = bookings
       .where((b) => b.status == BookingStatus.completed)
       .toList()
@@ -607,7 +698,10 @@ SpendSummary spendFor(List<DemoBooking> bookings) {
     return SpendRecord(
       bookingId: b.id,
       date: b.scheduledStart,
-      cost: EarningsRecord.computeGross(duration),
+      cost: EarningsRecord.computeGross(
+        duration,
+        hourlyRate: _rateForBooking(b, rateProviders),
+      ),
       serviceLabel: b.serviceType,
       property: b.property,
       providerName: b.providerName ?? 'Unknown',

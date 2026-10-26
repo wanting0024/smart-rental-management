@@ -3,6 +3,7 @@
 // Exposes: label, hint, helper, error, prefix/suffix icons, multi-line.
 
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class AppTextField extends StatelessWidget {
   const AppTextField({
@@ -47,15 +48,16 @@ class AppTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final sem = SemanticColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF374151),
+            color: sem.textPrimary,
             letterSpacing: 0.2,
           ),
         ),
@@ -72,40 +74,44 @@ class AppTextField extends StatelessWidget {
           onTap: onTap,
           obscureText: obscureText,
           maxLength: maxLength,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF111827)),
+          style: TextStyle(fontSize: 14, color: sem.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF9CA3AF)),
+            hintStyle: TextStyle(fontSize: 14, color: sem.textTertiary),
             prefixIcon: prefixIcon != null
                 ? Padding(
                     padding: const EdgeInsets.only(left: 12, right: 8),
-                    child: Icon(prefixIcon, size: 18, color: const Color(0xFF6B7280)),
+                    child: Icon(prefixIcon, size: 18, color: sem.textSecondary),
                   )
                 : null,
-            prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+            prefixIconConstraints:
+                const BoxConstraints(minWidth: 0, minHeight: 0),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: const Color(0xFFF9FAFB),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            fillColor: sem.surfaceAlt,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderSide: BorderSide(color: sem.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderSide: BorderSide(color: sem.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+              borderSide:
+                  BorderSide(color: theme.colorScheme.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFEF4444)),
+              borderSide: BorderSide(color: theme.colorScheme.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+              borderSide:
+                  BorderSide(color: theme.colorScheme.error, width: 1.5),
             ),
             counterText: '',
           ),
@@ -114,19 +120,21 @@ class AppTextField extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             helper!,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+            style: TextStyle(fontSize: 12, color: sem.textSecondary),
           ),
         ],
         if (error != null) ...[
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.error_outline, size: 14, color: Color(0xFFEF4444)),
+              Icon(Icons.error_outline,
+                  size: 14, color: theme.colorScheme.error),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   error!,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444)),
+                  style:
+                      TextStyle(fontSize: 12, color: theme.colorScheme.error),
                 ),
               ),
             ],

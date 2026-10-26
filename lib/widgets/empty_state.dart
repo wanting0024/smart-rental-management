@@ -2,6 +2,7 @@
 // Reusable empty state: icon + title + subtitle + optional CTA.
 
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class EmptyState extends StatelessWidget {
   const EmptyState({
@@ -21,7 +22,8 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = iconColor ?? const Color(0xFF9CA3AF);
+    final sem = SemanticColors.of(context);
+    final color = iconColor ?? Theme.of(context).colorScheme.primary;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -41,10 +43,10 @@ class EmptyState extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF111827),
+                color: sem.textPrimary,
               ),
             ),
             if (subtitle != null) ...[
@@ -52,7 +54,8 @@ class EmptyState extends StatelessWidget {
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280), height: 1.4),
+                style: TextStyle(
+                    fontSize: 13, color: sem.textSecondary, height: 1.4),
               ),
             ],
             if (action != null) ...[

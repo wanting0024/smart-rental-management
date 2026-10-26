@@ -7,7 +7,6 @@
 // Sprint 0: pure in-memory (resets on app restart).
 // Sprint 1: backed by Supabase Auth + SharedPreferences.
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 enum UserRole { owner, provider }
@@ -45,6 +44,15 @@ class UserSession extends ChangeNotifier {
     _isLoggedIn = false;
     _email = '';
     _displayName = '';
+    _providerId = null;
+    _role = UserRole.owner;
+    _hasSeenOnboarding = false;
+    notifyListeners();
+  }
+
+  void updateDisplayName(String value) {
+    if (!_isLoggedIn || value == _displayName) return;
+    _displayName = value;
     notifyListeners();
   }
 
@@ -65,7 +73,8 @@ class UserSessionAccess extends InheritedWidget {
   final UserSession _session;
 
   static UserSession of(BuildContext context) {
-    final result = context.dependOnInheritedWidgetOfExactType<UserSessionAccess>();
+    final result =
+        context.dependOnInheritedWidgetOfExactType<UserSessionAccess>();
     assert(result != null, 'No UserSessionAccess found in context');
     return result!._session;
   }
