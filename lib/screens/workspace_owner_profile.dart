@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
 import '../services/backend/supabase_backend_provider.dart';
 import '../services/backend/supabase_workspace_repository.dart';
 import '../services/user_session.dart';
@@ -50,13 +49,16 @@ class WorkspaceOwnerProfile extends StatelessWidget {
                                 binding.snapshot!['display_name'] as String);
                         }
                       case 'Notifications':
-                        await actions.notifications(context);
+                        await actions.settings(context, 'notifications');
                       case 'Schedule':
                         await actions.schedule(context);
                       case 'Spending':
                         await actions.spending(context);
                       case 'Appearance':
-                        AppProviders.of(context).onToggleTheme();
+                        await actions.settings(context, 'appearance');
+                      case 'Privacy & security':
+                      case 'Change password':
+                        await actions.settings(context, 'privacy');
                       case 'Sign out':
                         await actions.signOut(context);
                       case 'Terms of service':
@@ -73,7 +75,7 @@ class WorkspaceOwnerProfile extends StatelessWidget {
                           'Language' =>
                             'English (Malaysia) is currently the available interface language.',
                           _ =>
-                            'Use Forgot password on the sign-in screen for email recovery. Synthetic .invalid test accounts cannot receive email. No recovery email is sent by opening this information.'
+                            'Use Forgot password on the sign-in screen for email recovery. Addresses ending in .invalid cannot receive email. No recovery email is sent by opening this information.'
                         };
                         if (context.mounted)
                           await showDialog<void>(
@@ -145,7 +147,11 @@ class _OwnerEditorState extends State<OwnerProfileEditor> {
         'display_name': name.text.trim(),
         'contact_number': phone.text.trim().isEmpty ? null : phone.text.trim()
       });
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile changes saved.')));
+        Navigator.pop(context);
+      }
     } catch (_) {
       if (mounted)
         setState(() {
@@ -185,6 +191,9 @@ class _OwnerEditorState extends State<OwnerProfileEditor> {
                             maxLength: 60,
                             decoration: const InputDecoration(
                                 labelText: 'Your name',
+                                hintText: 'e.g. Aina Ahmad',
+                                floatingLabelBehavior:
+                                    FloatingLabelBehavior.always,
                                 helperText:
                                     'Used on your profile and welcome message.'),
                             validator: (v) =>
@@ -198,7 +207,10 @@ class _OwnerEditorState extends State<OwnerProfileEditor> {
                             maxLength: 25,
                             keyboardType: TextInputType.phone,
                             decoration: const InputDecoration(
-                                labelText: 'Contact number (optional)'),
+                                labelText: 'Contact number (optional)',
+                                hintText: '+60 12 345 6789',
+                                floatingLabelBehavior:
+                                    FloatingLabelBehavior.always),
                             validator: (v) => v == null ||
                                     v.trim().isEmpty ||
                                     RegExp(r'^\+?[0-9 ()-]{7,25}$')

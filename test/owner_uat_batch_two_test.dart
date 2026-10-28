@@ -173,7 +173,7 @@ void main() {
         app(ConnectedPropertyFormScreen(onSave: (_) async => writes++)));
     for (final hint in [
       'e.g. A-12-03',
-      'e.g. Menara Suria',
+      'e.g. Menara Suria, Tower A',
       'e.g. 12 Jalan Example, Kuala Lumpur',
       'e.g. 980'
     ]) {
@@ -286,8 +286,8 @@ void main() {
             dark: provider,
             scale: 2));
         final activityButton = find.ancestor(
-            of: find.text('View activity'),
-            matching: find.byWidgetPredicate((w) => w is OutlinedButton));
+            of: find.text('Status history'),
+            matching: find.byWidgetPredicate((w) => w is TextButton));
         await tester.ensureVisible(activityButton);
         await tester.tap(activityButton);
         await tester.pumpAndSettle();
@@ -400,7 +400,7 @@ void main() {
   }
 
   testWidgets(
-      'activity sheet can be dismissed explicitly without changing the booking',
+      'status history has one drag handle and closes without changing the booking',
       (tester) async {
     await tester.pumpWidget(app(Scaffold(
         body: Builder(
@@ -413,8 +413,20 @@ void main() {
                 child: const Text('Open activity'))))));
     await tester.tap(find.text('Open activity'));
     await tester.pumpAndSettle();
-    expect(find.byTooltip('Close activity'), findsOneWidget);
-    await tester.tap(find.byTooltip('Close activity'));
+    final bars = find
+        .descendant(
+            of: find.byType(BottomSheet), matching: find.byType(DecoratedBox))
+        .evaluate()
+        .where((element) {
+      final size = tester.getSize(find.byWidget(element.widget));
+      return size.height > 0 &&
+          size.height <= 6 &&
+          size.width >= 24 &&
+          size.width <= 48;
+    });
+    expect(bars.length, 1);
+    expect(find.byTooltip('Close status history'), findsOneWidget);
+    await tester.tap(find.byTooltip('Close status history'));
     await tester.pumpAndSettle();
     expect(find.byType(ConnectedBookingHistorySheet), findsNothing);
   });

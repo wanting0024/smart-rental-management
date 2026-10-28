@@ -12,6 +12,7 @@
 //   OH7 _OwnerProfileScreen: section headers use SectionHeader, theme tiles
 
 import 'package:flutter/material.dart';
+import 'account_settings_screens.dart';
 import '../main.dart';
 import '../models/demo_data.dart';
 import '../services/booking_store.dart';
@@ -26,7 +27,6 @@ import 'owner_records_view.dart';
 import '../widgets/booking_card.dart';
 import '../widgets/coach_mark.dart';
 import '../widgets/filter_sheet.dart';
-import '../widgets/section_header.dart';
 import '../widgets/workspace_actions.dart';
 import '../widgets/owner_workspace_navigation.dart';
 import 'owner_workspace_dashboard.dart';
@@ -1202,60 +1202,35 @@ class OwnerProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              const SectionHeader(title: 'Account'),
-              _tile(
-                  context,
-                  Icons.person_outline,
-                  'Edit profile',
-                  snapshot == null
-                      ? 'Name, email, phone'
-                      : 'Name and contact number'),
-              if (snapshot != null)
-                _tile(context, Icons.email_outlined, 'Email',
-                    snapshot!['email'] as String),
-              _tile(
-                  context,
-                  Icons.lock_outline,
-                  'Change password',
-                  snapshot == null
-                      ? 'Last changed 30 days ago'
-                      : 'Password recovery information'),
-              _tile(
-                  context,
-                  Icons.verified_user_outlined,
-                  'Verification',
-                  snapshot == null
-                      ? 'NRIC verified'
-                      : 'Identity verification is not implemented'),
-              const SizedBox(height: 16),
-              const SectionHeader(title: 'Preferences'),
-              _tile(
-                  context,
-                  Icons.notifications_outlined,
-                  'Notifications',
-                  snapshot == null
-                      ? 'Push, email, SMS'
-                      : 'In-app booking updates'),
-              _tile(context, Icons.language, 'Language', 'English (Malaysia)'),
-              _tile(
-                  context,
-                  Icons.dark_mode_outlined,
-                  'Appearance',
-                  Theme.of(context).brightness == Brightness.dark
-                      ? 'Dark mode'
-                      : 'Light mode'),
-              const SizedBox(height: 16),
-              const SectionHeader(title: 'Activity & reports'),
-              _tile(context, Icons.calendar_month_outlined, 'Schedule',
-                  'View your cleaning appointments'),
-              _tile(context, Icons.payments_outlined, 'Spending',
-                  'Review completed booking costs'),
-              const SizedBox(height: 16),
-              const SectionHeader(title: 'Help'),
-              _tile(context, Icons.info_outline, 'About & help',
-                  'Support, terms, privacy and app information'),
-              if (snapshot != null)
-                _tile(context, Icons.logout, 'Sign out', null),
+              SettingsSection(title: 'Personal details', children: [
+                _tile(context, Icons.person_outline, 'Edit profile',
+                    'Name, contact and account details'),
+              ]),
+              SettingsSection(title: 'Preferences', children: [
+                _tile(context, Icons.notifications_outlined, 'Notifications',
+                    'Unread indicators on this device'),
+                const Divider(height: 1),
+                _tile(context, Icons.brightness_auto_outlined, 'Appearance',
+                    'System, Light or Dark'),
+              ]),
+              SettingsSection(title: 'Activity & reports', children: [
+                _tile(context, Icons.calendar_month_outlined, 'Schedule',
+                    'Your cleaning appointments'),
+                const Divider(height: 1),
+                _tile(context, Icons.payments_outlined, 'Spending',
+                    'Completed booking costs'),
+              ]),
+              SettingsSection(title: 'Account & help', children: [
+                _tile(context, Icons.shield_outlined, 'Privacy & security',
+                    'Sign-in, recovery and account information'),
+                const Divider(height: 1),
+                _tile(context, Icons.info_outline, 'About & help',
+                    'Guides, support, terms and privacy'),
+                if (snapshot != null) ...[
+                  const Divider(height: 1),
+                  _tile(context, Icons.logout, 'Sign out', null),
+                ],
+              ]),
               const SizedBox(height: 32),
             ],
           )),
@@ -1277,46 +1252,43 @@ class OwnerProfileScreen extends StatelessWidget {
     VoidCallback? onTap,
   }) {
     final sem = SemanticColors.of(ctx);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: sem.primarySurface,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 18, color: Theme.of(ctx).colorScheme.primary),
+    return ListTile(
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: sem.primarySurface,
+          borderRadius: BorderRadius.circular(8),
         ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: sem.textPrimary,
-          ),
-        ),
-        subtitle: subtitle != null
-            ? Text(subtitle,
-                style: TextStyle(fontSize: 12, color: sem.textSecondary))
-            : null,
-        trailing:
-            Icon(Icons.arrow_forward_ios, size: 12, color: sem.textTertiary),
-        onTap: onTap ??
-            () {
-              if (onAction != null) {
-                onAction!(title);
-                return;
-              }
-              ScaffoldMessenger.of(ctx).showSnackBar(
-                SnackBar(
-                  content: Text('$title · Sprint 1 feature'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
+        child: Icon(icon, size: 18, color: Theme.of(ctx).colorScheme.primary),
       ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: sem.textPrimary,
+        ),
+      ),
+      subtitle: subtitle != null
+          ? Text(subtitle,
+              style: TextStyle(fontSize: 12, color: sem.textSecondary))
+          : null,
+      trailing:
+          Icon(Icons.arrow_forward_ios, size: 12, color: sem.textTertiary),
+      onTap: onTap ??
+          () {
+            if (onAction != null) {
+              onAction!(title);
+              return;
+            }
+            ScaffoldMessenger.of(ctx).showSnackBar(
+              SnackBar(
+                content: Text('$title is unavailable here.'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          },
     );
   }
 }

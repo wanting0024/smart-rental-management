@@ -1,21 +1,39 @@
-# Core booking backend — local verification, hosted acceptance pending
+# Core booking backend
 
-## Current migration package (2026-10-23)
+## Current checkpoint (28 October 2026)
 
-There are now **19** ordered migrations. The current deployment contract,
-explicit Owner/Provider/anon/server permission matrix, dependency groups,
-hands-on checkpoints and original-project exclusions are in
-[`STAGING_MIGRATION_PLAN.md`](STAGING_MIGRATION_PLAN.md).
-Migration 019 closes object/column/default privileges without relying on the
-Dashboard automatic-exposure setting. Build the local review package with
-`tool/build_staging_migration_bundle.ps1`; this does not execute remote SQL.
+There are **30** ordered migrations. The connected Owner/Provider App uses
+independent Staging. The latest deployment applied only migration
+`202610280030_evidence_photo_removal.sql`; the following dry-run reported no
+pending migrations, seeds or role changes. Both disposable PostgreSQL privilege
+profiles passed the complete 001–030 migration/test sequence. Latest Flutter
+verification: 892 passing tests; paired-device acceptance remains pending.
+
+Migration 030 lets only the assigned Provider remove the exact current
+Before/After attachment while In Progress. It preserves the other photo/remarks
+and retires the manifest for existing Storage API cleanup. Stale requests cannot
+remove newer replacements. Device UAT of this latest feature remains pending.
+
+See the [root README](../README.md) and
+[development progress](../DEVELOPMENT_PROGRESS.md) for current features and
+validation limits. The dated
+[`STAGING_MIGRATION_PLAN.md`](STAGING_MIGRATION_PLAN.md) explains the original
+permission/dependency review; it is not the latest deployment inventory.
+
+`tool/build_staging_migration_bundle.ps1` generates the fresh 001–030 local
+review bundle. The generator does not execute remote SQL.
 
 The original project has an existing schema, not a reconciled migration history.
-Never apply the fresh baseline/bundle to it. New Staging default-protection setup
-is complete separately; **business migrations remain undeployed there**.
-The milestone descriptions below are historical implementation context; older
-statements that a SQL change has not been PostgreSQL-tested are superseded by
-`reviews/2026-10-23_MIGRATION_PACKAGE_VERIFICATION.md`, not by hosted approval.
+Never apply the fresh baseline/bundle to it. Do not rerun the fresh bundle on the
+existing Staging schema either; reconcile its history and use reviewed incremental
+migrations. Staging results are not Production deployment approval.
+
+## Historical implementation notes
+
+The following notes describe earlier milestones and retain their original
+limitations. Statements below about undeployed migrations, mock-only screens or
+missing features are historical, not the current implementation inventory.
+Refer to the checkpoint above and dated progress records for later verification.
 
 **Environment guard:** connected builds now require explicit environment/Project ID
 settings and migration 013's administrator-owned marker. Existing local config is

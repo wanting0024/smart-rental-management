@@ -10,6 +10,7 @@ import '../main.dart';
 import '../models/demo_data.dart';
 import '../theme/app_theme.dart';
 import '../utils/haptics.dart';
+import '../widgets/time_slot_picker.dart';
 
 class RescheduleScreen extends StatefulWidget {
   const RescheduleScreen({super.key, required this.booking});
@@ -60,9 +61,12 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
+    final picked = await showTimeSlotPicker(
       context: context,
       initialTime: _time,
+      title: 'New requested start time',
+      description:
+          'The service duration stays the same. Eligibility is checked when you save. MYT (UTC+8).',
     );
     if (picked != null && mounted) {
       setState(() {
@@ -217,7 +221,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                 child: _picker(
                   context,
                   label: 'Time',
-                  value: _time.format(context),
+                  value: timeSlotLabel(timeOfDayMinutes(_time)),
                   icon: Icons.schedule,
                   onTap: _pickTime,
                   enabled: canEdit,

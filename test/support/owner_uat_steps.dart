@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'time_slot_steps.dart';
 
 Future<void> advanceRegistration(WidgetTester tester) async {
   final name = find.byKey(const Key('registration-name'));
@@ -24,8 +25,7 @@ Future<void> selectPropertyWindow(WidgetTester tester) async {
     await tester
         .tap(find.descendant(of: key, matching: find.byType(InkWell)).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
+    await chooseTimeSlot(tester, field == 'window-start' ? 480 : 1080);
   }
 }
 

@@ -151,7 +151,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(
         theme: AppTheme.light(),
         home: const AboutScreen(environmentLabel: 'staging')));
-    expect(find.text('Staging environment'), findsOneWidget);
+    expect(find.text('Staging environment'), findsNothing);
     expect(find.textContaining('Sprint'), findsNothing);
     await tester.ensureVisible(find.text('Help center'));
     await tester.tap(find.text('Help center'));
@@ -163,14 +163,7 @@ void main() {
         findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Contact support'));
-    await tester.tap(find.text('Contact support'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('No support request has been sent'),
-        findsOneWidget);
-    expect(find.text('Copy email'), findsNothing);
-    await tester.tap(find.text('Close'));
-    await tester.pumpAndSettle();
+    expect(find.text('Contact support'), findsNothing);
     await tester.ensureVisible(find.text('Privacy policy'));
     await tester.tap(find.text('Privacy policy'));
     await tester.pumpAndSettle();

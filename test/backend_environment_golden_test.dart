@@ -63,7 +63,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('TEST ENVIRONMENT'), findsOneWidget);
+    expect(find.textContaining('TEST ENVIRONMENT'), findsNothing);
     await tester.ensureVisible(find.byKey(const Key('welcome-log-in')));
     await tester.tap(find.byKey(const Key('welcome-log-in')));
     await tester.pumpAndSettle();

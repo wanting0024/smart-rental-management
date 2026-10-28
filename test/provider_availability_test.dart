@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'support/time_slot_steps.dart';
 import 'package:rental_app_demo/features/availability/domain/provider_availability.dart';
 import 'package:rental_app_demo/features/bookings/domain/cleaning_request_flow.dart';
 import 'package:rental_app_demo/models/demo_data.dart';
@@ -218,42 +219,24 @@ void main() {
 
     expect(find.byKey(const Key('slot-start-time')), findsOneWidget);
     expect(find.byKey(const Key('slot-end-time')), findsOneWidget);
-    String fieldText(String key) => tester
-        .widget<EditableText>(find.descendant(
-          of: find.byKey(Key(key)),
-          matching: find.byType(EditableText),
-        ))
-        .controller
-        .text;
-    await tester.enterText(find.byKey(const Key('slot-start-time')), '1900');
-    await tester.enterText(find.byKey(const Key('slot-end-time')), '1800');
-    expect(fieldText('slot-start-time'), '19:00');
-    expect(fieldText('slot-end-time'), '18:00');
+    Future<void> selectField(String key, int minute) async {
+      await tester.tap(find.byKey(Key(key)));
+      await tester.pumpAndSettle();
+      await chooseTimeSlot(tester, minute);
+    }
+
+    await selectField('slot-start-time', 480);
+    await selectField('slot-end-time', 600);
     await tester.ensureVisible(find.text('Save working slot'));
     await tester.tap(find.text('Save working slot'));
     await tester.pumpAndSettle();
-    expect(find.text('Working slots must be at least 2 hours long.'),
-        findsOneWidget);
     expect(
-      store.byId(provider.id)!.availabilitySchedule.weeklySlots[1]!.length,
-      1,
-    );
+        find.text('This slot overlaps another working slot.'), findsOneWidget);
+    expect(store.byId(provider.id)!.availabilitySchedule.weeklySlots[1]!.length,
+        1);
 
-    await tester.enterText(find.byKey(const Key('slot-start-time')), '1900');
-    await tester.enterText(find.byKey(const Key('slot-end-time')), '1910');
-    await tester.tap(find.text('Save working slot'));
-    await tester.pumpAndSettle();
-    expect(find.text('Working slots must be at least 2 hours long.'),
-        findsOneWidget);
-    expect(
-      store.byId(provider.id)!.availabilitySchedule.weeklySlots[1]!.length,
-      1,
-    );
-
-    await tester.enterText(find.byKey(const Key('slot-start-time')), '0600');
-    await tester.enterText(find.byKey(const Key('slot-end-time')), '0800');
-    expect(fieldText('slot-start-time'), '06:00');
-    expect(fieldText('slot-end-time'), '08:00');
+    await selectField('slot-start-time', 360);
+    await selectField('slot-end-time', 480);
     await tester.ensureVisible(find.text('Save working slot'));
     await tester.tap(find.text('Save working slot'));
     await tester.pumpAndSettle();

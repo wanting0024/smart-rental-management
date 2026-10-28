@@ -70,7 +70,7 @@ class _WorkspaceProfileState extends State<WorkspaceProfile>
                   ? 'Your account session changed. Return to sign in.'
                   : binding.loading
                       ? 'Checking your saved details.'
-                      : 'Check your connection and retry. No sample profile is shown.',
+                      : 'Check your connection and retry.',
               actionLabel:
                   binding.loading || binding.sessionEnded ? null : 'Retry',
               onAction: binding.refresh));
@@ -84,6 +84,14 @@ class _WorkspaceProfileState extends State<WorkspaceProfile>
           canEditConnected: () => binding.canEdit,
           onManageAvailability: _manageAvailability);
     return ProviderProfileScreen(
+        onSettings: (page) {
+          final actions = WorkspaceActions(widget.backend, UserRole.provider);
+          if (page == 'about') {
+            actions.about(context);
+          } else {
+            actions.settings(context, page);
+          }
+        },
         refreshNotice: SnapshotRefreshNotice(
             refreshing: binding.refreshing,
             failed: binding.refreshError != null,

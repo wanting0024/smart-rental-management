@@ -61,6 +61,7 @@ try {
     Invoke-VerifySql (Join-Path $verifyRepo 'supabase/tests/deployment_environment.sql')
     Invoke-VerifySql (Join-Path $verifyRepo 'supabase/tests/evidence_upload_lifecycle.sql')
     Invoke-VerifySql (Join-Path $verifyRepo 'supabase/tests/verified_evidence.sql')
+    Invoke-VerifySql (Join-Path $verifyRepo 'supabase/tests/evidence_photo_removal.sql')
     Invoke-VerifySql (Join-Path $verifyRepo 'supabase/tests/cursor_pagination.sql')
     Invoke-VerifySql (Join-Path $verifyRepo 'supabase/tests/test_data_management.sql')
     Invoke-VerifySql (Join-Path $verifyRepo 'supabase/tests/booking_communication_limits.sql')

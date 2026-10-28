@@ -1,3 +1,4 @@
+import '../presentation/workspace_text.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -118,6 +119,7 @@ class ConnectedPropertyCard extends StatelessWidget {
     final name = [row['unit_name'], row['building_name']]
         .whereType<String>()
         .where((part) => part.isNotEmpty)
+        .map(workspaceText)
         .join(', ');
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -150,7 +152,7 @@ class ConnectedPropertyCard extends StatelessWidget {
                 Text('${row['bedrooms']} bedrooms · ${row['size_sqft']} sqft',
                     style: TextStyle(color: colors.textSecondary)),
                 const SizedBox(height: 4),
-                Text('${row['address'] ?? ''}',
+                Text(workspaceText(row['address'] as String? ?? ''),
                     style: TextStyle(color: colors.textSecondary)),
               ],
             )),
@@ -249,6 +251,7 @@ class ConnectedBookingCard extends StatelessWidget {
     required this.onEvidence,
     required this.onReview,
     required this.onCancel,
+    this.onEdit,
   });
 
   final Map<String, dynamic> row;
@@ -261,6 +264,7 @@ class ConnectedBookingCard extends StatelessWidget {
   final VoidCallback onEvidence;
   final VoidCallback onReview;
   final VoidCallback onCancel;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -367,16 +371,16 @@ class ConnectedBookingCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                     child: Text(
-                  row['property_address'] as String,
+                  workspaceText(row['property_address'] as String),
                   style: TextStyle(color: colors.textSecondary),
                 )),
               ]),
             ],
             if (row['instructions'] is String &&
-                (row['instructions'] as String).trim().isNotEmpty) ...[
+                workspaceText(row['instructions'] as String).isNotEmpty) ...[
               const SizedBox(height: 7),
               Text(
-                  '${isProvider ? 'Owner instructions' : 'Your instructions'}: ${row['instructions']}',
+                  '${isProvider ? 'Owner instructions' : 'Your instructions'}: ${workspaceText(row['instructions'] as String)}',
                   style: TextStyle(color: colors.textSecondary)),
             ],
             if (quoted is num) ...[
@@ -408,31 +412,28 @@ class ConnectedBookingCard extends StatelessWidget {
               _primary(context, 'Add evidence & complete', onEvidence),
             if (!isProvider && status == 'Completed')
               _primary(context, 'Review completed service', onEvidence),
-            SizedBox(
-              width: double.infinity,
-              child: _contextAction(
-                label: 'View booking activity for $bookingLabel',
-                onTap: onHistory,
-                child: OutlinedButton.icon(
-                  onPressed: onHistory,
-                  style:
-                      OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
-                  icon: const Icon(Icons.history, size: 19),
-                  label: const Text('View activity'),
-                ),
-              ),
-            ),
+            if (!isProvider && ['Accepted', 'In Progress'].contains(status))
+              _primary(context, 'Message provider', onMessages),
+            if (!isProvider && status == 'Pending') ...[
+              if (onEdit != null) _primary(context, 'Edit request', onEdit!),
+              Text('Messaging opens after the provider accepts.',
+                  style: TextStyle(color: colors.textSecondary)),
+            ],
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: [
-              if (['Accepted', 'In Progress', 'Completed', 'Cancelled']
-                  .contains(status))
+              if ((isProvider &&
+                      ['Accepted', 'In Progress'].contains(status)) ||
+                  ['Completed', 'Cancelled', 'Declined'].contains(status))
                 _contextAction(
                   label: 'Open messages for $bookingLabel',
                   onTap: onMessages,
                   child: TextButton.icon(
                     onPressed: onMessages,
                     icon: const Icon(Icons.chat_bubble_outline, size: 19),
-                    label: const Text('Messages'),
+                    label: Text(
+                        ['Completed', 'Cancelled', 'Declined'].contains(status)
+                            ? 'View conversation'
+                            : 'Messages'),
                   ),
                 ),
               if (status == 'Completed')
@@ -469,6 +470,16 @@ class ConnectedBookingCard extends StatelessWidget {
                     label: const Text('Cancel booking'),
                   )),
             ],
+            const SizedBox(height: 16),
+            Divider(color: colors.border),
+            _contextAction(
+                label: 'View status history for $bookingLabel',
+                onTap: onHistory,
+                child: TextButton.icon(
+                    onPressed: busy ? null : onHistory,
+                    style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+                    icon: const Icon(Icons.history, size: 19),
+                    label: const Text('Status history'))),
           ],
         ),
       ),

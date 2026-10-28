@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'support/time_slot_steps.dart';
 import 'package:rental_app_demo/screens/connected_booking_request_screen.dart';
 import 'package:rental_app_demo/services/backend/supabase_booking_repository.dart';
 import 'package:rental_app_demo/services/backend/supabase_owner_repository.dart';
@@ -105,6 +106,9 @@ void main() {
     await tester.tap(find.text('Standard cleaning').last);
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Continue to date & time'));
+    await tester.tap(find.text('Continue to date & time'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Select service date'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Next month'));
@@ -114,12 +118,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Select time').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
+    await chooseTimeSlot(tester, 540);
     await tester.tap(find.text('Select time').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
+    await chooseTimeSlot(tester, 660);
 
     await tester.ensureVisible(find.text('Find eligible providers'));
     await tester.pumpAndSettle();
@@ -268,6 +270,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Standard cleaning').last);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue to date & time'));
+    await tester.tap(find.text('Continue to date & time'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Select service date'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Next month'));
@@ -277,12 +282,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Select time').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
+    await chooseTimeSlot(tester, 540);
     await tester.tap(find.text('Select time').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
+    await chooseTimeSlot(tester, 660);
     await tester.ensureVisible(find.text('Find eligible providers'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Find eligible providers'));

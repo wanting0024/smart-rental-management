@@ -8,6 +8,7 @@ import '../widgets/connected_state_panel.dart';
 import '../widgets/connected_action_feedback.dart';
 import '../widgets/snapshot_refresh_notice.dart';
 import '../services/backend/session_snapshot_cache.dart';
+import '../widgets/time_slot_picker.dart';
 
 typedef AddConnectedSlot = Future<void> Function(
   int weekday,
@@ -471,15 +472,27 @@ class _WorkingSlotDialogState extends State<_WorkingSlotDialog> {
   String? _error;
 
   Future<void> _pick(bool start) async {
-    final value = await showTimePicker(
+    final value = await showTimeSlotPicker(
       context: context,
       initialTime: start ? _start : _end,
-      helpText: start ? 'Working slot starts' : 'Working slot ends',
+      title: start ? 'Working slot starts' : 'Working slot ends',
+      description:
+          'Your working hours in MYT. Saving checks for overlapping slots.',
+      firstMinute: start
+          ? 0
+          : timeOfDayMinutes(_start) + ProviderSlotRules.minimumMinutes,
+      lastMinute: start ? 1439 - ProviderSlotRules.minimumMinutes : 1439,
     );
     if (!mounted || value == null) return;
     setState(() {
       if (start) {
         _start = value;
+        if (timeOfDayMinutes(_end) - timeOfDayMinutes(value) <
+            ProviderSlotRules.minimumMinutes) {
+          final end =
+              timeOfDayMinutes(value) + ProviderSlotRules.minimumMinutes;
+          _end = TimeOfDay(hour: end ~/ 60, minute: end % 60);
+        }
       } else {
         _end = value;
       }
@@ -499,11 +512,11 @@ class _WorkingSlotDialogState extends State<_WorkingSlotDialog> {
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: () => _pick(true),
-              child: Text('Start ${_start.format(context)}'),
+              child: Text('Start ${timeSlotLabel(timeOfDayMinutes(_start))}'),
             ),
             OutlinedButton(
               onPressed: () => _pick(false),
-              child: Text('End ${_end.format(context)}'),
+              child: Text('End ${timeSlotLabel(timeOfDayMinutes(_end))}'),
             ),
             if (_error != null)
               Text(_error!,

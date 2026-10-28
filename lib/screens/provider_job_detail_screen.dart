@@ -520,7 +520,7 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                      'Opening maps - Sprint 1 will integrate Google Maps'),
+                                      'Use the property address in your maps app.'),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
@@ -539,7 +539,7 @@ class _ProviderJobDetailScreenState extends State<ProviderJobDetailScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                      'Calling owner - Sprint 1 will integrate phone dialer'),
+                                      'Use the contact number in your phone app.'),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );

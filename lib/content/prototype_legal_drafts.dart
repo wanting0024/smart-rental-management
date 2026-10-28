@@ -18,7 +18,7 @@ class PrototypeLegalDraft {
   final String notice;
   final List<LegalDraftSection> sections;
 
-  static const version = 'User draft v0.2 · Review pending';
+  static const version = 'Information version 0.3 · Review pending';
   static const status = 'DRAFT — NOT PUBLISHED';
   static const releaseChecklist = [
     'Identify the legal operator and a real support / privacy contact.',
@@ -43,13 +43,13 @@ class PrototypeLegalDraft {
 
   static const terms = PrototypeLegalDraft(
     'Terms of service',
-    'These draft terms explain how to use Smart Rental during testing. '
-        'They have not been published as final terms. Use test information and do not arrange real services or payments in this test version.',
+    'These draft terms explain how to use Smart Rental. '
+        'They have not been published as final terms. Read the service scope, quote and cancellation rules before requesting cleaning. Online payment is not offered in the App.',
     [
       LegalDraftSection('1. Using Smart Rental',
-          'Owners can manage rental units and request cleaning. Providers can manage their services, availability and assigned bookings. Bookings, messages and uploaded photos are saved online, including during testing. Closing the App does not remove them.'),
+          'Owners can manage rental units and request cleaning. Providers can manage their services, availability and assigned bookings. Bookings, messages and uploaded photos are saved online. Closing the App does not remove them.'),
       LegalDraftSection('2. Accounts and responsibilities',
-          'Use your own account or a test account assigned to you. Keep your name, contact number and service information accurate. Keep passwords and verification codes private. Providers need approval before accepting work; selecting the Provider role alone does not grant approval.'),
+          'Use your own account. Keep your name, contact number and service information accurate. Keep passwords and verification codes private. Providers need approval before accepting work; selecting the Provider role alone does not grant approval.'),
       LegalDraftSection('3. Booking and prices',
           'Check the rental unit, service, date, Malaysia time and quoted price before sending a request. A Pending request does not reserve a slot. The booking is confirmed when the Provider accepts it, subject to availability. The quoted price covers the selected service and booked duration. A different duration requires a new priced request.'),
       LegalDraftSection('4. Included work and extra tasks',
@@ -57,20 +57,20 @@ class PrototypeLegalDraft {
       LegalDraftSection('5. Changes and cancellations',
           'An Owner can change a Pending request while keeping the same duration, subject to availability and the rental unit cleaning window. Owners can cancel Pending requests. Either participant can cancel an Accepted booking before work starts and must give a reason. Cancellation is not available once the booking is In Progress. This version does not calculate cancellation fees or refunds.'),
       LegalDraftSection('6. Work and photos',
-          'The assigned Provider updates the booking as work starts and finishes. Before and after photos are required to complete a job. Photos and a Completed status are records of the booking, not a guarantee of cleaning quality. Arrival guarantees and a policy for starting early or late have not been established for this test version. Do not treat test bookings as evidence that real work took place.'),
+          'The assigned Provider updates the booking as work starts and finishes. Before and after photos are required to complete a job. Photos and a Completed status are records of the booking, not a guarantee of cleaning quality. Arrival guarantees and a policy for starting early or late have not been established. A status record alone is not proof of the quality or timing of a service.'),
       LegalDraftSection('7. Messages and reviews',
           'Use booking chat for relevant service details. New messages can be sent while a booking is Accepted or In Progress. When the booking closes, its conversation becomes read-only and previous messages remain available. Owners can leave a review for eligible Completed bookings. Keep messages and reviews respectful and avoid sharing unrelated private information.'),
       LegalDraftSection('8. Earnings and payments',
           'Earnings shows the saved value of completed jobs, not money received. Online payments, platform fee collection, refunds and Provider payouts are not available in this version. No payment is taken when you submit a request. Do not enter card or bank details in messages or cleaning instructions.'),
       LegalDraftSection('9. Connection problems and help',
-          'If a request appears to stop, check your bookings or refresh the conversation before trying again. A timeout alone does not prove failure or success. Contact support in this test version is a practice feature: no real support team receives its requests or simulated replies. For help during a supervised test, speak to the person who provided your test account.'),
+          'If a request appears to stop, check your bookings or refresh the conversation before trying again. A timeout alone does not prove failure or success. Use the Help center for booking, availability and account guidance. If a support contact is listed, include the booking reference and a description of the issue. Never send your password or verification codes.'),
     ],
   );
 
   static const privacy = PrototypeLegalDraft(
     'Privacy policy',
     'This draft explains what information Smart Rental currently uses and shares. '
-        'It has not been published as a final privacy notice. Use test information during testing. The operator and a formal privacy contact have not yet been published.',
+        'It has not been published as a final privacy notice. A formal privacy contact and full retention policy have not yet been published.',
     [
       LegalDraftSection('1. Information you provide',
           'Account information includes your name, email, contact number and Owner or Provider role. Owners provide rental unit details, including its address, bedrooms, size and permitted cleaning times. Providers provide service areas, a private service origin, rates, availability and profile details. Required fields are marked in the forms; without them, the relevant account, property or booking cannot be created. Optional notes and extra task requests can be left blank.'),
@@ -85,9 +85,9 @@ class PrototypeLegalDraft {
       LegalDraftSection('6. Information on your device',
           'The App keeps sign-in information on your device so you can stay signed in, and temporarily keeps recently opened information and photos to reduce repeated downloads. Android sign-in information uses platform secure storage. The browser version uses browser session storage. Protect your device and sign out on shared devices. Signing out does not delete cloud bookings, photos or messages.'),
       LegalDraftSection('7. Correcting or removing information',
-          'You can update supported profile and rental unit details in the App. Account deletion and data export are not yet available as self-service features. A fixed retention period and a process for removing records and backups have not yet been published. Closing the App, signing out or uninstalling it does not delete your online records. During testing, ask the person who provided your account about correcting or removing test data.'),
-      LegalDraftSection('8. Privacy questions during testing',
-          'A formal privacy contact has not yet been published. Contact support in this test version is simulated; no real agent receives its requests. It is not a channel for requesting access to or deletion of your information. Practice support requests stay only in memory and clear when you sign out, change accounts or restart the App. Raise privacy questions directly with the person supervising your test before adding personal information.'),
+          'You can update supported profile and rental unit details in the App. Account deletion and data export are not yet available as self-service features. A fixed retention period and a process for removing records and backups have not yet been published. Closing the App, signing out or uninstalling it does not delete your online records. Use a published privacy contact when available to ask about information rights or record removal.'),
+      LegalDraftSection('8. Privacy questions',
+          'A formal privacy contact has not yet been published. The Help center provides general information; opening it does not submit a request for access to or deletion of your information. Do not include passwords, verification codes or unrelated sensitive details when contacting the App operator through a published channel.'),
     ],
   );
 }

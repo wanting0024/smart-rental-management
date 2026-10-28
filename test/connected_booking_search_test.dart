@@ -83,12 +83,14 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    expect(find.text('Find eligible providers'), findsOneWidget);
-    expect(find.text('Select service date'), findsOneWidget);
+    expect(find.text('Step 1 of 4'), findsOneWidget);
+    expect(find.text('Select service date'), findsNothing);
     expect(find.text('Submit Pending request'), findsNothing);
-    await tester.tap(find.text('Find eligible providers'));
-    await tester.pump();
-    expect(find.text('Choose a unit, service, date and both times.'),
-        findsOneWidget);
+    await tester.ensureVisible(find.text('Continue to date & time'));
+    await tester.tap(find.text('Continue to date & time'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose your rental unit.'), findsOneWidget);
+    expect(find.text('Choose a cleaning service.'), findsOneWidget);
+    expect(find.text('Step 1 of 4'), findsOneWidget);
   });
 }

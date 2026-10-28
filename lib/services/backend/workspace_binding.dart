@@ -1,3 +1,4 @@
+import '../../presentation/workspace_text.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'session_snapshot_cache.dart';
@@ -121,13 +122,16 @@ class WorkspaceBinding extends ChangeNotifier {
       property: [row['unit_name'], row['building_name']]
           .whereType<String>()
           .where((s) => s.isNotEmpty)
+          .map(workspaceText)
           .join(', '),
       serviceType: row['service_name'] as String,
       providerName: null,
       scheduledStart: start,
       scheduledEnd: end,
       status: status,
-      specialInstructions: row['instructions'] as String?,
+      specialInstructions: row['instructions'] is String
+          ? workspaceText(row['instructions'] as String)
+          : null,
     );
   }
 

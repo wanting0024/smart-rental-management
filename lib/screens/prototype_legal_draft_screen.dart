@@ -28,7 +28,7 @@ class PrototypeLegalDraftScreen extends StatelessWidget {
           ? Padding(
               padding: const EdgeInsets.all(20),
               child: SelectableText(
-                  'Not published yet. Review drafts are available only in the local preview or Staging. No approved policy or legal acceptance is provided here.',
+                  'Not published yet. No approved policy or legal acceptance is provided here.',
                   style: TextStyle(color: sem.textPrimary, height: 1.6)),
             )
           : SingleChildScrollView(

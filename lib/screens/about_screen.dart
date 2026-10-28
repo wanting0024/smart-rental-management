@@ -11,7 +11,6 @@ import 'package:flutter/services.dart';
 import '../content/prototype_legal_drafts.dart';
 import '../theme/app_theme.dart';
 import '../services/prototype_support_store.dart';
-import 'prototype_support_screen.dart';
 import 'prototype_legal_draft_screen.dart';
 
 class AboutScreen extends StatefulWidget {
@@ -29,8 +28,6 @@ class AboutScreen extends StatefulWidget {
 }
 
 class _AboutScreenState extends State<AboutScreen> {
-  bool get _prototype =>
-      _draftsAvailable && widget.prototypeSupport?.available == true;
   bool get _draftsAvailable => canPreviewLegalDrafts(widget.environmentLabel,
       localPreview: widget.prototypeSupport?.available == true);
   final _expandedFAQs = <int>{};
@@ -79,7 +76,7 @@ class _AboutScreenState extends State<AboutScreen> {
     {
       'q': 'Does signing out delete my data?',
       'a':
-          'No. Signing out clears the App session and account-scoped memory, not cloud bookings, photos or messages. Test data in Staging is real stored data. Self-service account deletion and export are not complete. Simulated support is different: its memory-only tickets clear on sign-out, account change or App restart, and are never sent to a real team.',
+          'No. Signing out clears the App session and account-scoped memory, not cloud bookings, photos or messages. Your saved records remain in your account. Self-service account deletion and export are not complete.',
     },
     {
       'q': 'How do notifications work?',
@@ -98,7 +95,7 @@ class _AboutScreenState extends State<AboutScreen> {
         children: [
           // App brand card
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -110,14 +107,14 @@ class _AboutScreenState extends State<AboutScreen> {
             child: Column(
               children: [
                 Container(
-                  width: 64,
-                  height: 64,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(Icons.apartment,
-                      color: Colors.white, size: 36),
+                      color: Colors.white, size: 28),
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -140,13 +137,9 @@ class _AboutScreenState extends State<AboutScreen> {
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    widget.environmentLabel == null
-                        ? 'App information'
-                        : widget.environmentLabel == 'staging'
-                            ? 'Staging environment'
-                            : 'Connected environment',
-                    style: const TextStyle(
+                  child: const Text(
+                    'Manage properties and cleaning in one place',
+                    style: TextStyle(
                         color: Colors.white,
                         fontSize: 11,
                         fontWeight: FontWeight.w500),
@@ -172,23 +165,17 @@ class _AboutScreenState extends State<AboutScreen> {
                             .map((f) => '${f['q']}\n\n${f['a']}')
                             .join('\n\n————\n\n'))),
                 _divider(sem),
-                _tile(
-                    context,
-                    Icons.chat_bubble_outline,
-                    'Contact support',
-                    _prototype
-                        ? 'Create and track simulated test requests'
-                        : widget.supportEmail.isEmpty
-                            ? 'Support contact not configured'
-                            : widget.supportEmail,
-                    _contact),
-                _divider(sem),
+                if (widget.supportEmail.trim().isNotEmpty) ...[
+                  _tile(context, Icons.chat_bubble_outline, 'Contact support',
+                      widget.supportEmail.trim(), _contact),
+                  _divider(sem),
+                ],
                 _tile(
                     context,
                     Icons.description_outlined,
                     'Terms of service',
                     _draftsAvailable
-                        ? 'User guide · Draft, not published'
+                        ? 'Service information · Review pending'
                         : 'Not published yet',
                     () => _legal(LegalDraftKind.terms)),
                 _divider(sem),
@@ -197,7 +184,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     Icons.privacy_tip_outlined,
                     'Privacy policy',
                     _draftsAvailable
-                        ? 'User guide · Draft, not published'
+                        ? 'How your data is used · Review pending'
                         : 'Not published yet',
                     () => _legal(LegalDraftKind.privacy)),
               ],
@@ -218,7 +205,7 @@ class _AboutScreenState extends State<AboutScreen> {
           const SizedBox(height: 24),
           Center(
             child: Text(
-              'Smart Rental Manager · Made with 💚 for property managers',
+              'Smart Rental Manager · Cleaning made easier',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11, color: sem.textTertiary),
             ),
@@ -285,12 +272,6 @@ class _AboutScreenState extends State<AboutScreen> {
   }
 
   Future<void> _contact() async {
-    if (_prototype) {
-      await Navigator.of(context).push<void>(MaterialPageRoute(
-          builder: (_) =>
-              PrototypeSupportScreen(store: widget.prototypeSupport!)));
-      return;
-    }
     final email = widget.supportEmail.trim();
     await showDialog<void>(
         context: context,

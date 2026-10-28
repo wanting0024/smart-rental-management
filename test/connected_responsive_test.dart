@@ -132,6 +132,20 @@ void main() {
       findCreatedBooking: (_) async => null,
     )));
     await tester.pumpAndSettle();
+    for (final key in ['request-unit', 'request-service']) {
+      final field = find.byKey(Key(key));
+      await tester.scrollUntilVisible(field, 180,
+          scrollable: find.byType(Scrollable).first);
+      await tester.ensureVisible(field);
+      await tester.tap(field);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownMenuItem<String>).last);
+      await tester.pumpAndSettle();
+    }
+    await tester.scrollUntilVisible(find.text('Continue to date & time'), 160, scrollable: find.byType(Scrollable).first);
+    await tester.ensureVisible(find.text('Continue to date & time'));
+    await tester.tap(find.text('Continue to date & time'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Start time'), 180,
         scrollable: find.byType(Scrollable).first);
     expect(tester.takeException(), isNull);

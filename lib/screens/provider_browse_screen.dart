@@ -199,7 +199,7 @@ class _ProviderBrowseScreenState extends State<ProviderBrowseScreen> {
             const SizedBox(height: 12),
           ],
         Text(
-          'Provider details are demo data. Availability and equal-weight matching are checked for the selected request.',
+          'Compare services, rates and areas. Availability is checked for your selected request.',
           style: TextStyle(fontSize: 11, height: 1.4, color: sem.textSecondary),
         ),
       ],

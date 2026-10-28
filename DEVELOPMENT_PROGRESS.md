@@ -1,5 +1,133 @@
 # Development progress
 
+## Remove uploaded booking photos (28 October 2026)
+
+- Added Remove before/after photo actions and a confirmation dialog to the
+  existing service-record screen. Only the assigned Provider may remove a photo
+  while the booking is In Progress. Owner and closed-booking views stay read-only.
+  Removing one photo preserves the other attachment and completion remarks;
+  both photos are still required to complete the booking.
+- Migration 030 implements an authenticated, booking-locked expected-path RPC.
+  It detaches the exact photo and retires its manifest; the existing Storage API
+  cleanup removes unused bytes and retries failed cleanup on record reload.
+  Stale requests cannot detach newer replacements or reattach retired files.
+  Unknown network results are read back before reporting success, with further
+  edits/completion paused until the current record can be verified.
+- All 892 Flutter tests passed, including 28 focused evidence/cache/removal
+  checks. The complete
+  001-030 SQL suites passed in disposable native PostgreSQL with both legacy
+  and disabled default grants, including access, lifecycle and concurrency
+  checks. Lib/test analysis has no errors/warnings; existing style infos remain.
+- Applied only migration 202610280030_evidence_photo_removal.sql to independent
+  Staging gqtetdavmrautoojaqrk; subsequent dry-run reports up to date with no
+  pending migrations, seeds or role changes. Original Production and existing
+  accounts/dataset were not changed. Local Storage-shim results do not replace
+  paired phone verification of real uploads/removal. No new APK was generated.
+
+## User-facing app wording and branding (28 October 2026)
+
+- Removed connected development/test language from login, About/help, recovery
+  and other user-visible fallbacks. Android launcher now displays Smart Rental;
+  other platform display-name settings and web metadata match this name.
+- User chose Help center only until a real support contact is available.
+  Simulated tickets/replies are no longer reachable from About/help; account,
+  storage, fees, payments and unpublished policy capabilities are not invented.
+- Imported dataset labels are cleaned at presentation boundaries, while raw
+  records, authentication identity, message retry checks, amounts and statuses
+  remain intact. Existing forms preserve original unchanged values; new units
+  reuse original building keys to avoid duplicate groups.
+- 880 Flutter tests passed, including six new user-copy and data-preservation
+  checks. Lib/test analysis has zero errors/warnings; style infos remain.
+  Login and both-theme About/help previews reviewed; platform metadata parsed.
+- Source/history/client-config/APK scan PASS (1,948 files; 845 local Git objects).
+  Built 0.1.8+9, verified Smart Rental launcher label, same signing certificate,
+  compiled backend target, absent old development banners and delivery checksum.
+  APK: output/app/SmartRental-0.1.8.apk. No hosted schema/data changes or public
+  deployment. Original sample images and manual paired phone UAT are retained.
+  Details: docs/2026-10-28_USER_FACING_CONTENT.md.
+
+## Remove connected Staging top banner (28 October 2026)
+
+- Removed the persistent TEST ENVIRONMENT banner from the connected Staging
+  workspace, including pushed pages and dialogs; the original page uses the
+  full available height. Local preview and unknown-connection labels remain.
+- No backend target, permissions or write paths changed. The existing synthetic
+  dataset and real Supabase writes remain in the independent Staging project.
+  The About/help environment label remains available; no Production switch or
+  duplicate dataset import was performed.
+- 17 relevant environment/startup/config checks pass; updated login rendering
+  was reviewed. Version is 0.1.7+8 for an in-place Android update.
+
+## Approved UI designs 2–11 (28 October 2026)
+
+- Implemented the confirmed designs in the existing connected screens: request
+  wizard, Provider cards, Building groups, status tabs with conditional History
+  filter, status-aware details/Pending revision, actual status timeline, compact
+  Earnings bars, Building combobox, contextual feedback and full settings pages.
+- Preserved existing Staging accounts/data, Owner bottom destinations and
+  Provider services/rates/availability/privacy. No hosted schema or Production
+  changes. Notes plus additional-task text are preserved in Pending edits.
+- System/Light/Dark persists on the device. Account-scoped notification switches
+  control unread highlights/badges only, with explicit push-delivery limits.
+  Existing support/legal/deletion/export/settlement limitations remain labelled.
+- 874 Flutter tests PASS, including 14 new UI/state/safety checks; 13 scanner
+  tests PASS. Lib/test analysis has zero errors/warnings; style infos remain.
+  Light/dark, 320px/200% text and changed rendered previews reviewed.
+- Packageable source file set, 845 reachable local Git objects, client config
+  values and APK member audit PASS (1,945 inspected files). A broad workspace
+  scan also encountered OAuth documentation examples in the ignored downloaded
+  PostgreSQL runtime; those files are not app source/assets or in the APK. The
+  scanner's detection rules were not relaxed for this batch.
+- Compiled Staging Profile APK 0.1.6+7, same signer as 0.1.5. Staging reference
+  verified in all three Flutter ABIs; original Production reference and Debug
+  kernel absent. Delivery copy checksum verified, stored in output/uat.
+  Scope: docs/2026-10-28_APPROVED_UI_IMPLEMENTATION.md. Manual paired phone UAT
+  remains outstanding; no automated result marks it complete.
+
+## Shared time-slot picking (27 October 2026)
+
+- Replaced every native clock / typed time entry path with the shared tap-to-
+  select sheet. Covers requests, pending edits, property windows, Provider weekly
+  availability and Profile hours in the original UI. Common half-hour buttons,
+  day parts and exact-minute choices retain 24-hour MYT values and both themes.
+- Connected requests bound choices to the unit window, today's remaining MYT
+  start times and the existing eight-hour maximum. Changing time invalidates old
+  eligibility/quotes. Real search/create/accept checks remain authoritative;
+  candidate buttons do not claim a provider is available or reserve capacity.
+- 860 Flutter tests PASS; analyzer zero errors/warnings (style infos remain).
+  Both-theme native previews reviewed; 320px / 200% text checks pass. Working
+  slot minimum two hours and local 24:00 support are preserved. No cloud writes.
+- APK source/package scan PASS (160 / 757 files). Corrected malformed binary
+  decoding in the scanner, which had joined unrelated AOT literals into a false
+  secret match; 13 scanner regressions verify real UTF-8/UTF-16 keys still block.
+- Staging Profile APK 0.1.5+6 built and signed; signer matches 0.1.4, versionCode
+  6 verified. Distribution copy SHA-256 verified; checksum in output/uat.
+  Source/scope: docs/2026-10-27_TIME_SLOTS.md. Human phone UAT remains pending.
+
+## Populated connected Staging UAT data (26 October 2026)
+
+- Added a labelled synthetic scenario batch to the existing isolated two-role
+  fixture: 8 properties, 24 bookings (6 completed, 1 in progress, 5 accepted,
+  8 pending, 2 cancelled and 2 declined), 6 conversations / 12 messages and
+  12 genuinely validated generated test images. No new accounts/passwords,
+  schema changes, production writes or fabricated payments.
+- Historical completion events cover three months. The actual reporting RPC
+  returns thisMonth 5 jobs / MYR 520, last30 6 / MYR 800, allTime 8 / MYR 1000,
+  including existing records. These are quoted totals, not receipts or payouts.
+- Before/after fingerprints verify previous business records and profiles are
+  unchanged. New-record search pages are 20 + 4 without duplicate IDs; both
+  roles read conversation records and the Owner can access a verified photo.
+  Completed/Pending new messages are denied. Eight scoped offline tests pass;
+  their execution also verifies the private batch manifest remains untouched.
+- The administrator script defaults to planning, pins Staging and exact
+  synthetic identities, keeps runtime manifests private, uses stable retry IDs
+  and respects server upload limits. Existing accounts and APK remain usable;
+  refresh data to see the batch. Human device UAT remains pending.
+- Provider public-discovery statistics still read legacy profile counters in
+  some RPCs, while private reports derive from actual rows. This discrepancy is
+  recorded for a separate backend correction; no counter was manually padded.
+  Procedure and scope: docs/2026-10-26_UAT_DATASET.md.
+
 ## Owner navigation and page responsibilities (26 October 2026)
 
 - Retained five primary tabs and original UI. Home now has one Request cleaning

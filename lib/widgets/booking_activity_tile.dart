@@ -1,3 +1,4 @@
+import '../presentation/workspace_text.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'connected_workspace_components.dart';
@@ -9,10 +10,11 @@ class BookingActivityTile extends StatelessWidget {
       required this.event,
       this.isLatest = false,
       this.isLast = false,
-      this.timeLabel});
+      this.timeLabel,
+      this.actorLabel});
   final Map<String, dynamic> event;
   final bool isLatest, isLast;
-  final String? timeLabel;
+  final String? timeLabel, actorLabel;
 
   static String title(String? status, {String? previous}) => switch (status) {
         'Pending' => previous == null ? 'Request sent' : 'Request updated',
@@ -30,7 +32,7 @@ class BookingActivityTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final status = event['new_status'] as String?;
     final reason = event['change_reason'] is String
-        ? (event['change_reason'] as String).trim()
+        ? workspaceText(event['change_reason'] as String).trim()
         : '';
     final icon = switch (status) {
       'Accepted' => Icons.event_available_outlined,
@@ -93,6 +95,10 @@ class BookingActivityTile extends StatelessWidget {
                       timeLabel ?? connectedEventTimeLabel(event['changed_at']),
                       style:
                           TextStyle(fontSize: 12, color: colors.textSecondary)),
+                  if (actorLabel != null)
+                    Text(actorLabel!,
+                        style: TextStyle(
+                            fontSize: 12, color: colors.textSecondary)),
                   const SizedBox(height: 7),
                   Text(description,
                       style:

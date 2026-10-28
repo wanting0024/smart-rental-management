@@ -1,3 +1,4 @@
+import '../presentation/workspace_text.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -29,6 +30,7 @@ class ConnectedBookingEvidenceScreen extends StatefulWidget {
     required this.checkStatus,
     this.pickPhoto,
     this.cleanup,
+    this.removePhoto,
   });
 
   final String bookingId;
@@ -44,6 +46,7 @@ class ConnectedBookingEvidenceScreen extends StatefulWidget {
     String?,
   ) upload;
   final Future<bool> Function(String)? cleanup;
+  final Future<void> Function(String, EvidenceKind, String)? removePhoto;
   final Future<void> Function(String, String) saveRemarks;
   final Future<void> Function(String) complete;
   final Future<String?> Function(String) checkStatus;
@@ -72,9 +75,14 @@ class _ConnectedBookingEvidenceScreenState
   EvidencePhotoUpload? _pendingPhoto;
   String? _pendingPhotoDescription;
   bool _cleanupPending = false;
+  bool _removalUncertain = false;
+  bool _editingClosed = false;
 
   bool get _canEdit =>
-      widget.isProvider && widget.status == 'In Progress' && !_completed;
+      widget.isProvider &&
+      widget.status == 'In Progress' &&
+      !_completed &&
+      !_editingClosed;
 
   @override
   void initState() {
@@ -126,6 +134,7 @@ class _ConnectedBookingEvidenceScreenState
         _remarks.text = keepDraft ? draft : record?.remarks ?? '';
         _loading = false;
         _loadFailed = false;
+        _removalUncertain = false;
       });
     } catch (error) {
       SafeDiagnostics.app.record(SafeOperation.evidenceLoad, error);
@@ -179,7 +188,7 @@ class _ConnectedBookingEvidenceScreenState
   }
 
   Future<void> _upload(EvidenceKind kind) async {
-    if (_busy || !_canEdit || _ratePause.active) return;
+    if (_busy || !_canEdit || _removalUncertain || _ratePause.active) return;
     final photoLabel = kind == EvidenceKind.before ? 'Before' : 'After';
     setState(() {
       _busy = true;
@@ -303,8 +312,93 @@ class _ConnectedBookingEvidenceScreenState
     }
   }
 
+  Future<void> _removePhoto(EvidenceKind kind) async {
+    if (_busy ||
+        !_canEdit ||
+        _removalUncertain ||
+        _pendingPhoto != null ||
+        widget.removePhoto == null) return;
+    final path =
+        kind == EvidenceKind.before ? _record?.beforePath : _record?.afterPath;
+    if (path == null) return;
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+              title: Text('Remove ${kind.name} photo?'),
+              content: const Text(
+                  'This photo will be removed from the booking. You will need to add a replacement before marking the job as completed.'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(c, false),
+                    child: const Text('Keep photo')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(c, true),
+                    child: const Text('Remove photo')),
+              ],
+            ));
+    if (!mounted || confirmed != true || _busy || !_canEdit) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+      _notice = null;
+      _workingTitle = 'Removing ${kind.name} photo';
+    });
+    try {
+      await widget.removePhoto!(widget.bookingId, kind, path);
+      if (!mounted) return;
+      await _refresh();
+      if (mounted && !_loadFailed)
+        setState(() => _notice = ConnectedActionNotice(
+            ConnectedActionState.success,
+            'Photo removed',
+            'Add a replacement photo before completing the job.'));
+    } on EvidencePhotoRemovalRejected catch (error) {
+      if (!mounted) return;
+      if (error.reason == 'booking_closed') _editingClosed = true;
+      await _refresh();
+      if (mounted)
+        setState(() => _error = error.reason == 'photo_changed'
+            ? 'The photo changed on another device. The current record has been reloaded; check it before removing a photo.'
+            : 'This booking is no longer editable. Return to booking details to check its current status.');
+    } catch (error) {
+      SafeDiagnostics.app.record(SafeOperation.evidenceRemove, error);
+      if (!mounted) return;
+      _removalUncertain = true;
+      try {
+        final latest = await widget.load(widget.bookingId);
+        if (!mounted) return;
+        final current = kind == EvidenceKind.before
+            ? latest?.beforePath
+            : latest?.afterPath;
+        if (latest != null &&
+            latest.bookingId == widget.bookingId &&
+            current != path) {
+          await _refresh();
+          if (mounted && !_loadFailed)
+            setState(() {
+              _notice = ConnectedActionNotice(
+                  ConnectedActionState.success,
+                  current == null ? 'Photo removed' : 'Photo updated',
+                  current == null
+                      ? 'The saved record confirms this photo was removed.'
+                      : 'A different photo is now attached. The current photo has been kept.');
+            });
+          return;
+        }
+      } catch (lookupError) {
+        SafeDiagnostics.app
+            .record(SafeOperation.evidenceRemoveVerify, lookupError);
+      }
+      if (mounted)
+        setState(() => _error =
+            'Could not confirm whether the photo was removed. Reload this record before changing photos or completing the job.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _complete() async {
-    if (_busy || !_canEdit) return;
+    if (_busy || !_canEdit || _removalUncertain) return;
     if (_pendingPhoto != null) {
       setState(
         () => _error =
@@ -414,7 +508,7 @@ class _ConnectedBookingEvidenceScreenState
                     state: ConnectedViewState.error,
                     title: 'Could not load service record',
                     message:
-                        'Check your connection and try again. No evidence has been changed.',
+                        'Check your connection and reload to view the saved record.',
                     actionLabel: 'Retry',
                     onAction: _refresh,
                   )
@@ -503,8 +597,9 @@ class _ConnectedBookingEvidenceScreenState
                               child: Padding(
                                 padding: const EdgeInsets.all(16),
                                 child: Text(
-                                  _record?.remarks.isNotEmpty == true
-                                      ? _record!.remarks
+                                  workspaceText(_record?.remarks ?? '')
+                                          .isNotEmpty
+                                      ? workspaceText(_record!.remarks)
                                       : 'No remarks submitted.',
                                 ),
                               ),
@@ -512,8 +607,11 @@ class _ConnectedBookingEvidenceScreenState
                           if (_canEdit) ...[
                             const SizedBox(height: 12),
                             FilledButton.icon(
-                              onPressed:
-                                  _busy || _ratePause.active ? null : _complete,
+                              onPressed: _busy ||
+                                      _removalUncertain ||
+                                      _ratePause.active
+                                  ? null
+                                  : _complete,
                               icon: _busy
                                   ? const SizedBox(
                                       height: 18,
@@ -633,6 +731,7 @@ class _ConnectedBookingEvidenceScreenState
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: _busy ||
+                        _removalUncertain ||
                         _ratePause.active ||
                         (_pendingPhoto != null && _pendingPhoto!.kind != kind)
                     ? null
@@ -646,6 +745,17 @@ class _ConnectedBookingEvidenceScreenState
                           : 'Replace ${kind == EvidenceKind.before ? 'before' : 'after'} photo',
                 ),
               ),
+              if (bytes != null &&
+                  pending == null &&
+                  widget.removePhoto != null)
+                TextButton.icon(
+                  onPressed: _busy || _removalUncertain || _pendingPhoto != null
+                      ? null
+                      : () => _removePhoto(kind),
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text('Remove ${kind.name} photo'),
+                  style: TextButton.styleFrom(foregroundColor: scheme.error),
+                ),
             ],
           ],
         ),

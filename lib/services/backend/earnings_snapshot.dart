@@ -1,3 +1,4 @@
+import '../../presentation/workspace_text.dart';
 import '../../models/demo_data.dart';
 import 'cursor_feed.dart';
 
@@ -93,6 +94,7 @@ class EarningsSnapshot {
           serviceLabel: r['service_name'] as String,
           property: [r['unit_name'], r['building_name']]
               .whereType<String>()
+              .map(workspaceText)
               .join(', '),
           amountAvailable: known,
           settlementAvailable: false);

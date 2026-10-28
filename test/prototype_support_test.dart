@@ -241,26 +241,18 @@ void main() {
       store.dispose();
     });
   }
-  testWidgets('About uses simulation only for enabled non-production account',
+  testWidgets(
+      'About never exposes simulated support even if a legacy store is enabled',
       (tester) async {
     final store = PrototypeSupportStore(enabled: true)..bindSession('a');
-    await tester.pumpWidget(MaterialApp(
-        home:
-            AboutScreen(environmentLabel: 'staging', prototypeSupport: store)));
-    await tester.ensureVisible(find.text('Contact support'));
-    await tester.tap(find.text('Contact support'));
-    await tester.pumpAndSettle();
-    expect(find.text('Your test requests'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
-    await tester.pumpWidget(MaterialApp(
-        home: AboutScreen(
-            environmentLabel: 'production', prototypeSupport: store)));
-    await tester.ensureVisible(find.text('Contact support'));
-    await tester.tap(find.text('Contact support'));
-    await tester.pumpAndSettle();
-    expect(find.text('Your test requests'), findsNothing);
-    expect(find.textContaining('No support request has been sent'),
-        findsOneWidget);
+    for (final environment in ['staging', 'production']) {
+      await tester.pumpWidget(MaterialApp(
+          home: AboutScreen(
+              environmentLabel: environment, prototypeSupport: store)));
+      expect(find.text('Contact support'), findsNothing);
+      expect(find.text('Your test requests'), findsNothing);
+      expect(find.text('Help center'), findsOneWidget);
+    }
     await tester.pumpWidget(const SizedBox());
     store.dispose();
   });

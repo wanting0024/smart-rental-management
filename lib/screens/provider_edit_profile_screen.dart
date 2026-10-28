@@ -20,6 +20,7 @@ import '../main.dart';
 import '../models/demo_data.dart';
 import '../theme/app_theme.dart';
 import '../utils/haptics.dart';
+import '../widgets/time_slot_picker.dart';
 import 'provider_profile_screen.dart';
 import '../services/backend/provider_profile_snapshot.dart';
 import '../services/backend/connected_failure_message.dart';
@@ -270,33 +271,33 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
   Future<void> _pickTime({required bool isStart}) async {
     Haptics.light();
     final initial = isStart ? _workStart : _workEnd;
-    final picked = await showTimePicker(context: context, initialTime: initial);
-    if (picked == null) return;
-    if (isStart && picked.hour == 23) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Choose a start time that leaves at least 1 hour.'),
-          ),
-        );
-      }
-      return;
-    }
+    final picked = await showTimeSlotPicker(
+      context: context,
+      initialTime: initial,
+      title: isStart ? 'Working hours start' : 'Working hours end',
+      firstMinute: isStart
+          ? 0
+          : timeOfDayMinutes(_workStart) + AvailabilitySlot.minimumMinutes,
+      lastMinute: isStart ? 1439 - AvailabilitySlot.minimumMinutes : 1439,
+    );
+    if (picked == null || !mounted) return;
     setState(() {
       if (isStart) {
         _workStart = picked;
         if (!_isEndAfterStart()) {
-          // Bump end to be at least 1 hour after the new start.
+          // Preserve the existing minimum two-hour working-slot rule.
+          final end =
+              timeOfDayMinutes(picked) + AvailabilitySlot.minimumMinutes;
           _workEnd = TimeOfDay(
-            hour: (picked.hour + 1) % 24,
-            minute: picked.minute,
+            hour: end ~/ 60,
+            minute: end % 60,
           );
         }
       } else {
         if (!_isEndAfterStart(customEnd: picked)) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Working hours must be at least 1 hour long'),
+              content: Text('Working hours must be at least 2 hours long'),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -370,7 +371,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
     if (!_isEndAfterStart()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Working hours must be at least 1 hour long'),
+          content: Text('Working hours must be at least 2 hours long'),
           backgroundColor: Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
         ),
@@ -631,7 +632,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                         _validatedField(
                           label: 'Display name',
                           controller: _nameCtrl,
-                          hint: 'How owners see you',
+                          hint: 'e.g. Aina Cleaning Services',
                           icon: Icons.person_outline,
                           sem: sem,
                           validator: _validateName,
@@ -681,7 +682,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                           _validatedField(
                               label: '8-hour daily rate',
                               controller: _dailyCtrl,
-                              hint: 'Optional',
+                              hint: 'e.g. 480.00',
                               icon: Icons.payments_outlined,
                               sem: sem,
                               validator: (v) => _validateConnectedRate(
@@ -698,7 +699,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                           _validatedField(
                               label: 'Service area',
                               controller: _areaCtrl,
-                              hint: 'Area you serve',
+                              hint: 'e.g. Setapak, Kuala Lumpur',
                               icon: Icons.location_on_outlined,
                               sem: sem,
                               validator: (v) => (v ?? '').trim().isEmpty ||
@@ -709,7 +710,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                           _validatedField(
                               label: 'Private starting address',
                               controller: _originCtrl,
-                              hint: 'Your service starting point',
+                              hint: 'e.g. 12 Jalan Example, Kuala Lumpur',
                               icon: Icons.lock_outline,
                               sem: sem,
                               validator: (v) => (v ?? '').trim().isEmpty ||
@@ -774,7 +775,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                         _validatedField(
                           label: 'Phone',
                           controller: _phoneCtrl,
-                          hint: '+60 12-345 6789',
+                          hint: '+60 12 345 6789',
                           icon: Icons.phone_outlined,
                           sem: sem,
                           validator: _validatePhone,
@@ -786,7 +787,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
                         _validatedField(
                           label: 'Email',
                           controller: _emailCtrl,
-                          hint: 'you@example.com',
+                          hint: 'name@example.com',
                           icon: Icons.email_outlined,
                           sem: sem,
                           validator: _validateEmail,
@@ -1083,8 +1084,8 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
           const SizedBox(height: 8),
           _buildColorPicker(),
           const SizedBox(height: 10),
-          TextButton.icon(
-            onPressed: _connected ? null : _pickAvatar,
+          if (!_connected) TextButton.icon(
+            onPressed: _pickAvatar,
             icon: const Icon(Icons.add_photo_alternate_outlined, size: 17),
             label: Text(_connected
                 ? 'Photo upload not connected'
@@ -1100,7 +1101,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
             ),
           _hint(
               _connected
-                  ? 'Avatar color is saved to your account. Photo upload is not available here yet.'
+                  ? 'Your avatar colour is saved with your profile.'
                   : 'Color is saved. Photo preview is not saved yet.',
               sem),
         ],
@@ -1262,7 +1263,7 @@ class _ProviderEditProfileScreenState extends State<ProviderEditProfileScreen> {
             Text(label,
                 style: TextStyle(fontSize: 11, color: sem.textSecondary)),
             Text(
-              value.format(context),
+              timeSlotLabel(timeOfDayMinutes(value)),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ],

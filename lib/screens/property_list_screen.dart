@@ -62,46 +62,64 @@ class PropertyListScreen extends StatelessWidget {
     final currentBookings = connectedProperties != null
         ? bookings
         : AppProviders.of(context).bookingStore.bookings;
-    final body = ListView.separated(
+    // Group only names, never merge unit records. Pagination stays with the
+    // portfolio feed; a group count describes the units currently shown.
+    final buildings = <String, List<DemoProperty>>{};
+    for (final property in properties) {
+      final key =
+          property.tower.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+      buildings.putIfAbsent(key, () => []).add(property);
+    }
+    final body = ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      itemCount: properties.length + 3,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (ctx, i) {
-        if (i == 0) {
-          return _buildSummaryHeader(properties);
-        }
-        if (i == 1) {
-          return _PropertyStatisticsTable(
-            properties: properties,
-            bookings: currentBookings,
-            connectedCounts: connectedCounts,
-            portfolio: portfolio,
-          );
-        }
-        if (i == properties.length + 2)
-          return footer ?? const SizedBox.shrink();
-        final property = properties[i - 2];
-        return _PropertyCard(
-          property: property,
-          bookings: _bookingsFor(property, currentBookings),
-          connectedCounts: connectedCounts?[property.id],
-          onTap: () {
-            if (onOpenConnected != null) {
-              onOpenConnected!(property);
-              return;
-            }
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => PropertyDetailScreen(
-                  property: property,
-                  bookings: _bookingsFor(property, currentBookings),
-                ),
-              ),
-            );
-          },
-        );
-      },
+      children: [
+        _buildSummaryHeader(properties),
+        const SizedBox(height: 12),
+        _PropertyStatisticsTable(
+          properties: properties,
+          bookings: currentBookings,
+          connectedCounts: connectedCounts,
+          portfolio: portfolio,
+        ),
+        for (final units in buildings.values) ...[
+          const SizedBox(height: 20),
+          Row(children: [
+            const Icon(Icons.apartment_outlined, size: 22),
+            const SizedBox(width: 8),
+            Expanded(
+                child: Text(units.first.tower,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w700))),
+            Text('${units.length} shown',
+                style: Theme.of(context).textTheme.bodySmall),
+          ]),
+          const SizedBox(height: 10),
+          for (final property in units) ...[
+            _PropertyCard(
+              property: property,
+              bookings: _bookingsFor(property, currentBookings),
+              connectedCounts: connectedCounts?[property.id],
+              onTap: () {
+                if (onOpenConnected != null) {
+                  onOpenConnected!(property);
+                  return;
+                }
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PropertyDetailScreen(
+                      property: property,
+                      bookings: _bookingsFor(property, currentBookings),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ],
+        footer ?? const SizedBox.shrink(),
+      ],
     );
     if (embedded) return body;
     return Scaffold(

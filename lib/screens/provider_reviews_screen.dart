@@ -54,7 +54,7 @@ class _ProviderReviewsScreenState extends State<ProviderReviewsScreen> {
                 tooltip: 'Share reviews',
                 onPressed: () {
                   ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('Share link copied (demo)'), behavior: SnackBarBehavior.floating),
+                    const SnackBar(content: Text('Sharing is unavailable for this record.'), behavior: SnackBarBehavior.floating),
                   );
                 },
               ),

@@ -7,7 +7,7 @@ if (-not $bundleOutput.StartsWith($bundleRepo + [IO.Path]::DirectorySeparatorCha
     throw 'Generated package must stay inside this repository.'
 }
 $bundleFiles = @(Get-ChildItem -LiteralPath (Join-Path $bundleRepo 'supabase/migrations') -Filter '*.sql' -File | Sort-Object Name)
-if ($bundleFiles.Count -ne 29) { throw 'Review the package contract when adding a migration.' }
+if ($bundleFiles.Count -ne 30) { throw 'Review the package contract when adding a migration.' }
 $bundleChunks = [Collections.Generic.List[string]]::new()
 $bundleChunks.Add(@'
 -- FRESH smart-rental-staging / gqtetdavmrautoojaqrk ONLY.
@@ -42,11 +42,11 @@ $bundleManifest = for ($bundleIndex = 0; $bundleIndex -lt $bundleFiles.Count; $b
 $bundleChunks.Add("`ncommit;`n")
 New-Item -ItemType Directory -Path $bundleOutput -Force | Out-Null
 $bundleEncoding = [Text.UTF8Encoding]::new($false)
-[IO.File]::WriteAllText((Join-Path $bundleOutput 'fresh_staging_001_to_029.sql'),($bundleChunks -join "`n"),$bundleEncoding)
+[IO.File]::WriteAllText((Join-Path $bundleOutput 'fresh_staging_001_to_030.sql'),($bundleChunks -join "`n"),$bundleEncoding)
 [IO.File]::WriteAllText((Join-Path $bundleOutput 'manifest.json'),(ConvertTo-Json -Depth 5 -InputObject ([ordered]@{
     target_project='gqtetdavmrautoojaqrk'; target_name='smart-rental-staging';
     mode='fresh-staging-only'; migrations=@($bundleManifest)
 })), $bundleEncoding)
 Copy-Item -LiteralPath (Join-Path $bundleRepo 'supabase/reviews/staging_migration_preflight.sql') -Destination $bundleOutput
 Copy-Item -LiteralPath (Join-Path $bundleRepo 'supabase/reviews/staging_migration_postflight.sql') -Destination $bundleOutput
-Write-Output "Generated 29-migration atomic Staging package at $bundleOutput. NO remote SQL executed."
+Write-Output "Generated 30-migration atomic Staging package at $bundleOutput. NO remote SQL executed."

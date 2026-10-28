@@ -152,7 +152,7 @@ void main() {
           .data,
       contains(DateFormat('d MMM').format(last30Start)),
     );
-    expect(find.text('Net earnings by 7-day period'), findsOneWidget);
+    expect(find.text('Weekly net earnings'), findsOneWidget);
     expect(find.text('2 completed jobs  ·  avg RM 136/job'), findsOneWidget);
     expect(
       find.text('Gross RM 320  −  Platform fee RM 48'),
@@ -173,7 +173,7 @@ void main() {
     await selectPeriod(tester, 'This month');
     final monthStart = DateTime(today.year, today.month, 1);
     final monthJobs = dates.where((date) => !date.isBefore(monthStart)).length;
-    expect(find.text('Net earnings by calendar week'), findsOneWidget);
+    expect(find.text('Weekly net earnings'), findsOneWidget);
     expect(
       find.text(
         'Gross RM ${monthJobs * 160}  −  Platform fee RM ${monthJobs * 24}',
@@ -182,8 +182,7 @@ void main() {
     );
 
     await selectPeriod(tester, 'All time');
-    expect(find.text('Monthly net earnings · tap a month for jobs'),
-        findsOneWidget);
+    expect(find.text('Monthly net earnings'), findsOneWidget);
     expect(find.text('Gross RM 480  −  Platform fee RM 72'), findsOneWidget);
   });
 
@@ -271,10 +270,19 @@ void main() {
 
     final monthLabel = DateFormat('MMM yyyy').format(month);
     expect(find.text(monthLabel), findsOneWidget);
+    await tester
+        .ensureVisible(find.byKey(ValueKey('earnings-bucket-$monthLabel')));
     await tester.tap(find.byKey(ValueKey('earnings-bucket-$monthLabel')));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('View jobs'));
+    await tester.tap(find.text('View jobs'));
+    await tester.pumpAndSettle();
 
-    expect(find.text(DateFormat('MMMM yyyy').format(month)), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.text(DateFormat('MMMM yyyy').format(month))),
+        findsOneWidget);
     expect(find.text('2 completed jobs · RM 272.00 earned'), findsOneWidget);
     final details = find.byType(BottomSheet);
     expect(
@@ -330,8 +338,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('earnings-trend-toggle')));
     await tester.pumpAndSettle();
     expect(find.text('Earnings trend'), findsOneWidget);
-    expect(find.textContaining('Not enough periods to compare yet'),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('earnings-bar-0')), findsOneWidget);
+    await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('earning-single-month')), 200,
+        scrollable: find.byType(Scrollable).first);
     await tester.tap(find.byKey(const ValueKey('earning-single-month')));
     await tester.pumpAndSettle();
     expect(find.text('RM 136'), findsWidgets);

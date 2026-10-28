@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../screens/account_settings_screens.dart';
 import '../screens/owner_booking_feed.dart';
 import '../services/backend/supabase_booking_repository.dart';
 
@@ -111,16 +112,53 @@ class WorkspaceActions {
       Navigator.of(context).push<void>(MaterialPageRoute(
           builder: (_) => WorkspaceMessages(backend: backend, role: role)));
 
+  Future<void> settings(BuildContext context, String page) async {
+    final app = AppProviders.of(context);
+    final session = UserSessionAccess.of(context);
+    final child = switch (page) {
+      'appearance' => const AppearanceSettingsScreen(),
+      'notifications' => NotificationSettingsScreen(
+          preferences: app.devicePreferences!,
+          openNotifications: () => notifications(context)),
+      _ => PrivacySecurityScreen(
+          email: session.email,
+          role: role == UserRole.owner
+              ? 'Property Owner'
+              : 'Cleaning Service Provider',
+          onSignOut: () => signOut(context)),
+    };
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+        builder: (_) => OwnerRootNavigation.inherit(
+            context,
+            Builder(
+                builder: (c) => role == UserRole.owner
+                    ? ownerDestination(c, 'profile', child)
+                    : Scaffold(
+                        body: child,
+                        bottomNavigationBar:
+                            providerNavigation(c, 'profile'))))));
+  }
+
   Future<void> notifications(BuildContext context) async =>
       Navigator.of(context).push<void>(MaterialPageRoute(
           builder: (_) =>
               WorkspaceNotifications(backend: backend, role: role)));
 
-  Future<void> about(BuildContext context) async =>
-      Navigator.of(context).push<void>(MaterialPageRoute(
-          builder: (_) => AboutScreen(
-              environmentLabel: backend.config?.environmentName,
-              prototypeSupport: AppProviders.of(context).prototypeSupport)));
+  Future<void> about(BuildContext context) async {
+    final app = AppProviders.of(context);
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+        builder: (_) =>
+            OwnerRootNavigation.inherit(context, Builder(builder: (c) {
+              final page = AboutScreen(
+                  environmentLabel: backend.config?.environmentName,
+                  prototypeSupport: app.prototypeSupport);
+              return role == UserRole.owner
+                  ? ownerDestination(c, 'profile', page)
+                  : Scaffold(
+                      body: page,
+                      bottomNavigationBar: providerNavigation(c, 'profile'));
+            }))));
+  }
 
   Widget providerNavigation(BuildContext context, String activeId) =>
       ProviderBottomNav(
@@ -172,9 +210,14 @@ class WorkspaceActions {
       _request(context, propertyId: propertyId);
   Future<void> _request(BuildContext context, {String? propertyId}) async {
     if (role != UserRole.owner) return;
-    await Navigator.of(context).push<bool>(MaterialPageRoute(
+    final submitted = await Navigator.of(context).push<bool>(MaterialPageRoute(
       builder: (_) => _requestScreen(propertyId: propertyId),
     ));
+    if (submitted == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          duration: Duration(seconds: 2),
+          content: Text('Request sent. Waiting for the provider to respond.')));
+    }
   }
 
   Widget _requestScreen({String? propertyId}) {
@@ -194,6 +237,7 @@ class WorkspaceActions {
     final actor = backend.client.auth.currentUser?.id;
     await Navigator.of(context).push<bool>(MaterialPageRoute(
       builder: (_) => ConnectedPropertyFormScreen(
+          loadBuildingOptions: backend.owner.properties,
           canSave: () =>
               actor != null && backend.client.auth.currentUser?.id == actor,
           onSave: (input) async {
@@ -232,7 +276,13 @@ class WorkspaceActions {
   Future<void> booking(BuildContext context, String id) async {
     await Navigator.of(context).push<void>(MaterialPageRoute(
       builder: (_) =>
-          ConnectedWorkspaceScreen(backend: backend, role: role, bookingId: id),
+          OwnerRootNavigation.inherit(context, Builder(builder: (c) {
+        final detail = ConnectedWorkspaceScreen(
+            backend: backend, role: role, bookingId: id);
+        return role == UserRole.owner
+            ? ownerDestination(c, 'bookings', detail)
+            : detail;
+      })),
     ));
   }
 
@@ -253,6 +303,6 @@ class WorkspaceActions {
   void unavailable(BuildContext context, String label) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
-            '$label is not connected yet. No sample data will be shown.')));
+            '$label is unavailable. Check your connection and try again.')));
   }
 }

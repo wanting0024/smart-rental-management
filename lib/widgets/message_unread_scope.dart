@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../main.dart';
 import 'package:flutter/material.dart';
 import '../services/backend/message_unread_binding.dart';
 import '../services/backend/supabase_backend_provider.dart';
@@ -95,9 +96,17 @@ class MessageUnreadBadge extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) {
+    final preferences = AppProviders.maybeOf(context)?.devicePreferences;
+    return AnimatedBuilder(
+        animation: Listenable.merge([if (preferences != null) preferences]),
+        builder: (context, _) =>
+            _badge(context, preferences?.messageIndicators != false));
+  }
+
+  Widget _badge(BuildContext context, bool enabled) {
     final binding = MessageUnreadScope.maybeOf(context);
     final count = binding?.count;
-    if (count == null || count == 0) return child;
+    if (!enabled || count == null || count == 0) return child;
     return Semantics(
         label:
             '$count unread messages${binding!.failed ? ', last confirmed count' : ''}',

@@ -46,11 +46,11 @@ void main() {
     expect(privacy, contains('Signing out does not delete cloud'));
     expect(privacy, contains('not end-to-end encrypted'));
     expect(privacy,
-        contains('not a channel for requesting access to or deletion'));
+        contains('does not submit a request for access to or deletion'));
     expect(privacy, contains('do not assume it is hidden until acceptance'));
     expect(privacy, contains('browser session storage'));
     expect(privacy, contains('Account deletion and data export are not yet'));
-    expect(privacy, contains('only in memory'));
+    expect(privacy, isNot(contains('simulated')));
     expect(privacy, contains('Selecting a photo starts its upload'));
     expect(privacy, contains('does not upload your whole gallery'));
     final terms = PrototypeLegalDraft.terms.copyText;

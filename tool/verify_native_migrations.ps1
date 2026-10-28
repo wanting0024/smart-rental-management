@@ -57,10 +57,10 @@ try {
     Invoke-NativeSql (Join-Path $nativeRepo 'supabase/tests/local_supabase_shim.sql')
     Invoke-NativeSql (Join-Path $nativeRepo 'supabase/reviews/2026-10-23_staging_auto_rls_setup.sql')
     & (Join-Path $PSScriptRoot 'build_staging_migration_bundle.ps1')
-    Invoke-NativeSql (Join-Path $nativeRepo 'output/staging-migration-package/fresh_staging_001_to_029.sql')
+    Invoke-NativeSql (Join-Path $nativeRepo 'output/staging-migration-package/fresh_staging_001_to_030.sql')
     foreach ($nativeTest in @('explicit_app_privileges','verified_evidence_fixture','booking_messages_rls',
         'booking_lifecycle_evidence_rls','booking_acceptance_approval','deployment_environment','evidence_upload_lifecycle',
-        'verified_evidence','cursor_pagination','test_data_management','test_fixture_cleanup','booking_communication_limits','provider_earnings','provider_profile_editor','booking_notifications','conversation_inbox','message_read_receipts','owner_workspace','owner_uat_identity_portfolio','owner_navigation_pages')) {
+        'verified_evidence','evidence_photo_removal','cursor_pagination','test_data_management','test_fixture_cleanup','booking_communication_limits','provider_earnings','provider_profile_editor','booking_notifications','conversation_inbox','message_read_receipts','owner_workspace','owner_uat_identity_portfolio','owner_navigation_pages')) {
         Write-Output "Checking $nativeTest / $PrivilegeProfile"
         Invoke-NativeSql (Join-Path $nativeRepo "supabase/tests/$nativeTest.sql")
     }
@@ -68,7 +68,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Native concurrent SQL tests failed.' }
     & python (Join-Path $PSScriptRoot 'verify_fixture_cleanup_concurrency.py') --native-bin $nativeBin --native-data $nativeData --native-port $nativePort
     if ($LASTEXITCODE -ne 0) { throw 'Native concurrent fixture cleanup tests failed.' }
-    Write-Output "PASSED: native PostgreSQL / $PrivilegeProfile defaults; atomic 001-029 bundle, ACL/RLS/defaults, lifecycle, evidence, paging, owner navigation/directory/search, earnings/profile/notifications/conversations/message-receipts/owner-workspace/registration-name/portfolio reports, test-data/cleanup and concurrent rate/lease tests."
+    Write-Output "PASSED: native PostgreSQL / $PrivilegeProfile defaults; atomic 001-030 bundle, ACL/RLS/defaults, lifecycle, evidence, paging, owner navigation/directory/search, earnings/profile/notifications/conversations/message-receipts/owner-workspace/registration-name/portfolio reports, test-data/cleanup and concurrent rate/lease tests."
     Write-Output 'Synthetic local SQL only; no hosted Auth/Storage/Realtime approval.'
 }
 finally {

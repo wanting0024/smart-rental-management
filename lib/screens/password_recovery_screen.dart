@@ -181,7 +181,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
               _message(
                 Icons.info_outline,
                 widget.backend == null
-                    ? 'Email recovery is available only in the connected app. This local demo will not send an email.'
+                    ? 'Connect to your workspace to request a password recovery email.'
                     : 'Password recovery is not configured yet. Contact support; no email will be sent from this screen.',
                 Theme.of(context).colorScheme.secondaryContainer,
               ),

@@ -152,7 +152,7 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Conversation info · Sprint 1 feature'),
+                  content: Text('Conversation details are unavailable here.'),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
@@ -265,7 +265,7 @@ class _ChatScreenState extends State<ChatScreen> {
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Attach file · Sprint 1 feature'),
+                    content: Text('File attachments are unavailable in this conversation.'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );

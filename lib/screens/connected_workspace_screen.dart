@@ -1,3 +1,4 @@
+import '../presentation/workspace_text.dart';
 import 'package:flutter/material.dart';
 import '../services/backend/safe_diagnostics.dart';
 
@@ -18,6 +19,7 @@ import 'connected_booking_evidence_screen.dart';
 import 'connected_booking_history_sheet.dart';
 import 'workspace_messages.dart';
 import 'connected_booking_review_screen.dart';
+import 'connected_pending_edit_screen.dart';
 
 /// Honest connected-mode checkpoint: these cards contain only server rows.
 /// The local demo's seeded Owner/Provider data is not mixed into this view.
@@ -282,10 +284,48 @@ class _ConnectedWorkspaceScreenState extends State<ConnectedWorkspaceScreen>
       _notice('A cancellation reason is required.');
       return;
     }
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+              title: const Text('Cancel this booking?'),
+              content: Text(
+                  'The booking will be closed and the other participant will be notified.\n\nReason: $reason'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(c, false),
+                    child: const Text('Keep booking')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(c, true),
+                    child: const Text('Confirm cancellation')),
+              ],
+            ));
+    if (!mounted || confirmed != true) return;
     await _apply(bookingId, 'Cancelled', reason: reason);
   }
 
-  Future<void> _showHistory(String bookingId) async {
+  Future<void> _editPending(Map<String, dynamic> row) async {
+    final actor = widget.backend.client.auth.currentUser?.id;
+    final result = await Navigator.of(context).push<bool>(MaterialPageRoute(
+      builder: (_) => ConnectedPendingEditScreen(
+          row: row,
+          canSave: () =>
+              actor != null &&
+              actor == widget.backend.client.auth.currentUser?.id,
+          save: (start, end, instructions) => widget.backend.bookings
+              .revisePending(
+                  bookingId: row['booking_id'] as String,
+                  start: start,
+                  end: end,
+                  instructions: instructions)),
+    ));
+    if (mounted) {
+      setState(_reload);
+      if (result == true) _notice('Request changes saved.');
+    }
+  }
+
+  Future<void> _showHistory(String bookingId,
+      {String? ownerId, String? providerId}) async {
     final history =
         widget.backend.bookings.openHistory(bookingId, active: false);
     await showModalBottomSheet<void>(
@@ -293,6 +333,8 @@ class _ConnectedWorkspaceScreenState extends State<ConnectedWorkspaceScreen>
       isScrollControlled: true,
       builder: (_) => ConnectedBookingHistorySheet(
         bookingId: bookingId,
+        ownerId: ownerId,
+        providerId: providerId,
         pagedHistory: history,
       ),
     );
@@ -316,6 +358,7 @@ class _ConnectedWorkspaceScreenState extends State<ConnectedWorkspaceScreen>
             expectedPreviousPath: previous,
           ),
           cleanup: evidence.cleanup,
+          removePhoto: evidence.removePhoto,
           saveRemarks: evidence.saveRemarks,
           complete: (id) async {
             await widget.backend.bookings.transition(id, 'Completed');
@@ -366,14 +409,17 @@ class _ConnectedWorkspaceScreenState extends State<ConnectedWorkspaceScreen>
       busy: _busy,
       propertyName: row['unit_name'] == null
           ? null
-          : '${row['unit_name']}, ${row['building_name']}',
+          : '${workspaceText(row['unit_name'] as String)}, ${workspaceText(row['building_name'] as String)}',
       onAction: (action) => _apply(bookingId, action),
-      onHistory: () => _showHistory(bookingId),
+      onHistory: () => _showHistory(bookingId,
+          ownerId: row['owner_id'] as String?,
+          providerId: row['provider_id'] as String?),
       onMessages: () => _openMessages(bookingId),
       onEvidence: () =>
           _openEvidence(bookingId, row['current_status'] as String? ?? ''),
       onReview: () => _openReview(bookingId),
       onCancel: () => _requestCancellation(bookingId),
+      onEdit: () => _editPending(row),
     );
   }
 

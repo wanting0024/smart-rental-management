@@ -61,7 +61,7 @@ class OwnerSpendScreen extends StatelessWidget {
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Export PDF · Sprint 1 feature'),
+                    content: Text('Export is unavailable.'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );

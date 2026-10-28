@@ -66,7 +66,7 @@ class _OwnedWorkspacePageState extends State<OwnedWorkspacePage>
                         : 'Could not load ${widget.title.toLowerCase()}',
                 message: binding.sessionEnded
                     ? 'Your account session changed.'
-                    : 'Check your connection. No sample data is shown.',
+                    : 'Check your connection and try again.',
                 actionLabel:
                     binding.loading || binding.sessionEnded ? null : 'Retry',
                 onAction: binding.refresh));

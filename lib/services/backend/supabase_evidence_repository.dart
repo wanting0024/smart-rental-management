@@ -123,6 +123,27 @@ class SupabaseEvidenceRepository {
     );
   }
 
+  Future<void> removePhoto(
+      String bookingId, EvidenceKind kind, String expectedPath) async {
+    final actor = client.auth.currentUser?.id;
+    if (actor == null) throw const CacheSessionChanged();
+    final result = Map<String, dynamic>.from(
+        await client.rpc('remove_evidence_photo', params: {
+      'p_booking_id': bookingId,
+      'p_kind': kind.name,
+      'p_expected_path': expectedPath,
+    }) as Map);
+    if (client.auth.currentUser?.id != actor) throw const CacheSessionChanged();
+    if (result['removed'] != true) {
+      throw EvidencePhotoRemovalRejected(
+          result['reason'] as String? ?? 'unknown');
+    }
+    if (result['path'] != expectedPath)
+      throw const FormatException('Unexpected photo removal result');
+    cache?.evict('photo:$expectedPath');
+    // Physical deletion is retried separately after the pointer is detached.
+  }
+
   /// Only server-tombstoned unused objects can be removed. Storage API, never
   /// SQL DELETE, removes the actual bytes. At most 20 objects per pass.
   Future<bool> cleanup(String bookingId) async {
@@ -189,6 +210,11 @@ class SupabaseEvidenceRepository {
       load: fetch,
     );
   }
+}
+
+class EvidencePhotoRemovalRejected implements Exception {
+  const EvidencePhotoRemovalRejected(this.reason);
+  final String reason;
 }
 
 class BookingEvidenceRecord {

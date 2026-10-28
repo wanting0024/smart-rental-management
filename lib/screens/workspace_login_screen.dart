@@ -516,7 +516,7 @@ class _WorkspaceLoginScreenState extends State<WorkspaceLoginScreen> {
                                       LengthLimitingTextInputFormatter(20),
                                     ],
                                     decoration: const InputDecoration(
-                                      hintText: 'e.g. 012-345 6789',
+                                      hintText: '+60 12 345 6789',
                                       helperText:
                                           'Malaysia: 012-345 6789 or +60 12-345 6789',
                                       prefixIcon: Icon(Icons.phone_outlined),
@@ -687,7 +687,7 @@ class _WorkspaceLoginScreenState extends State<WorkspaceLoginScreen> {
                                         ? null
                                         : widget.backend == null
                                             ? () => _notice(
-                                                'Registration is not connected in this local demo.')
+                                                'Connect to your workspace to create an account.')
                                             : _switchMode,
                                     child: Text(_registering
                                         ? 'Back to login'
@@ -704,8 +704,8 @@ class _WorkspaceLoginScreenState extends State<WorkspaceLoginScreen> {
                       const SizedBox(height: 18),
                       Text(
                           widget.backend == null
-                              ? 'Local demo · No real authentication'
-                              : 'Connected account · Workspace data integration in progress',
+                              ? 'Offline workspace · Online sign-in unavailable'
+                              : 'Your properties and cleaning services, together.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               fontSize: 11,

@@ -113,7 +113,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
           find.bySemanticsLabel(
-              'View booking activity for Unit A-12, Menara Suria'),
+              'View status history for Unit A-12, Menara Suria'),
           findsOneWidget);
       expect(find.bySemanticsLabel('Open messages for Unit A-12, Menara Suria'),
           findsOneWidget);

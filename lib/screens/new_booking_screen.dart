@@ -5,6 +5,7 @@ import '../features/bookings/domain/cleaning_request_flow.dart';
 import '../main.dart';
 import '../models/demo_data.dart';
 import '../theme/app_theme.dart';
+import '../widgets/time_slot_picker.dart';
 import 'provider_results_screen.dart';
 
 /// The owner prepares a request here. Nothing is recorded until a provider is
@@ -46,9 +47,19 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
+    final picked = await showTimeSlotPicker(
       context: context,
       initialTime: _time ?? const TimeOfDay(hour: 10, minute: 0),
+      title: 'Requested start time',
+      description:
+          'Choose a requested time. Eligibility is checked when you search. MYT (UTC+8).',
+      firstMinute: _property == null
+          ? 0
+          : timeOfDayMinutes(_property!.cleaningWindowStart),
+      lastMinute: _property == null
+          ? 1439
+          : timeOfDayMinutes(_property!.cleaningWindowEnd) -
+              (_durationHours ?? 1) * 60,
     );
     if (picked != null && mounted) setState(() => _time = picked);
   }
@@ -163,7 +174,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
             if (_property != null) ...[
               const SizedBox(height: 8),
               Text(
-                'Demo cleaning window: ${_formatTime(_property!.cleaningWindowStart)}–${_formatTime(_property!.cleaningWindowEnd)}',
+                'Cleaning window: ${_formatTime(_property!.cleaningWindowStart)}–${_formatTime(_property!.cleaningWindowEnd)}',
                 style: TextStyle(fontSize: 12, color: sem.textSecondary),
               ),
             ],

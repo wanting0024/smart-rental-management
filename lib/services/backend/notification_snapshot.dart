@@ -1,3 +1,4 @@
+import '../../presentation/workspace_text.dart';
 import 'cursor_feed.dart';
 
 enum NotificationFilter { all, unread, action }
@@ -39,8 +40,8 @@ class BookingNotification {
         bookingId: row['booking_id'] as String,
         status: row['event_status'] as String,
         timestamp: time(row['happened_at'] as String),
-        unit: row['unit_name'] as String,
-        building: row['building_name'] as String,
+        unit: workspaceText(row['unit_name'] as String),
+        building: workspaceText(row['building_name'] as String),
         service: row['service_name'] as String,
         read: row['is_read'] as bool,
         actionable: row['actionable'] as bool);

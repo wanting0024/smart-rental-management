@@ -15,6 +15,8 @@ enum SafeOperation {
   evidenceLoad,
   evidenceUpload,
   evidenceVerify,
+  evidenceRemove,
+  evidenceRemoveVerify,
   completion,
   completionVerify,
   reviewSave,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'support/time_slot_steps.dart';
 import 'package:rental_app_demo/features/bookings/domain/cleaning_request_flow.dart';
 import 'package:rental_app_demo/features/matching/domain/provider_matching.dart';
 import 'package:rental_app_demo/main.dart';
@@ -269,8 +270,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Choose time'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('OK').last);
-    await tester.pumpAndSettle();
+    await chooseTimeSlot(tester, 600);
     await tester.ensureVisible(find.byType(TextFormField));
     await tester.enterText(
         find.byType(TextFormField), 'Clean the kitchen and both bathrooms.');

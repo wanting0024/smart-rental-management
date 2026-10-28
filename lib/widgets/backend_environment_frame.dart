@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../services/backend/backend_config.dart';
 
-/// Outside the Navigator so pushed pages and dialogs retain the same label.
+/// Connected workspaces use the original full-height UI. Local previews and
+/// unknown backends remain visibly distinguished from verified connections.
 class BackendEnvironmentFrame extends StatelessWidget {
   const BackendEnvironmentFrame({
     super.key,
@@ -17,15 +18,14 @@ class BackendEnvironmentFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (connected && config?.environment == AppEnvironment.production) {
+    if (connected &&
+        (config?.environment == AppEnvironment.production ||
+            config?.environment == AppEnvironment.staging)) {
       return child;
     }
-    final staging = connected && config?.environment == AppEnvironment.staging;
-    final label = staging
-        ? 'TEST ENVIRONMENT · Changes are saved to staging'
-        : connected
-            ? 'UNVERIFIED BACKEND · Do not enter real information'
-            : 'LOCAL PREVIEW · No cloud data is saved';
+    final label = connected
+        ? 'UNVERIFIED BACKEND · Do not enter real information'
+        : 'OFFLINE WORKSPACE · Changes stay on this device';
     final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [

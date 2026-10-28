@@ -110,7 +110,7 @@ class _ProviderResultsScreenState extends State<ProviderResultsScreen> {
                   const SizedBox(height: 10),
                 ],
                 Text(
-                  'Distances and availability are local demo data; live route-distance and availability services are not connected yet.',
+                  'Distance estimates and availability may change. Check the selected interval before sending your request.',
                   style: TextStyle(fontSize: 11, color: sem.textSecondary),
                 ),
               ] else ...[

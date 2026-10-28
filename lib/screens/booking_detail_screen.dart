@@ -172,7 +172,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     case 'share':
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Share link copied (demo)'),
+                            content: Text('Sharing is unavailable for this record.'),
                             behavior: SnackBarBehavior.floating),
                       );
                       break;
@@ -183,7 +183,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             content: Text(
-                                'Report submitted - Sprint 1 will email the team'),
+                                'Reporting is unavailable here. No report has been sent.'),
                             behavior: SnackBarBehavior.floating),
                       );
                       break;
@@ -650,7 +650,7 @@ class _StatusHistoryCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: history.isEmpty
               ? Text(
-                  'Earlier transition history is unavailable for this demo booking.',
+                  'No earlier status history is available for this booking.',
                   style: TextStyle(fontSize: 12, color: sem.textSecondary),
                 )
               : Column(

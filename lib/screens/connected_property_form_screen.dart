@@ -1,3 +1,4 @@
+import '../presentation/workspace_text.dart';
 import 'package:flutter/material.dart';
 import '../services/backend/safe_diagnostics.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,8 @@ import '../models/demo_data.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/unsaved_changes_guard.dart';
 import '../widgets/bedroom_count_field.dart';
+import '../widgets/building_name_field.dart';
+import '../widgets/time_slot_picker.dart';
 
 /// Values collected for a real Owner property. Saving is delegated to the
 /// connected workspace so this form never writes local preview data.
@@ -36,10 +39,12 @@ class ConnectedPropertyFormScreen extends StatefulWidget {
     required this.onSave,
     this.initial,
     this.canSave,
+    this.loadBuildingOptions,
   });
 
   final Future<void> Function(ConnectedPropertyInput input) onSave;
   final DemoProperty? initial;
+  final Future<List<Map<String, dynamic>>> Function()? loadBuildingOptions;
   final bool Function()? canSave;
 
   @override
@@ -60,14 +65,38 @@ class _ConnectedPropertyFormScreenState
   bool _saving = false;
   bool _needsVerification = false;
   String? _error;
+  List<Map<String, dynamic>> _buildingOptions = const [];
+  Future<List<Map<String, dynamic>>>? _buildingLoad;
+  Future<List<Map<String, dynamic>>> _loadBuildingOptions() async {
+    final rows = await (_buildingLoad ??= widget.loadBuildingOptions!());
+    if (mounted) _buildingOptions = rows;
+    return rows;
+  }
+
+  String _originalOrEdited(String value, String? original) =>
+      original != null && value.trim() == workspaceText(original)
+          ? original
+          : value.trim();
+  String get _buildingToSave {
+    final original = widget.initial?.tower;
+    if (original != null && _building.text.trim() == workspaceText(original))
+      return original;
+    for (final row in _buildingOptions) {
+      final raw = row['building_name'] as String;
+      if (normalizedBuildingName(workspaceText(raw)) ==
+          normalizedBuildingName(_building.text)) return raw;
+    }
+    return _building.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
   @override
   void initState() {
     super.initState();
     final value = widget.initial;
     if (value == null) return;
-    _unit.text = value.unit;
-    _building.text = value.tower;
-    _address.text = value.address;
+    _unit.text = workspaceText(value.unit);
+    _building.text = workspaceText(value.tower);
+    _address.text = workspaceText(value.address);
     _bedrooms.text = '${value.bedrooms}';
     _size.text = '${value.sizeSqft}';
     _start = value.cleaningWindowStart;
@@ -85,20 +114,20 @@ class _ConnectedPropertyFormScreenState
   }
 
   Future<TimeOfDay?> _pickTime({required bool start}) async {
-    final selected = await showTimePicker(
+    final selected = await showTimeSlotPicker(
       context: context,
       initialTime:
           (start ? _start : _end) ?? TimeOfDay(hour: start ? 8 : 18, minute: 0),
-      helpText: start ? 'Cleaning window starts' : 'Cleaning window ends',
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
-      ),
+      title: start ? 'Cleaning window starts' : 'Cleaning window ends',
+      description: 'Choose the permitted cleaning window. Malaysia time (MYT).',
+      firstMinute: !start && _start != null ? _minutes(_start!) + 1 : 0,
+      lastMinute: start ? 1438 : 1439,
     );
     if (!mounted || selected == null) return null;
     setState(() {
       if (start) {
         _start = selected;
+        if (_end != null && _minutes(_end!) <= _minutes(selected)) _end = null;
       } else {
         _end = selected;
       }
@@ -129,31 +158,55 @@ class _ConnectedPropertyFormScreenState
       _saving = true;
       _error = null;
     });
+    var writeStarted = false;
     try {
+      if (widget.loadBuildingOptions != null &&
+          (widget.initial == null ||
+              _building.text.trim() != workspaceText(widget.initial!.tower))) {
+        await _loadBuildingOptions();
+      }
+      if (!mounted) return;
+      if (widget.canSave?.call() == false) {
+        setState(() => _error =
+            'Your session changed. Close this form and sign in again.');
+        return;
+      }
+      writeStarted = true;
       await widget.onSave(ConnectedPropertyInput(
-        unitName: _unit.text.trim(),
-        buildingName: _building.text.trim(),
-        address: _address.text.trim(),
+        unitName: _originalOrEdited(_unit.text, widget.initial?.unit),
+        buildingName: _buildingToSave,
+        address: _originalOrEdited(_address.text, widget.initial?.address),
         bedrooms: int.parse(_bedrooms.text),
         sizeSqft: int.parse(_size.text),
         cleaningWindowStart: _databaseTime(_start!),
         cleaningWindowEnd: _databaseTime(_end!),
       ));
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text(widget.initial == null
+              ? 'Rental unit added.'
+              : 'Rental unit changes saved.'),
+        ));
+        Navigator.of(context).pop(true);
+      }
     } catch (error) {
+      if (!writeStarted) _buildingLoad = null;
       SafeDiagnostics.app.record(SafeOperation.propertySave, error);
       if (mounted) {
         setState(() {
           final rejected = error is PostgrestException &&
               const {'22023', '23514', '23505', '42501'}.contains(error.code);
-          _needsVerification = !rejected;
-          _error = error is PostgrestException && error.code == '40001'
-              ? 'This property was changed elsewhere. Close this form and reload before editing.'
-              : rejected
-                  ? 'Could not save. Check the details, duplicate unit name and cleaning window. Confirmed bookings must remain within the window.'
-                  : ConnectedFailureMessage.isConnectionFailure(error)
-                      ? 'Connection lost while saving. Your entries are kept. Check My properties before adding this unit again.'
-                      : 'We could not confirm whether this unit was saved. Your entries are kept. Check My properties before adding it again.';
+          _needsVerification = writeStarted && !rejected;
+          _error = !writeStarted
+              ? 'Could not check saved building names. Check your connection and try again.'
+              : error is PostgrestException && error.code == '40001'
+                  ? 'This property was changed elsewhere. Close this form and reload before editing.'
+                  : rejected
+                      ? 'Could not save. Check the details, duplicate unit name and cleaning window. Confirmed bookings must remain within the window.'
+                      : ConnectedFailureMessage.isConnectionFailure(error)
+                          ? 'Connection lost while saving. Your entries are kept. Check My properties before adding this unit again.'
+                          : 'We could not confirm whether this unit was saved. Your entries are kept. Check My properties before adding it again.';
         });
       }
     } finally {
@@ -225,7 +278,9 @@ class _ConnectedPropertyFormScreenState
                       },
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: start ? 'Available from *' : 'Available until *',
+                    labelText: start
+                        ? 'Cleaning window starts *'
+                        : 'Cleaning window ends *',
                     errorText: field.errorText,
                     suffixIcon: const Icon(Icons.schedule),
                     enabled: !_saving,
@@ -241,9 +296,9 @@ class _ConnectedPropertyFormScreenState
   Widget build(BuildContext context) {
     return UnsavedChangesGuard(
         dirty: () =>
-            _unit.text != (widget.initial?.unit ?? '') ||
-            _building.text != (widget.initial?.tower ?? '') ||
-            _address.text != (widget.initial?.address ?? '') ||
+            _unit.text != workspaceText(widget.initial?.unit ?? '') ||
+            _building.text != workspaceText(widget.initial?.tower ?? '') ||
+            _address.text != workspaceText(widget.initial?.address ?? '') ||
             _bedrooms.text !=
                 (widget.initial == null ? '' : '${widget.initial!.bedrooms}') ||
             _size.text !=
@@ -272,10 +327,13 @@ class _ConnectedPropertyFormScreenState
                   _textField('Unit name', _unit,
                       hint: 'e.g. A-12-03',
                       helper: 'The unit or apartment number.'),
-                  _textField('Building or tower', _building,
-                      hint: 'e.g. Menara Suria',
-                      helper:
-                          'The building name, including the tower or block if needed.'),
+                  BuildingNameField(
+                      controller: _building,
+                      address: _address,
+                      enabled: !_saving,
+                      loadOptions: widget.loadBuildingOptions == null
+                          ? null
+                          : _loadBuildingOptions),
                   _textField('Property address', _address,
                       hint: 'e.g. 12 Jalan Example, Kuala Lumpur',
                       helper:

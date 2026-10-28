@@ -37,6 +37,22 @@ class ScannerTests(unittest.TestCase):
             scanner.stream(io.BytesIO(b'x' * (1024 * 1024 - 5) + encoded), 'fixture.bin')
             self.assertTrue(any(item[1] == 'SUPABASE_SECRET' for item in scanner.findings))
 
+    def test_invalid_binary_separators_do_not_join_unrelated_string_literals(self):
+        prefix = 'sb_' + 'secret_'
+        suffix = 'SYNTHETIC' * 5
+        for payload in (prefix.encode() + b'\xff' + suffix.encode(),
+                        prefix.encode('utf-16le') + b'\x00\xd8' + suffix.encode('utf-16le')):
+            scanner = audit.Scanner()
+            scanner.stream(io.BytesIO(payload), 'synthetic-string-pool.bin')
+            self.assertFalse(any(item[1] == 'SUPABASE_SECRET' for item in scanner.findings))
+
+    def test_real_key_is_detected_between_malformed_binary_bytes(self):
+        for payload in (b'\xff' + secret().encode() + b'\xfe',
+                        b'\x00\xd8' + secret().encode('utf-16le') + b'\x00\xd8'):
+            scanner = audit.Scanner()
+            scanner.stream(io.BytesIO(payload), 'synthetic-key.bin')
+            self.assertTrue(any(item[1] == 'SUPABASE_SECRET' for item in scanner.findings))
+
     def test_zip_members_scanned_without_extracting(self):
         data = io.BytesIO()
         with zipfile.ZipFile(data, 'w', zipfile.ZIP_DEFLATED) as archive:

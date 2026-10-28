@@ -11,6 +11,7 @@
 //   NS6 Time-ago uses sem.textTertiary
 
 import 'package:flutter/material.dart';
+import '../main.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 import '../services/backend/notification_binding.dart';
@@ -409,7 +410,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 : 'Could not load notifications',
             subtitle: binding.sessionEnded
                 ? 'Your account session changed.'
-                : 'Pull down to retry. No sample notifications are shown.')
+                : 'Pull down to retry.')
         : binding.snapshot == null && binding.loading
             ? const Padding(
                 padding: EdgeInsets.all(32),
@@ -535,6 +536,15 @@ class _NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final preferences = AppProviders.maybeOf(context)?.devicePreferences;
+    return AnimatedBuilder(
+        animation: Listenable.merge([if (preferences != null) preferences]),
+        builder: (context, _) =>
+            _contents(context, preferences?.bookingIndicators != false));
+  }
+
+  Widget _contents(BuildContext context, bool enabled) {
+    final highlight = enabled && !item.read;
     final sem = SemanticColors.of(context);
     // NS3: themed unread background (primary surface in both modes)
     final unreadBg = isDark
@@ -543,7 +553,7 @@ class _NotificationTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        color: item.read ? sem.surface : unreadBg,
+        color: highlight ? unreadBg : sem.surface,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -570,13 +580,13 @@ class _NotificationTile extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight:
-                                item.read ? FontWeight.w500 : FontWeight.w700,
+                                highlight ? FontWeight.w700 : FontWeight.w500,
                             color: sem.textPrimary,
                           ),
                         ),
                       ),
                       // NS4: themed unread dot
-                      if (!item.read)
+                      if (highlight)
                         Container(
                           width: 8,
                           height: 8,

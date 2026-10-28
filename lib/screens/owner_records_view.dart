@@ -1,3 +1,4 @@
+import '../presentation/workspace_text.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/backend/cursor_feed.dart';
@@ -34,6 +35,8 @@ class _OwnerRecordsViewState extends State<OwnerRecordsView>
   final scroll = ScrollController();
   Timer? debounce;
   String query = '', group = 'all';
+  String statusTab = 'all';
+  String historyGroup = 'history';
   bool oldest = false;
   String? inputError;
   late CursorFeed<Map<String, dynamic>> feed;
@@ -147,16 +150,44 @@ class _OwnerRecordsViewState extends State<OwnerRecordsView>
           ),
           if (!widget.providers) ...[
             const SizedBox(height: 14),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                for (final entry in const {
+                  'all': 'All',
+                  'pending': 'Pending',
+                  'ongoing': 'Ongoing',
+                  'history': 'History',
+                }.entries)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(entry.value),
+                      selected: statusTab == entry.key,
+                      onSelected: (_) {
+                        statusTab = entry.key;
+                        historyGroup = 'history';
+                        group = statusTab;
+                        _apply();
+                      },
+                    ),
+                  ),
+              ]),
+            ),
+            const SizedBox(height: 14),
             DropdownButtonFormField<String>(
               key: const Key('owner-booking-group'),
-              value: group,
+              value: historyGroup,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Booking status'),
+              decoration: InputDecoration(
+                labelText: 'History filter',
+                helperText: statusTab == 'history'
+                    ? 'Filter finished requests.'
+                    : 'Select History above to use this filter.',
+                helperMaxLines: 2,
+              ),
               items: const {
-                'all': 'All bookings',
-                'pending': 'Pending',
-                'ongoing': 'Ongoing',
-                'history': 'History',
+                'history': 'All history',
                 'completed': 'Completed',
                 'cancelled': 'Cancelled',
                 'declined': 'Declined',
@@ -165,12 +196,15 @@ class _OwnerRecordsViewState extends State<OwnerRecordsView>
                   .map((e) =>
                       DropdownMenuItem(value: e.key, child: Text(e.value)))
                   .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  group = value;
-                  _apply();
-                }
-              },
+              onChanged: statusTab != 'history'
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        historyGroup = value;
+                        group = value;
+                        _apply();
+                      }
+                    },
             ),
             const SizedBox(height: 10),
             Align(
@@ -267,13 +301,33 @@ class _OwnerRecordsViewState extends State<OwnerRecordsView>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(providerDirectoryName(row),
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w700)),
+                Row(children: [
+                  CircleAvatar(
+                    backgroundColor:
+                        Theme.of(context).colorScheme.primaryContainer,
+                    child: Icon(Icons.cleaning_services_outlined,
+                        color:
+                            Theme.of(context).colorScheme.onPrimaryContainer),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: Text(providerDirectoryName(row),
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700))),
+                ]),
                 const SizedBox(height: 6),
-                Text(row['service_area'] as String),
+                Row(children: [
+                  const Icon(Icons.location_on_outlined, size: 18),
+                  const SizedBox(width: 4),
+                  Expanded(child: Text(row['service_area'] as String)),
+                ]),
                 const SizedBox(height: 8),
-                Text(providerServices(row).map((s) => s['name']).join(' · ')),
+                Wrap(spacing: 6, runSpacing: 4, children: [
+                  for (final service in providerServices(row))
+                    Chip(
+                        label: Text(service['name'] as String),
+                        visualDensity: VisualDensity.compact),
+                ]),
                 const SizedBox(height: 10),
                 Text(providerRateLabel(row),
                     style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -281,6 +335,9 @@ class _OwnerRecordsViewState extends State<OwnerRecordsView>
                 Text(
                     '${row['rating_average'] == null ? 'No ratings yet' : '${row['rating_average']} / 5'} · ${row['completed_job_count']} completed jobs'),
                 const SizedBox(height: 12),
+                Text('Availability checked when you request cleaning',
+                    style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: 8),
                 OutlinedButton(
                     onPressed: () => widget.onProvider?.call(row),
                     child: const Text('View profile')),
@@ -291,7 +348,7 @@ class _OwnerRecordsViewState extends State<OwnerRecordsView>
 
 String providerDirectoryName(Map<String, dynamic> row) =>
     (row['display_name'] as String?)?.trim().isNotEmpty == true
-        ? row['display_name'] as String
+        ? workspaceText(row['display_name'] as String)
         : 'Cleaning provider';
 List<Map<String, dynamic>> providerServices(Map<String, dynamic> row) =>
     List<Map<String, dynamic>>.from(row['services'] as List);

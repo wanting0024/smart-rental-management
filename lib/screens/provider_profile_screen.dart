@@ -27,6 +27,7 @@ class ProviderProfileScreen extends StatelessWidget {
       this.onEdit,
       this.onRefresh,
       this.onManageAvailability,
+      this.onSettings,
       this.refreshNotice,
       this.bottomNavigationBar});
   final DemoProvider provider;
@@ -35,6 +36,7 @@ class ProviderProfileScreen extends StatelessWidget {
   final ProviderProfileSnapshot? snapshot;
   final VoidCallback? onEdit, onRefresh, onManageAvailability;
   final Widget? bottomNavigationBar;
+  final ValueChanged<String>? onSettings;
   final Widget? refreshNotice;
   bool get connected => snapshot != null;
 
@@ -272,7 +274,7 @@ class ProviderProfileScreen extends StatelessWidget {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                          'Message provider · Sprint 1 feature'),
+                                          'Messaging opens after a booking is accepted.'),
                                       behavior: SnackBarBehavior.floating,
                                     ),
                                   );
@@ -300,6 +302,41 @@ class ProviderProfileScreen extends StatelessWidget {
                       ],
                     ],
                   ),
+                  if (onSettings != null) ...[
+                    const SizedBox(height: 24),
+                    const SectionHeader(title: 'Preferences'),
+                    Card(
+                        child: Column(children: [
+                      ListTile(
+                          leading: const Icon(Icons.notifications_outlined),
+                          title: const Text('Notifications'),
+                          subtitle:
+                              const Text('Unread indicators on this device'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => onSettings!('notifications')),
+                      ListTile(
+                          leading: const Icon(Icons.brightness_auto_outlined),
+                          title: const Text('Appearance'),
+                          subtitle: const Text('System, Light or Dark'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => onSettings!('appearance')),
+                    ])),
+                    const SizedBox(height: 16),
+                    const SectionHeader(title: 'Account & help'),
+                    Card(
+                        child: Column(children: [
+                      ListTile(
+                          leading: const Icon(Icons.shield_outlined),
+                          title: const Text('Privacy & security'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => onSettings!('privacy')),
+                      ListTile(
+                          leading: const Icon(Icons.help_outline),
+                          title: const Text('About & help'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => onSettings!('about')),
+                    ])),
+                  ],
                   const SizedBox(height: 24),
                 ],
               ),
@@ -841,7 +878,7 @@ class ProviderProfileScreen extends StatelessWidget {
               onPressed: () {
                 ScaffoldMessenger.of(ctx).showSnackBar(
                   SnackBar(
-                    content: Text('$label tapped · Sprint 1 will open dialer'),
+                    content: Text('Use the contact details in your phone app.'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );

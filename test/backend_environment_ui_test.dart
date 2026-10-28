@@ -39,16 +39,16 @@ void main() {
   testWidgets('local preview is clearly distinguished from saved cloud data',
       (tester) async {
     await tester.pumpWidget(app());
-    expect(find.text('LOCAL PREVIEW · No cloud data is saved'), findsOneWidget);
+    expect(find.text('OFFLINE WORKSPACE · Changes stay on this device'), findsOneWidget);
   });
 
-  testWidgets('staging label stays visible above pushed pages and dialogs',
+  testWidgets('connected staging has no top banner on pages or dialogs',
       (tester) async {
     await tester.pumpWidget(app(config: staging, connected: true));
     await tester.tap(find.text('Open details'));
     await tester.pumpAndSettle();
     expect(find.text('Next page'), findsOneWidget);
-    expect(find.textContaining('TEST ENVIRONMENT'), findsOneWidget);
+    expect(find.textContaining('TEST ENVIRONMENT'), findsNothing);
     final context = tester.element(find.text('Next page'));
     showDialog<void>(
       context: context,
@@ -56,7 +56,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Confirm action'), findsOneWidget);
-    expect(find.textContaining('TEST ENVIRONMENT'), findsOneWidget);
+    expect(find.textContaining('TEST ENVIRONMENT'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -77,7 +77,8 @@ void main() {
     expect(find.textContaining('UNVERIFIED BACKEND'), findsOneWidget);
   });
 
-  testWidgets('environment badge fits 320px at 200 percent text scale',
+  testWidgets(
+      'connected staging uses full height at 320px and 200 percent text',
       (tester) async {
     tester.view.physicalSize = const Size(320, 568);
     tester.view.devicePixelRatio = 1;
@@ -96,7 +97,9 @@ void main() {
         ),
       ),
     );
-    expect(find.textContaining('TEST ENVIRONMENT'), findsOneWidget);
+    expect(find.textContaining('TEST ENVIRONMENT'), findsNothing);
+    expect(tester.getSize(find.byType(Scaffold)).height, 568);
+    expect(staging.environment, AppEnvironment.staging);
     expect(tester.takeException(), isNull);
   });
 

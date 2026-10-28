@@ -94,8 +94,10 @@ class WorkspaceProperties extends StatelessWidget {
                       if (!context.mounted || !propertyBinding.valid) return;
                       await Navigator.of(context).push<bool>(MaterialPageRoute(
                           builder: (_) => ConnectedPropertyFormScreen(
+                              loadBuildingOptions: backend.owner.properties,
                               initial: SupabaseWorkspaceRepository
-                                  .propertyPresentation(fresh),
+                                  .propertyPresentation(fresh,
+                                      displayLabels: false),
                               canSave: () => propertyBinding.valid,
                               onSave: (input) async {
                                 if (!propertyBinding.valid)

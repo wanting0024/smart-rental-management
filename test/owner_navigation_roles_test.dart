@@ -205,8 +205,6 @@ void main() {
     pending.complete(const CursorPage(items: []));
     await tester.pumpAndSettle();
     expect(find.text('A-12, Menara Suria'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('owner-booking-group')));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('History').last);
     await tester.pumpAndSettle();
     expect(queries.last, 'A-12/history/false');

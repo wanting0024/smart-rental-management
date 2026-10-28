@@ -20,7 +20,7 @@ void main() {
     ));
 
     expect(find.text('Password recovery'), findsOneWidget);
-    expect(find.textContaining('This local demo will not send an email'),
+    expect(find.textContaining('Connect to your workspace to request a password recovery email.'),
         findsOneWidget);
     expect(find.text('owner@example.com'), findsOneWidget);
     expect(

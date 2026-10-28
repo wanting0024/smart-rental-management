@@ -1,3 +1,4 @@
+import '../../presentation/workspace_text.dart';
 import 'package:flutter/material.dart';
 import 'supabase_backend_provider.dart';
 import 'cursor_feed.dart';
@@ -100,7 +101,8 @@ class SupabaseWorkspaceRepository {
         if (row['property_id'] != id)
           throw const FormatException('Wrong property');
       });
-  static DemoProperty propertyPresentation(Map<String, dynamic> row) {
+  static DemoProperty propertyPresentation(Map<String, dynamic> row,
+      {bool displayLabels = true}) {
     TimeOfDay time(String key) {
       final value = row[key] as String;
       if (!RegExp(r'^([01]\d|2[0-3]):[0-5]\d(:00)?$').hasMatch(value))
@@ -117,9 +119,15 @@ class SupabaseWorkspaceRepository {
       throw const FormatException('Invalid property');
     return DemoProperty(
         id: row['property_id'] as String,
-        unit: row['unit_name'] as String,
-        tower: row['building_name'] as String,
-        address: row['address'] as String,
+        unit: displayLabels
+            ? workspaceText(row['unit_name'] as String)
+            : row['unit_name'] as String,
+        tower: displayLabels
+            ? workspaceText(row['building_name'] as String)
+            : row['building_name'] as String,
+        address: displayLabels
+            ? workspaceText(row['address'] as String)
+            : row['address'] as String,
         bedrooms: row['bedrooms'] as int,
         sizeSqft: row['size_sqft'] as int,
         cleaningWindowStart: time('cleaning_window_start'),

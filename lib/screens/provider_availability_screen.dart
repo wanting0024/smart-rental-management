@@ -1,51 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../features/availability/domain/provider_availability.dart';
 import '../services/provider_store.dart';
 import '../theme/app_theme.dart';
-
-/// Accepts digits or a pasted 24-hour time and inserts the colon automatically.
-class _TimeDigitsFormatter extends TextInputFormatter {
-  const _TimeDigitsFormatter();
-
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    final raw = newValue.text;
-    // Let backspace pass the separator so the hour can still be edited.
-    if (oldValue.selection.isCollapsed &&
-        oldValue.selection.baseOffset == 3 &&
-        newValue.selection.baseOffset == 2 &&
-        oldValue.text.replaceFirst(':', '') == raw) {
-      return newValue;
-    }
-
-    final separator = raw.indexOf(':');
-    final oneDigitHour =
-        separator == 1 && raw.substring(0, separator).contains(RegExp(r'^\d$'));
-    var digits = raw.replaceAll(RegExp(r'\D'), '');
-    if (oneDigitHour) digits = '0$digits';
-    if (digits.length > 4) digits = digits.substring(0, 4);
-    final formatted = digits.length > 2
-        ? '${digits.substring(0, 2)}:${digits.substring(2)}'
-        : digits;
-
-    final rawCaret = newValue.selection.extentOffset.clamp(0, raw.length);
-    var digitsBeforeCaret =
-        raw.substring(0, rawCaret).replaceAll(RegExp(r'\D'), '').length;
-    if (oneDigitHour && rawCaret > separator) digitsBeforeCaret++;
-    digitsBeforeCaret = digitsBeforeCaret.clamp(0, digits.length);
-    final formattedCaret = (digitsBeforeCaret +
-            (digits.length > 2 && digitsBeforeCaret > 2 ? 1 : 0))
-        .clamp(0, formatted.length);
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formattedCaret),
-    );
-  }
-}
+import '../widgets/time_slot_picker.dart';
 
 /// Local editor for the provider's declared weekly hours and date exceptions.
 class ProviderAvailabilityScreen extends StatelessWidget {
@@ -104,6 +63,34 @@ class ProviderAvailabilityScreen extends StatelessWidget {
       builder: (sheetContext) => StatefulBuilder(
         builder: (sheetContext, setSheetState) {
           final sem = SemanticColors.of(sheetContext);
+          Future<void> pickTime(bool start) async {
+            final value = await showMinuteTimeSlotPicker(
+              context: sheetContext,
+              title: start ? 'Working slot starts' : 'Working slot ends',
+              initialMinute: _parseTime(start ? startInput : endInput,
+                  allowEndOfDay: !start)!,
+              firstMinute: start
+                  ? 0
+                  : _parseTime(startInput)! + AvailabilitySlot.minimumMinutes,
+              lastMinute: start ? 1440 - AvailabilitySlot.minimumMinutes : 1440,
+              description:
+                  'Declared working hours in MYT. Saving checks for overlapping slots.',
+            );
+            if (value == null || !sheetContext.mounted) return;
+            setSheetState(() {
+              if (start) {
+                startInput = _time(value);
+                if (_parseTime(endInput, allowEndOfDay: true)! - value <
+                    AvailabilitySlot.minimumMinutes) {
+                  endInput = _time(value + AvailabilitySlot.minimumMinutes);
+                }
+              } else {
+                endInput = _time(value);
+              }
+              slotError = null;
+            });
+          }
+
           return SafeArea(
             top: false,
             child: Padding(
@@ -133,7 +120,7 @@ class ProviderAvailabilityScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        '${_days[weekday - 1]} · Enter both times in 24-hour format.',
+                        '${_days[weekday - 1]} · Tap to choose both times · MYT',
                         style:
                             TextStyle(color: sem.textSecondary, fontSize: 13),
                       ),
@@ -141,41 +128,28 @@ class ProviderAvailabilityScreen extends StatelessWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: TextFormField(
+                            child: InkWell(
                               key: const Key('slot-start-time'),
-                              initialValue: initialStart,
-                              onChanged: (value) => startInput = value,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: const [_TimeDigitsFormatter()],
-                              decoration: const InputDecoration(
-                                labelText: 'Start time',
-                                hintText: '08:00',
-                                prefixIcon: Icon(Icons.schedule_outlined),
-                              ),
-                              validator: (value) =>
-                                  _parseTime(value ?? '') == null
-                                      ? 'Use HH:MM'
-                                      : null,
+                              onTap: () => pickTime(true),
+                              child: InputDecorator(
+                                  decoration: const InputDecoration(
+                                    labelText: 'Start time',
+                                    prefixIcon: Icon(Icons.schedule_outlined),
+                                  ),
+                                  child: Text(startInput)),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: TextFormField(
+                            child: InkWell(
                               key: const Key('slot-end-time'),
-                              initialValue: initialEnd,
-                              onChanged: (value) => endInput = value,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: const [_TimeDigitsFormatter()],
-                              decoration: const InputDecoration(
-                                labelText: 'End time',
-                                hintText: '18:00',
-                                prefixIcon: Icon(Icons.schedule_outlined),
-                              ),
-                              validator: (value) => _parseTime(value ?? '',
-                                          allowEndOfDay: true) ==
-                                      null
-                                  ? 'Use HH:MM'
-                                  : null,
+                              onTap: () => pickTime(false),
+                              child: InputDecorator(
+                                  decoration: const InputDecoration(
+                                    labelText: 'End time',
+                                    prefixIcon: Icon(Icons.schedule_outlined),
+                                  ),
+                                  child: Text(endInput)),
                             ),
                           ),
                         ],
@@ -357,7 +331,7 @@ class ProviderAvailabilityScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 _supportingText(
-                  'Local demo: availability resets when the app restarts.',
+                  'These availability changes stay on this device.',
                   sem,
                 ),
               ],

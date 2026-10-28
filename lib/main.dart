@@ -9,6 +9,8 @@
 // Connected route: verified login -> server-backed workspace.
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'services/device_preferences.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'widgets/connected_route_lifecycle.dart';
@@ -124,6 +126,8 @@ class _RentalAppDemoState extends State<RentalAppDemo>
           Uri.base.queryParameters['theme'] == 'dark'
       ? ThemeMode.dark
       : ThemeMode.light;
+  final _devicePreferences = DevicePreferences();
+  bool _themeChosen = false;
   bool _restoringConnectedSession = false;
   bool _recoveryBlocked = false;
   final ProviderStore _providerStore = ProviderStore();
@@ -140,8 +144,7 @@ class _RentalAppDemoState extends State<RentalAppDemo>
   final MessageStore _messageStore = MessageStore();
   final UserSession _userSession = UserSession();
   late final _prototypeSupport = PrototypeSupportStore(
-      enabled: widget.backend == null ||
-          widget.backend?.config?.environmentName == 'staging');
+      enabled: widget.backend == null);
 
   void _syncPrototypeSession() {
     final account = !_userSession.isLoggedIn
@@ -150,6 +153,7 @@ class _RentalAppDemoState extends State<RentalAppDemo>
             ? widget.backend!.client.auth.currentUser?.id
             : 'local:${_userSession.role.name}:${_userSession.email.toLowerCase()}';
     _prototypeSupport.bindSession(account);
+    unawaited(_devicePreferences.bindAccount(account));
   }
 
   @override
@@ -157,6 +161,7 @@ class _RentalAppDemoState extends State<RentalAppDemo>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _userSession.addListener(_syncPrototypeSession);
+    _restoreAppearance();
     if (widget.backend != null) {
       _recoveryBlocked = widget.backend!.recovery?.blocksWorkspace ?? false;
       widget.backend!.recovery?.addListener(_onRecoveryChanged);
@@ -245,6 +250,7 @@ class _RentalAppDemoState extends State<RentalAppDemo>
     if (widget.backend != null) _clearDecodedImages();
     unawaited(_authSubscription?.cancel() ?? Future<void>.value());
     _userSession.dispose();
+    _devicePreferences.dispose();
     super.dispose();
   }
 
@@ -261,7 +267,7 @@ class _RentalAppDemoState extends State<RentalAppDemo>
           widget.backend!.client.auth.currentUser?.id != expectedUser) return;
       _userSession.signIn(
         email: identity.email,
-          displayName: identity.displayName ?? '',
+        displayName: identity.displayName ?? '',
         role: identity.role,
         providerId: identity.role == UserRole.provider ? identity.userId : null,
       );
@@ -275,11 +281,35 @@ class _RentalAppDemoState extends State<RentalAppDemo>
     }
   }
 
+  Future<void> _restoreAppearance() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final value = prefs.getString('appearance:theme');
+      if (mounted && !_themeChosen && value != null) {
+        setState(() => _themeMode = ThemeMode.values.firstWhere(
+            (m) => m.name == value,
+            orElse: () => ThemeMode.system));
+      }
+    } catch (_) {/* Keep the current usable theme. */}
+  }
+
+  Future<void> _setThemeMode(ThemeMode value) async {
+    _themeChosen = true;
+    setState(() => _themeMode = value);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!await prefs.setString('appearance:theme', value.name))
+        throw StateError('Preference not saved');
+    } catch (_) {
+      // The appearance page reports persistence failure through this Future.
+      rethrow;
+    }
+  }
+
   void _toggleTheme() {
-    setState(() {
-      _themeMode =
-          _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-    });
+    unawaited(_setThemeMode(
+            _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light)
+        .catchError((Object _) {}));
   }
 
   @override
@@ -287,6 +317,8 @@ class _RentalAppDemoState extends State<RentalAppDemo>
     return AppProviders(
       themeMode: _themeMode,
       onToggleTheme: _toggleTheme,
+      onSetThemeMode: _setThemeMode,
+      devicePreferences: _devicePreferences,
       bookingStore: _bookingStore,
       providerStore: _providerStore,
       propertyStore: _propertyStore,
@@ -404,10 +436,14 @@ class AppProviders extends InheritedWidget {
     required this.messageStore,
     this.backend,
     this.prototypeSupport,
+    this.devicePreferences,
+    this.onSetThemeMode,
     required super.child,
   });
 
   final ThemeMode themeMode;
+  final Future<void> Function(ThemeMode)? onSetThemeMode;
+  final DevicePreferences? devicePreferences;
   final VoidCallback onToggleTheme;
   final BookingStore bookingStore;
   final ProviderStore providerStore;
@@ -416,6 +452,9 @@ class AppProviders extends InheritedWidget {
   final MessageStore messageStore;
   final SupabaseBackendProvider? backend;
   final PrototypeSupportStore? prototypeSupport;
+
+  static AppProviders? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<AppProviders>();
 
   static AppProviders of(BuildContext context) {
     final result = context.dependOnInheritedWidgetOfExactType<AppProviders>();

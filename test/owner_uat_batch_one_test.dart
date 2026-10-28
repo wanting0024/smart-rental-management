@@ -137,7 +137,7 @@ void main() {
     await tester.ensureVisible(find.text('Continue'));
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    final contact = find.widgetWithText(TextFormField, 'e.g. 012-345 6789');
+    final contact = find.widgetWithText(TextFormField, '+60 12 345 6789');
     await tester.ensureVisible(contact);
     await tester.enterText(contact, '012-345 6789');
     final create = find.widgetWithText(FilledButton, 'Create account');

@@ -193,7 +193,7 @@ class AppDrawer extends StatelessWidget {
       child: Column(
         children: [
           Builder(builder: (ctx) {
-            final isDark = RentalTheme.of(ctx).isDark;
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
             return ListTile(
               leading: Icon(
                 isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
@@ -237,20 +237,16 @@ class AppDrawer extends StatelessWidget {
                 onNavigate('sign-out');
                 return;
               }
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Sign out - Sprint 0 placeholder'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              UserSessionAccess.of(context).signOut();
+              Navigator.of(context).popUntil((route) => route.isFirst);
             },
             dense: true,
           ),
           const SizedBox(height: 8),
           Text(
             backend != null
-                ? 'Smart Rental · Connected workspace'
-                : 'Smart Rental v0.1.0 - Sprint 0',
+                ? 'Smart Rental'
+                : 'Smart Rental',
             style: TextStyle(fontSize: 11, color: sem.textTertiary),
           ),
         ],

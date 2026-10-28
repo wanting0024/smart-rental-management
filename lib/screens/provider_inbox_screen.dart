@@ -507,7 +507,7 @@ class _ProviderInboxScreenState extends State<ProviderInboxScreen>
       actions: [
         Builder(
           builder: (ctx) {
-            final isDark2 = AppProviders.of(ctx).isDark;
+            final isDark2 = Theme.of(ctx).brightness == Brightness.dark;
             return IconButton(
               icon: Icon(
                 isDark2 ? Icons.light_mode_outlined : Icons.dark_mode_outlined,

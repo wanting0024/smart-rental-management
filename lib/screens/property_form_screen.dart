@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../widgets/building_name_field.dart';
 
 import '../models/demo_data.dart';
 import '../services/property_store.dart';
 import '../widgets/bedroom_count_field.dart';
+import '../widgets/time_slot_picker.dart';
 
 class PropertyFormScreen extends StatefulWidget {
   const PropertyFormScreen({
@@ -59,15 +61,21 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
   }
 
   Future<void> _pickWindow({required bool start}) async {
-    final picked = await showTimePicker(
+    final picked = await showTimeSlotPicker(
       context: context,
       initialTime: start ? _windowStart : _windowEnd,
-      helpText: start ? 'Cleaning window starts' : 'Cleaning window ends',
+      title: start ? 'Cleaning window starts' : 'Cleaning window ends',
+      firstMinute: start ? 0 : timeOfDayMinutes(_windowStart) + 1,
+      lastMinute: start ? 1438 : 1439,
     );
     if (picked == null || !mounted) return;
     setState(() {
       if (start) {
         _windowStart = picked;
+        if (timeOfDayMinutes(_windowEnd) <= timeOfDayMinutes(picked)) {
+          final end = (timeOfDayMinutes(picked) + 30).clamp(0, 1439);
+          _windowEnd = TimeOfDay(hour: end ~/ 60, minute: end % 60);
+        }
       } else {
         _windowEnd = picked;
       }
@@ -159,10 +167,15 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
             const SizedBox(height: 14),
             _field('Unit name', _unit,
                 hint: 'e.g. A-12-03', helper: 'The unit or apartment number.'),
-            _field('Building or tower', _tower,
-                hint: 'e.g. Menara Suria',
-                helper:
-                    'The building name, including the tower or block if needed.'),
+            BuildingNameField(
+                controller: _tower,
+                address: _address,
+                options: widget.store.properties
+                    .map((p) => <String, dynamic>{
+                          'building_name': p.tower,
+                          'address': p.address,
+                        })
+                    .toList()),
             _field('Property address', _address,
                 hint: 'e.g. 12 Jalan Example, Kuala Lumpur',
                 helper:
@@ -191,7 +204,8 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => _pickWindow(start: true),
                   icon: const Icon(Icons.schedule),
-                  label: Text('From ${_windowStart.format(context)}'),
+                  label: Text(
+                      'From ${timeSlotLabel(timeOfDayMinutes(_windowStart))}'),
                 ),
               ),
               const SizedBox(width: 8),
@@ -199,7 +213,8 @@ class _PropertyFormScreenState extends State<PropertyFormScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => _pickWindow(start: false),
                   icon: const Icon(Icons.schedule),
-                  label: Text('To ${_windowEnd.format(context)}'),
+                  label:
+                      Text('To ${timeSlotLabel(timeOfDayMinutes(_windowEnd))}'),
                 ),
               ),
             ]),

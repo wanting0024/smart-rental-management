@@ -14,9 +14,12 @@ class ConnectedBookingHistorySheet extends StatefulWidget {
     required this.bookingId,
     this.load,
     this.pagedHistory,
+    this.ownerId,
+    this.providerId,
   }) : assert(load != null || pagedHistory != null);
 
   final String bookingId;
+  final String? ownerId, providerId;
   final Future<List<Map<String, dynamic>>> Function(String)? load;
   final CursorFeed<Map<String, dynamic>>? pagedHistory;
 
@@ -51,6 +54,14 @@ class _ConnectedBookingHistorySheetState
     super.dispose();
   }
 
+  String? _actor(Map<String, dynamic> event) {
+    final id = event['changed_by_user_id'];
+    if (id == null) return null;
+    if (id == widget.ownerId) return 'By Owner';
+    if (id == widget.providerId) return 'By Provider';
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) => SafeArea(
         child: SizedBox(
@@ -60,22 +71,14 @@ class _ConnectedBookingHistorySheetState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                    child: Container(
-                        width: 36,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.outlineVariant,
-                            borderRadius: BorderRadius.circular(4)))),
                 Row(children: [
                   const Expanded(
-                      child: Text('Booking activity',
+                      child: Text('Status history',
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w700))),
                   if (Navigator.of(context).canPop())
                     IconButton(
-                        tooltip: 'Close activity',
+                        tooltip: 'Close status history',
                         icon: const Icon(Icons.close),
                         onPressed: () => Navigator.pop(context)),
                 ]),
@@ -93,6 +96,7 @@ class _ConnectedBookingHistorySheetState
                           showCount: false,
                           itemBuilder: (event) => BookingActivityTile(
                             event: event,
+                            actorLabel: _actor(event),
                             isLatest: identical(
                                 event, widget.pagedHistory!.items.firstOrNull),
                             isLast: identical(
@@ -149,6 +153,7 @@ class _ConnectedBookingHistorySheetState
                                 final event = events[index];
                                 return BookingActivityTile(
                                     event: event,
+                                    actorLabel: _actor(event),
                                     isLatest: index == 0,
                                     isLast: index == events.length - 1);
                               },

@@ -20,6 +20,7 @@ import '../services/backend/earnings_snapshot.dart';
 import '../widgets/connected_state_panel.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/compact_earnings_chart.dart';
 import '../widgets/section_header.dart';
 
 /// Time range used by the period filter.
@@ -143,8 +144,7 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
   Widget build(BuildContext context) {
     final binding = widget.binding;
     if (binding != null) _period = binding.period;
-    if (binding != null &&
-        (binding.error != null || _report == null)) {
+    if (binding != null && (binding.error != null || _report == null)) {
       return Scaffold(
           bottomNavigationBar: widget.bottomNavigationBar,
           appBar: AppBar(title: const Text('Earnings')),
@@ -203,7 +203,7 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Export PDF — Sprint 2 feature'),
+                    content: Text('Export is unavailable.'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -215,9 +215,11 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (binding != null) SnapshotRefreshNotice(
-            refreshing: binding.refreshing, failed: binding.refreshError != null,
-            onRetry: binding.refresh),
+          if (binding != null)
+            SnapshotRefreshNotice(
+                refreshing: binding.refreshing,
+                failed: binding.refreshError != null,
+                onRetry: binding.refresh),
           _buildPeriodFilter(),
           const SizedBox(height: 5),
           Row(
@@ -520,142 +522,30 @@ class _EarningsHistoryScreenState extends State<EarningsHistoryScreen> {
 
   Widget _buildPeriodChart(BuildContext context, EarningsSummary s) {
     final buckets = _chartBuckets(s, DateTime.now());
-    final comparablePeriods = buckets.where((b) => b.jobCount > 0).length;
-    final maxValue =
-        buckets.map((b) => b.total).fold<double>(0, (m, v) => v > m ? v : m);
-    final sem = SemanticColors.of(context);
-    final accent = Theme.of(context).colorScheme.primary;
-    final subtitle = _connected
-        ? 'Completed job value by ${_report!.unit == 'sevenDays' ? '7-day period' : _report!.unit} · before fees'
-        : _period == _EarningsPeriod.allTime
-            ? 'Monthly net earnings · tap a month for jobs'
-            : _period == _EarningsPeriod.last30
-                ? 'Net earnings by 7-day period'
-                : 'Net earnings by calendar week';
-
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionHeader(
-              title: 'Earnings trend',
-              subtitle: subtitle,
-            ),
-            const SizedBox(height: 12),
-            if (s.records.isEmpty)
-              Text(
-                'No completed jobs in this period.',
-                style: TextStyle(color: sem.textSecondary),
-              )
-            else if (comparablePeriods < 2)
-              Text(
-                'Not enough periods to compare yet. Your completed jobs are listed below.',
-                style: TextStyle(color: sem.textSecondary),
-              )
-            else
-              for (var index = 0; index < buckets.length; index++) ...[
-                if (index > 0) ...[
-                  Divider(height: 22, color: sem.border),
-                ],
-                _buildEarningsPeriodRow(
-                  context,
-                  buckets[index],
-                  maxValue: maxValue,
-                  showComparisonBar: buckets.length > 1,
-                  accent: accent,
-                  sem: sem,
-                ),
-              ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEarningsPeriodRow(
-    BuildContext context,
-    _EarningsChartBucket bucket, {
-    required double maxValue,
-    required bool showComparisonBar,
-    required Color accent,
-    required SemanticColors sem,
-  }) {
-    final jobLabel =
-        '${bucket.jobCount} completed ${bucket.jobCount == 1 ? 'job' : 'jobs'}';
-    final detail = bucket.jobCount == 0
-        ? 'No jobs · ${bucket.range}'
-        : _period == _EarningsPeriod.allTime
-            ? jobLabel
-            : '$jobLabel · ${bucket.range}';
-    return Tooltip(
-      message: '${bucket.range}\n'
-          '$jobLabel · RM ${bucket.total.toStringAsFixed(2)}',
-      waitDuration: const Duration(milliseconds: 250),
-      preferBelow: false,
-      child: InkWell(
-        key: ValueKey('earnings-bucket-${bucket.label}'),
-        onTap: _connected || bucket.jobCount == 0
-            ? null
-            : () => _showBucketDetails(context, bucket),
-        borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      bucket.label,
-                      style: TextStyle(
-                        color: sem.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'RM ${bucket.total.toStringAsFixed(_connected ? 2 : 0)}',
-                    style: TextStyle(
-                      color: sem.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (!_connected && bucket.jobCount > 0) ...[
-                    const SizedBox(width: 4),
-                    Icon(Icons.chevron_right,
-                        size: 18, color: sem.textTertiary),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                detail,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: sem.textSecondary, fontSize: 12),
-              ),
-              if (showComparisonBar) ...[
-                const SizedBox(height: 9),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: LinearProgressIndicator(
-                    value: maxValue == 0 ? 0 : bucket.total / maxValue,
-                    minHeight: 7,
-                    backgroundColor: sem.surfaceAlt,
-                    valueColor: AlwaysStoppedAnimation<Color>(accent),
-                  ),
-                ),
-              ],
-            ],
-          ),
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SectionHeader(
+            title: 'Earnings trend',
+            subtitle: _connected
+                ? 'Completed job value by ${_report!.unit == 'sevenDays' ? '7-day period' : _report!.unit} · before fees'
+                : _period == _EarningsPeriod.allTime
+                    ? 'Monthly net earnings'
+                    : 'Weekly net earnings'),
+        const SizedBox(height: 18),
+        CompactEarningsChart(
+          key: ValueKey('chart-${_period.name}'),
+          points: buckets
+              .map((b) =>
+                  EarningsChartPoint(b.label, b.range, b.total, b.jobCount))
+              .toList(),
+          onDetails: _connected
+              ? null
+              : (index) => _showBucketDetails(context, buckets[index]),
         ),
-      ),
-    );
+      ]),
+    ));
   }
 
   void _showBucketDetails(BuildContext context, _EarningsChartBucket bucket) {

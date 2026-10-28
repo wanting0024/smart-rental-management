@@ -131,7 +131,7 @@ void main() {
     expect(
         find.text('Your price per hour in Malaysian ringgit.'), findsOneWidget);
 
-    final contact = find.widgetWithText(TextFormField, 'e.g. 012-345 6789');
+    final contact = find.widgetWithText(TextFormField, '+60 12 345 6789');
     await tester.ensureVisible(contact);
     await tester.enterText(contact, '123');
     await tester.ensureVisible(find.text('Create account').last);

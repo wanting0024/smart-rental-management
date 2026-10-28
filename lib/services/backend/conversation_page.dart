@@ -1,3 +1,4 @@
+import '../../presentation/workspace_text.dart';
 import '../../models/message.dart';
 import 'cursor_feed.dart';
 import 'notification_snapshot.dart';
@@ -34,10 +35,10 @@ class BookingConversation {
         bookingId: row['booking_id'] as String,
         counterpart: row['counterpart_name'] as String,
         property:
-            '${row['unit_name'] as String}, ${row['building_name'] as String}',
+            '${workspaceText(row['unit_name'] as String)}, ${workspaceText(row['building_name'] as String)}',
         service: row['service_name'] as String,
         status: row['status'] as String,
-        preview: row['last_message'] as String,
+        preview: workspaceText(row['last_message'] as String),
         timestamp: BookingNotification.time(row['last_at'] as String),
         unread: row['unread_count'] as int);
   }

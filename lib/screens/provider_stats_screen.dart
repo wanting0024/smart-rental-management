@@ -182,7 +182,7 @@ class ProviderStatsScreen extends StatelessWidget {
               onPressed: () {
                 ScaffoldMessenger.of(ctx).showSnackBar(
                   const SnackBar(
-                    content: Text('Share report — Sprint 2 will PDF this'),
+                    content: Text('Report sharing is unavailable.'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );

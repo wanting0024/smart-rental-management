@@ -1,3 +1,4 @@
+import '../presentation/workspace_text.dart';
 import 'package:flutter/material.dart';
 import '../services/backend/safe_diagnostics.dart';
 import '../services/backend/booking_rate_limit.dart';
@@ -406,7 +407,8 @@ class _ConnectedBookingMessagesScreenState
             : 'Provider';
     return Semantics(
       container: true,
-      label: 'Message from $sender, $day at $time MYT: ${message.body}',
+      label:
+          'Message from $sender, $day at $time MYT: ${workspaceText(message.body)}',
       child: ExcludeSemantics(
         child: Align(
           alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
@@ -436,7 +438,7 @@ class _ConnectedBookingMessagesScreenState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    message.body,
+                    workspaceText(message.body),
                     style: TextStyle(
                       color: mine ? scheme.onPrimary : scheme.onSurface,
                       height: 1.35,

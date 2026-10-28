@@ -1,346 +1,181 @@
-# Smart Rental Management — Owner and Cleaning Service Provider
+# Smart Rental Management
 
-Flutter implementation of the **Owner Module + Cleaning Service Provider Module**
-for the FYP *"Smart Rental Management Mobile Application"*.
+Flutter application for the **Property Owner** and **Cleaning Service Provider** modules of the FYP *Smart Rental Management Mobile Application*.
 
-The app has separate local UI-preview and authenticated Supabase-backed modes.
-Hosted setup, device validation and release acceptance are still pending; local
-tests or a working preview are not launch approval. Current work is tracked in
-`DEVELOPMENT_PROGRESS.md` and `SECURITY_AND_PRIVACY_TASKS.md`.
+Owners manage rental units and request cleaning. Providers manage services and availability, receive requests, and record completed work. Both participants follow the same booking through role-specific interfaces.
 
-## Current UAT checkpoint — 0.1.4+5 (26 October 2026)
+## Current status — 28 October 2026
 
-- Connected Owner and Provider flows retain the original UI and use isolated
-  Staging. Owner navigation has five primary tabs; Home, Properties, Providers,
-  Bookings and Profile each have a distinct purpose.
-- Owner Home has one Request cleaning primary action, status shortcuts and
-  separate Pending / Upcoming lists. Providers browses approved public profiles;
-  Bookings searches and filters the complete owned history before paging.
-- Booking lifecycle, private validated evidence, participant chat, notifications,
-  Schedule, Earnings and profile operations use protected backend operations.
-- Verified at this checkpoint: 850 Flutter tests, local PostgreSQL migrations
-  001–029 under both privilege profiles, and fixed-account Staging read checks.
-  The Android Profile UAT package was built and its signing identity checked.
-  Paired physical-phone UAT is still pending; this is not public-launch approval.
+- Source version: **0.1.8+9**, as declared in `pubspec.yaml`.
+- The original Owner/Provider UI is connected to independent **Supabase Staging**. The dataset is synthetic, but authenticated actions save real cloud records.
+- Latest local verification: **892 Flutter tests passed**; lib/test analysis had **no errors or warnings**, with informational style findings remaining.
+- Migrations **001–030** passed disposable PostgreSQL checks under both legacy and disabled default grants. Migration 030 is deployed to Staging; a subsequent dry-run found no pending migrations, seeds or role changes.
+- Paired phone/emulator UAT and remaining release checks are pending. Automated tests and Staging deployment do not establish public-launch readiness.
+- Recent fixes, including uploaded-photo removal, have not been packaged into a new APK. The version number alone does not establish installer freshness.
 
-See [current navigation and UAT checklist](docs/2026-10-26_OWNER_NAVIGATION.md),
-[completion status](PROTOTYPE_COMPLETION.md) and
-[backend setup](supabase/README.md). Terms / Privacy remain unpublished drafts;
-payments, real support operations and password-recovery callback setup are not
-accepted as complete.
+This README describes the current connected implementation. Older dated documents are historical checkpoints; see [development progress](DEVELOPMENT_PROGRESS.md) for later changes and validation boundaries.
 
-Local backend configuration, credentials, signing files, downloaded runtimes,
-test outputs and APK installers are deliberately excluded from Git. Start with
-the example configuration files and the backend setup documentation; use your
-own authorized environment. Never commit test-account passwords or server keys.
+## Main features
 
-Run `flutter pub get` and `flutter test` to verify the Flutter source. Connected
-runs also require the configured Staging backend and its deployed migrations.
+| Area | Current behaviour |
+| --- | --- |
+| Owner Home | One Request cleaning primary action, status shortcuts and pending/upcoming bookings. |
+| My properties | Building-grouped rental units; Add/Edit forms with building suggestions, bedroom choices and a required cleaning window. |
+| Providers | Browse approved public profiles, services, area and rates. Browsing does not reserve availability. |
+| Request cleaning | Four steps: unit/service, date/time, eligible Provider, review/send. The server checks ownership, capability, approval, availability, cleaning-window compatibility and conflicts. |
+| Bookings and details | Search, status tabs, conditional History dropdown, authorised Pending edits/cancellation and a recorded status timeline. |
+| Provider work and Schedule | Receive requests, accept/decline, start cleaning and inspect scheduled work; manage weekly availability and unavailable dates. |
+| Completion evidence | Private Before/After photos and remarks. The assigned Provider may replace/remove a photo while In Progress; removal requires confirmation and both photos are required for completion. |
+| Booking messages | Persistent participant-only text conversations. Sending is allowed while Accepted/In Progress; closed conversations are read-only. |
+| Notifications | Stored in-app booking updates/read state. Preferences control supported on-device indicators; background push delivery is not enabled. |
+| Earnings, statistics and reviews | Connected own-account summaries and completed-service reviews. Earnings show completed booking quote amounts before platform fees, not settled payouts or money received. |
+| Profile and settings | Account/profile editing, Provider services/rates/privacy, System/Light/Dark appearance, notification preferences and Help centre. |
 
-Password recovery setup and limitations: `supabase/PASSWORD_RECOVERY.md`.
-Booking-message and evidence-upload limits: `supabase/BOOKING_COMMUNICATION_LIMITS.md`.
-Trusted photo validation, legacy-data impact and coordinated staging setup: `supabase/VERIFIED_EVIDENCE.md`.
-The initial Sprint 0 screen inventory below describes the legacy offline
-preview, not the complete current connected implementation.
+The interface uses **Material 3 with a Navy / Sky Blue theme**, with separate light and dark palettes. Local preview stores remain available for offline UI inspection; they are separate from connected repositories and cannot prove cloud persistence or multi-account behaviour.
 
----
+## Report objective mapping
 
-## 1. What you get
+| Objective | App flow | Current boundary |
+| --- | --- | --- |
+| **1.3.1 Integrated cleaning-service coordination** | Owner → My properties → Request cleaning → Bookings. | Connected unit-linked requests and management implemented; paired-device acceptance pending. |
+| **1.3.2 Provider matching and scheduling** | Request cleaning → date/time → Find eligible providers; Provider availability/Schedule. | Mandatory service, availability, window and conflict checks implemented. Route distance, automatic geographic compatibility and WSM/MCDA comparative ranking incomplete. A displayed service area/rating is not a ranking score. |
+| **1.3.3 Service fulfilment and monitoring** | Booking details → history/messages → photos/remarks → completion/review. | Controlled lifecycle, evidence and connected outcome records implemented. Device acceptance, background push and payment integration remain separate outstanding work. |
 
-### 23 screens (12 Owner + 9 Provider + 2 shared)
+### Booking lifecycle
 
-**Owner side (12)**
-
-| # | Screen | File | Purpose |
-|---|--------|------|---------|
-| 1 | Login | `lib/screens/login_screen.dart` | Role select + login |
-| 2 | Onboarding | `lib/screens/onboarding_screen.dart` | First-run intro |
-| 3 | Owner Dashboard | `lib/screens/owner_home_screen.dart` | Hero summary + 4 stat cards + booking list + FAB |
-| 4 | Provider Browse | `lib/screens/provider_browse_screen.dart` | Provider A/B/C ranked by MCDA |
-| 5 | Booking Detail | `lib/screens/booking_detail_screen.dart` | Status strip + lifecycle timeline + before/after proof |
-| 6 | New Booking | `lib/screens/new_booking_screen.dart` | Multi-field form to create a `requested` booking |
-| 7 | Schedule | `lib/screens/schedule_screen.dart` | Week timeline + today strip + per-day legend |
-| 8 | Property List | `lib/screens/property_list_screen.dart` | All properties |
-| 9 | Property Detail | `lib/screens/property_detail_screen.dart` | Single property + bookings |
-| 10 | Owner Spend | `lib/screens/owner_spend_screen.dart` | Cost analytics dashboard |
-| 11 | Chat List | `lib/screens/chat_list_screen.dart` | All chat threads |
-| 12 | Chat | `lib/screens/chat_screen.dart` | Inbox + send messages |
-| 13 | Notifications | `lib/screens/notifications_screen.dart` | Recent events |
-| 14 | About | `lib/screens/about_screen.dart` | App info + theme toggle |
-| 15 | Reschedule | `lib/screens/reschedule_screen.dart` | Owner reschedules a booking |
-
-**Provider side (9)** — `provider_inbox`, `provider_job_detail`, `provider_profile`, `provider_edit_profile`, `provider_schedule`, `provider_stats`, `provider_reviews`, plus the two `chat_*` screens shared with Owner.
-
-### 13 reusable widgets
-
-- `booking_card.dart` — compact booking row with status chip
-- `provider_card.dart` — provider row with score badge + tag cloud
-- `status_chip.dart` — colored status pill
-- `app_text_field.dart` — outlined form input with validation states
-- `empty_state.dart` — icon + title + subtitle + CTA empty pattern
-- `section_header.dart` — bold title with subtitle and trailing action
-- `calendar_week_view.dart` — week timeline with positioning by time
-
-### Demo data (hardcoded in `lib/models/demo_data.dart`)
-
-- **3 providers** (A: 2.0km, 4.8★, Low workload, 0.93 / B: 5.0km, 4.9★, High workload, 0.81 / C: 1.0km, 4.5★, Medium workload, 0.74)
-- **4 sample bookings** covering each lifecycle stage (Requested / Scheduled / InProgress / Completed)
-- **5 properties** under management (Menara Suria + Vista Bayu)
-- **5 service types** with duration and base price (Standard / Deep / Move-in / Move-out / Window)
-
-### FSM transitions (ADR-0004)
-
-```
-requested → accepted, cancelled
-accepted → scheduled, cancelled
-scheduled → inProgress, delayed, cancelled
-inProgress → completed, delayed
-delayed → inProgress, cancelled
-completed → (terminal)
-cancelled → (terminal)
+```text
+Pending → Accepted → In Progress → Completed
+Pending → Declined
+Pending / Accepted → Cancelled, when authorised by the server
 ```
 
----
+Completed, Declined and Cancelled are terminal. Pending does not reserve Provider time. Acceptance rechecks eligibility/conflicts transactionally; overlapping Accepted/In Progress bookings are blocked. The backend owns allowed role/state transitions and completion requirements.
 
-## 2. Architecture
-
-```
-lib/
-├── main.dart                      MaterialApp + theme toggle + entry
-├── theme/
-│   └── app_theme.dart             Design tokens + light + dark ThemeData
-├── models/
-│   └── demo_data.dart             Hardcoded providers, bookings, properties, services
-├── screens/
-│   ├── owner_home_screen.dart     Entry — owner dashboard (5 tabs + drawer + bottom nav)
-│   ├── provider_browse_screen.dart
-│   ├── booking_detail_screen.dart
-│   ├── new_booking_screen.dart    Owner: create new request
-│   ├── schedule_screen.dart       Owner: week timeline
-│   ├── provider_inbox_screen.dart Provider: jobs list (4 tabs + drawer + bottom nav)
-│   ├── provider_job_detail_screen.dart  Provider: FSM actions
-│   ├── provider_profile_screen.dart    Full provider profile (MCDA breakdown)
-│   ├── provider_schedule_screen.dart   Provider: own schedule
-│   ├── earnings_history_screen.dart    Provider: earnings dashboard
-│   ├── owner_spend_screen.dart         Owner: spend analytics
-│   ├── notifications_screen.dart       Activity feed (owner + provider)
-│   ├── property_list_screen.dart       Owner's 5 properties
-│   └── property_detail_screen.dart     Single property detail
-└── widgets/
-    ├── booking_card.dart
-    ├── provider_card.dart
-    ├── status_chip.dart
-    ├── app_text_field.dart
-    ├── empty_state.dart
-    ├── section_header.dart
-    ├── calendar_week_view.dart
-    ├── app_bottom_nav.dart       Bottom navigation (4 tabs)
-    ├── app_drawer.dart           Drawer with profile + theme switch
-    ├── auto_demo_button.dart     Play auto-demo button (viva wow)
-    └── review_submission_sheet.dart  Rate provider bottom sheet
-```
-
----
-
-## 3. Design system
-
-The app uses **Material 3** with a custom **Emerald + Teal** palette inspired by
-Airbnb's clean property-management aesthetic.
-
-### Color tokens
-
-| Token | Light | Dark | Usage |
-|---|---|---|---|
-| `primary` | `#2E7D32` (Emerald 800) | `#4CAF50` (Green 500) | Brand actions, links, active states |
-| `primaryLight` | `#4CAF50` | — | Gradient endpoint |
-| `primarySurface` | `#E8F5E9` | `#1B3320` | Tinted backgrounds, chips |
-| `primaryBorder` | `#C8E6C9` | `#2D5234` | Borders on tinted elements |
-| `primaryDark` | `#1B5E20` | — | Hover/pressed states |
-| `secondary` | `#26A69A` (Teal 400) | `#80CBC4` (Teal 200) | Provider-side accents |
-| `secondarySurface` | `#E0F2F1` | `#0F2A2A` | Provider tinted backgrounds |
-| `background` | `#FAFAFA` | `#0F1419` | Page background |
-| `surface` | `#FFFFFF` | `#1A1F2E` | Cards, sheets, app bar |
-| `border` | `#E5E7EB` | `#2D3548` | Hairlines, input borders |
-| `textPrimary` | `#1F2937` | `#F1F5F9` | Headings, body |
-| `textSecondary` | `#6B7280` | `#94A3B8` | Captions, helper text |
-
-### Spacing & radius
-
-- **Spacing**: 8dp grid (4 / 8 / 12 / 16 / 20 / 24 / 32 / 48) — see `AppSpacing`
-- **Radius**:
-  - `8dp` for buttons and inputs
-  - **`16dp` is canonical** for cards, dialogs, sheets
-  - `999` for status pills
-  - `24` for hero sections
-- **Elevation**: 1 (cards), 4 (FAB), 8 (sheets) — soft shadows, never sharp
-
-### Typography
-
-Material 3 defaults, with key sizes:
-- Display 24/700 · H1 20/700 · H2 18/600 · H3 16/600
-- Body 14/400 · Caption 12/500 · Overline 11/600 (letter-spacing 0.5)
-
-### Components delivered
-
-- AppBar (surface-tinted, no shadow)
-- Cards (16dp radius, 1px border, 1 elevation)
-- Filled / Outlined / Text / Icon buttons
-- Outlined text fields (filled bg, 8dp radius)
-- Status chips (pill, tinted bg + colored text)
-- Bottom navigation (5 tabs, M3 surface)
-- Floating action button (16dp radius, 4 elevation)
-- Bottom sheet (24dp top radius, drag handle)
-- Snackbars (8dp radius, floating)
-- Search bar (filled, no border)
-- Calendar picker (week view with day labels + grid)
-- Notification badges (8dp dot, error red)
-- Image carousel placeholder (in Before/After proof cards)
-
-### Dark mode
-
-- Toggle via the **moon/sun icon in the app bar** (top right of every screen)
-- Or via the **Dark mode switch in the drawer footer**
-- All surfaces flip: `background` `#FAFAFA → #0F1419`, `surface` `#FFFFFF → #1A1F2E`
-- Text inverts: `textPrimary` `#1F2937 → #F1F5F9`
-- Brand colors stay emerald/teal but the primary brightens to `#4CAF50` for contrast
-- Hero gradients do NOT change — they stay emerald/teal in both modes
-
----
-
-## 4. How to run
+## Run the App
 
 ### Prerequisites
-- Flutter SDK **3.22+** (tested on 3.24.5)
-- Chrome (web) or Android emulator (mobile)
 
-### Web (fastest — no Gradle needed)
+- Flutter **3.22+** and Dart **3.4+**, within `pubspec.yaml` constraints. Check its package-specific toolchain compatibility notes before upgrading.
+- Android SDK and an emulator, or a USB-debugging-enabled Android phone.
+- For connected runs: Internet, an authorised Staging project with migrations/environment marker and required Edge function configured, plus Owner/Provider accounts.
+
+Open the **repository root**, not just `android/`, in Android Studio. Run from the repository root:
+
 ```powershell
-cd C:\Users\yunli\Downloads\rental_app_demo
+flutter pub get
+flutter devices
+```
+
+### Connected Staging configuration
+
+Create the ignored local configuration only if it does not already exist:
+
+```powershell
+if (-not (Test-Path 'supabase/backend_config.staging.local.json')) {
+    Copy-Item 'supabase/backend_config.example.json' 'supabase/backend_config.staging.local.json'
+}
+```
+
+Edit that local file with your authorised values:
+
+| Setting | Value |
+| --- | --- |
+| `APP_ENV` | `staging` |
+| `SUPABASE_PROJECT_REF`, `SUPABASE_URL` | Matching Staging project reference and HTTPS URL |
+| `SUPABASE_PUBLISHABLE_KEY` | Client publishable key; never a secret/service-role key |
+| `ALLOW_PRODUCTION_BACKEND` | `false` |
+| `AUTH_RECOVERY_REDIRECT_URL` | Configured recovery destination; see [recovery setup/build restrictions](supabase/PASSWORD_RECOVERY.md) |
+
+Startup verifies an administrator-owned server environment marker. Missing/mismatched settings fail explicitly instead of substituting preview data. Follow [environment setup](supabase/ENVIRONMENTS.md) before connecting a new project. Never apply a fresh-schema bundle to an existing/shared database.
+
+Use an Android device ID returned by `flutter devices`:
+
+```powershell
+$androidDeviceId = 'replace-with-your-android-device-id'
+flutter run -d $androidDeviceId --dart-define-from-file=supabase/backend_config.staging.local.json
+```
+
+In Android Studio, select the Android emulator/phone and add this to the Flutter run configuration's **Additional run args**:
+
+```text
+--dart-define-from-file=supabase/backend_config.staging.local.json
+```
+
+Selecting `Windows (desktop)` requires a separate Windows build toolchain. Native development sessions support Hot Reload/Hot Restart; an installed APK does not receive source-code updates automatically.
+
+Optional connected Web development: `tool/run_staging_web.ps1`. Its fixed origin must match the evidence-validator origin allow-list. Web does not replace native device/permission checks.
+
+### Offline UI preview
+
+Without backend settings, a debug run opens the separate local preview:
+
+```powershell
 flutter run -d chrome
 ```
-The app opens on `http://localhost:xxxxx` (Flutter picks a port). Hot reload works
-on file save.
 
-### Android (for emulator or physical device)
-```powershell
-cd C:\Users\yunli\Downloads\rental_app_demo
-flutter run -d <device-id>
-```
-To list devices: `flutter devices`.
+Preview sample data is for UI inspection only and does not persist to Supabase. Release builds require an explicit backend and valid recovery setup.
 
-### Android Studio
-1. **File → Open** → select `C:\Users\yunli\Downloads\rental_app_demo`
-2. Wait for Gradle sync.
-3. **Pub get** if not auto-triggered.
-4. Pick a device in the device dropdown (top right).
-5. **Run** (green triangle) or `Shift+F10`.
+## Two-role demonstration and UAT
 
----
+Use **Owner on the phone** and **Provider on an Android emulator or another phone**, with distinct accounts on the same Staging project. Keep the relevant pages in the foreground. Internet is required; the same Wi-Fi network is not.
 
-## 4. Demo flow (5-minute walkthrough)
+1. Briefly introduce both roles' main pages.
+2. Owner chooses a unit, service, interval and the Provider account used on the other device, then submits a Pending request.
+3. Provider receives/accepts it; verify the Owner's status.
+4. Exchange messages while Accepted/In Progress, then start cleaning.
+5. Provider uploads Before/After photos, adds remarks and completes the job.
+6. Owner opens the same completed booking, reviews evidence and submits a review. Relate the flow to Objectives 1.3.1–1.3.3.
 
-Use this order when presenting:
+Booking feeds/status subscriptions and open booking conversations use **Supabase Realtime**. Message-list/unread indicators also use bounded foreground revalidation. Not every screen subscribes to every change: photos, profiles and reports may require reload/re-entry. Background push is not configured. Rehearse cross-device delivery before presenting it as verified; manual refresh is recovery, not proof of Realtime delivery.
 
-1. **Owner Dashboard** (1 min) — "Welcome back Oh Wan Ting" hero; 4 stat cards
-   (4 Total / 1 Active / 1 Sched. / 1 Done); 4 booking cards below.
-2. **Provider Browse** (1 min) — Tap 🔍 in app bar. Show Provider A scored 0.93
-   (Full match) and Provider C scored 0.74 (Partial match). Explain MCDA weights.
-3. **Booking Detail** (1 min) — Tap b-001 (InProgress, amber). Show status strip
-   and before/after proof cards. Highlight FSM compliance.
-4. **New Booking** (1 min) — Tap FAB. Pick a property, service type, date, time.
-   Toggle auto-match. Submit → snackbar "Request submitted" → new card at top
-   of list (Requested, grey).
-5. **Provider view** (1 min) — Back to home, tap 💼 in app bar. Provider Inbox
-   opens with gradient earnings hero. Accept a new request → it moves to
-   "Active" tab → tap it → Active Job Detail with FSM action sheet.
+Use synthetic data. Staging requests/messages/files remain after closing the App. Do not reseed accounts or delete shared fixtures as a normal demonstration step. Supply credentials privately, never in this README.
 
-See [DEMO.md](DEMO.md) for the full viva script with talking points.
-
----
-
-## 5. Tests
+## Verification
 
 ```powershell
-cd C:\Users\yunli\Downloads\rental_app_demo
 flutter test
+flutter analyze lib test --no-fatal-infos
 ```
 
-Coverage (see `test/`, 95 cases total):
-- `booking_status_test.dart` — FSM transition rules (9 states × 17 valid + invalid transitions)
-- `booking_store_test.dart` — in-memory pub/sub
-- `calendar_test.dart` — `mondayOf()` week-start helper
-- `demo_data_test.dart` — seed consistency (3 providers, 5 bookings, 5 properties, 5 services)
-- `earnings_spend_test.dart` — earnings + spend aggregations
-- `messaging_reviews_test.dart` — chat + review flow
-- `provider_store_test.dart` — provider CRUD
-- `theme_test.dart` — light + dark theme tokens
+The latest **892 passing tests** cover role/state handling, navigation, forms, responsive UI, retry/readback, private evidence, caching and photo removal. This count describes the dated checkpoint, not a guarantee for future edits.
 
----
+Local SQL checks use disposable databases, not Staging:
 
-## 6. What is NOT included (intentionally)
+```powershell
+# Requires Docker Desktop; exercise both default-privilege profiles.
+.\tool\verify_local_migrations.ps1 -PrivilegeProfile legacy
+.\tool\verify_local_migrations.ps1 -PrivilegeProfile disabled
+```
 
-| Out of scope | Why | Where it lives in the FYP project |
-|---|---|---|
-| Supabase / cloud sync | Sprint 0 only | `lib/services/backend/supabase_backend_provider.dart` |
-| Real authentication | Demo runs offline | `lib/features/auth/` |
-| Real image upload | Placeholders only | `lib/features/service_tracking/` |
-| Real-time status push | Polling-only for now | `lib/services/realtime/` |
-| Tenant module | Different team member | (out of FYP scope) |
-| IoT / utility monitoring | Different team member | (out of FYP scope) |
-| Payment / billing | Different team member | (out of FYP scope) |
-| Admin module | Different team member | (out of FYP scope) |
+`tool/verify_native_migrations.ps1` is the alternative for a separately installed PostgreSQL runtime. The latest native 001–030 checks passed both profiles, including ACL/RLS, lifecycle, evidence, pagination and concurrency scenarios. Auth/Storage shims verify database rules, not hosted JWT, Storage API, Realtime or camera behaviour. Earlier hosted acceptance results are in the dated progress notes; the latest photo-removal change still needs device UAT.
 
-See the FYP project's [docs/architecture_decisions.md](../rental_app/docs/architecture_decisions.md)
-for the 6 ADRs (Flutter for cross-platform, Supabase backend, MCDA weighted ranking,
-FSM 9-state (Ch 2.4.5 + 2.7.3), before/after image + owner confirmation, Gantt chart-driven planning).
+## Known gaps and release boundaries
 
----
+- Route-distance integration, WSM/MCDA ranking and automated alternative-time recommendations are incomplete. Eligibility filtering is not ranking.
+- Background push, cleaning-payment collection and Provider payout are not complete. Earnings charts are not payment settlement evidence.
+- Help centre is available; no operational support mailbox/ticket team is configured. Simulated support tickets are no longer exposed in the user flow.
+- Terms/Privacy remain unpublished review drafts. Account deletion/export, password-recovery delivery/callback acceptance and production privacy/release operations are not accepted as complete.
+- Paired Android UAT, camera/gallery permissions, reconnect behaviour, real file cleanup, signing/distribution and production deployment require remaining acceptance work. Current code is not public-release approval.
 
-## 7. Cross-reference to the FYP project
+## Repository and security notes
 
-| Demo screen | FYP code (TODO = not yet implemented in Sprint 1) |
-|---|---|
-| Owner Dashboard | `lib/features/owner/presentation/owner_dashboard.dart` |
-| Provider Browse | `lib/features/provider_matching/presentation/provider_list.dart` |
-| Booking Detail | `lib/features/service_tracking/presentation/booking_detail.dart` |
-| New Booking | `lib/features/cleaning_booking/presentation/new_booking.dart` |
-| Schedule | `lib/features/owner/presentation/schedule.dart` |
-| Provider Inbox | `lib/features/provider_matching/presentation/inbox.dart` |
-| Active Job Detail | `lib/features/service_tracking/presentation/active_job.dart` |
-| Demo data | FYP: `supabase/seed/0001_demo_data.sql` |
-| FSM rules | FYP: `lib/core/models/booking_model.dart` |
-| Ranking weights | FYP: `lib/core/config/app_config.dart` |
+| Location | Purpose |
+| --- | --- |
+| `lib/screens/`, `lib/widgets/` | Existing UI, navigation and shared components |
+| `lib/services/backend/` | Connected repositories, bindings, caching and subscriptions |
+| `supabase/migrations/`, `supabase/functions/` | Versioned database changes and Edge functions |
+| `test/`, `supabase/tests/` | Flutter and database verification |
+| `tool/` | Development, verification and guarded operational tools |
 
----
+Local backend configuration, credentials, signing material, downloaded runtimes, generated outputs and installers are excluded from Git. Never put secret/service-role keys in the App. Updating this README does not push GitHub, deploy a backend or build/distribute an APK.
 
-## 8. Roadmap
+Operational references:
 
-See [SPRINT_PLAN.md](SPRINT_PLAN.md) for the full Sprint 0/1/2 breakdown and status.
+- [Backend checkpoint and historical notes](supabase/README.md)
+- [Environment separation](supabase/ENVIRONMENTS.md)
+- [Photo lifecycle](supabase/PHOTO_UPLOAD_LIFECYCLE.md) and [trusted validation](supabase/VERIFIED_EVIDENCE.md)
+- [Subscriptions](supabase/SUBSCRIPTION_LIFECYCLE.md), [pagination](supabase/PAGINATION.md) and [caching/compression](supabase/CACHING_AND_COMPRESSION.md)
+- [Message/upload limits](supabase/BOOKING_COMMUNICATION_LIMITS.md) and [secret/log protection](supabase/SECRET_AND_LOG_PROTECTION.md)
+- [Current UI implementation](docs/2026-10-28_APPROVED_UI_IMPLEMENTATION.md) and [user-facing content](docs/2026-10-28_USER_FACING_CONTENT.md)
 
----
-
-## 3. UI Polish History (Rounds 7–12)
-
-After Sprint 1, every screen was passed through 6 rounds of polish to reach
-**/ui-ux-designer** standard. **122/122 tests pass · Web build OK · 0 hardcoded
-hex colors in any screen · full light + dark mode.**
-
-| Round | Focus | Screens touched |
-|---|---|---|
-| 7 | Edit profile polish (privacy toggle) | 1 |
-| 8 | Provider stats + earnings history | 2 |
-| 9 | 5 high-traffic screens (owner home, new booking, browse, chat×2) | 5 |
-| 10 | 6 mid-tier screens (owner spend, property×2, schedule, provider×2) | 6 |
-| 11 | 6 remaining screens (booking detail, notifications, schedule, reviews, about, login) | 6 |
-| 12 | Onboarding final touch + animated accent tint | 1 |
-| 13 | Touch-up of 2 Round 6 screens without explicit headers (reschedule + provider_job_detail modal sheets themed) | 2 |
-
-### Key polish patterns applied
-- **Theme tokens** — every `Color(0xFF...)` replaced with `AppColors.*` or `SemanticColors.of(context).*`
-- **`AppTheme.primaryGradient`** — used on all hero cards (owner home, owner spend, earnings, stats, profile, login, about, property detail, provider inbox)
-- **`intl.DateFormat`** — consistent date display across 8 screens
-- **`SectionHeader` widget** — uniform section typography in 6 screens
-- **Sticky submit / CTA** — `bottomNavigationBar` with "Ready to submit" hint on 3 screens
-- **`PopScope` unsaved-guard** — new_booking warns before discarding in-progress form
-- **Privacy respect** — `provider.showPhoneToOwners` honored in `provider_profile_screen`
-- **Animated onboarding background** — accent-tinted bg that follows current page
+Dated documents describe their own checkpoints. Use current progress and actual test/deployment results when assessing later changes.

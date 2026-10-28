@@ -99,7 +99,11 @@ class Scanner:
                 raise ScanIncomplete()
             combined = tail + block
             for index, encoding in ((0, 'utf-8'), (0, 'utf-16le'), (1, 'utf-16le')):
-                text = combined[index:].decode(encoding, errors='ignore')
+                # Preserve malformed binary boundaries. Dropping invalid bytes
+                # can join a harmless prefix literal with an unrelated adjacent
+                # symbol in an AOT string pool and invent a credential. Actual
+                # contiguous UTF-8/UTF-16 keys still match, including across chunks.
+                text = combined[index:].decode(encoding, errors='replace')
                 for rule, line in findings_in_text(text):
                     self.add(name, rule, max(1, line_offset + line))
             # Retain enough context for split UTF-16 keys, JWTs and PEM blocks.

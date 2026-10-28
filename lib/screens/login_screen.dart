@@ -86,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
             subtitle: 'Shared Authentication',
             variant: 'login',
             trailing: PopupMenuButton<UserRole>(
-              tooltip: 'Demo login options',
+              tooltip: 'Choose account role',
               icon: const Icon(Icons.more_horiz, color: Colors.white, size: 20),
               onSelected: (role) => setState(() {
                 _role = role;
@@ -95,9 +95,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     : 'provider@example.com';
               }),
               itemBuilder: (_) => const [
-                PopupMenuItem(value: UserRole.owner, child: Text('Owner demo')),
+                PopupMenuItem(value: UserRole.owner, child: Text('Property Owner')),
                 PopupMenuItem(
-                    value: UserRole.provider, child: Text('Provider demo')),
+                    value: UserRole.provider, child: Text('Service Provider')),
               ],
             )),
         body: FigmaSurface(
@@ -140,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                   alignment:
                                                       Alignment.centerLeft),
                                               onPressed: () => _notice(
-                                                  'Password recovery is not connected in this local demo.'),
+                                                  'Connect to your workspace to request password recovery.'),
                                               child: Text('Forgot password?',
                                                   style: FigmaUi.text(11,
                                                       bold: true,
@@ -161,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           label: 'Register Owner Account',
                                           outlined: true,
                                           onPressed: () => _notice(
-                                              'Registration is not connected in this local demo.')),
+                                              'Connect to your workspace to create an account.')),
                                       const SizedBox(height: 22),
                                       Text(
                                           'Secure access for Property Owners and\nCleaning Service Providers',
@@ -170,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               color: FigmaUi.muted)),
                                       const SizedBox(height: 22),
                                       Text(
-                                          'Local demo · No real authentication',
+                                          'Offline workspace · Online sign-in unavailable',
                                           textAlign: TextAlign.center,
                                           style: FigmaUi.text(10,
                                               color: FigmaUi.muted)),
